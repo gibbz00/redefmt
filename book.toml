@@ -1,0 +1,19 @@
+[book]
+authors = ["gibbz"]
+language = "en"
+multilingual = false
+src = "book"
+title = "redefmt Documentation"
+
+[rust]
+edition = "2024"
+
+[build]
+build-dir = "target/book"
+
+[output.html]
+cname = "https://gibbz00.github.io/redefmt"
+curly-quotes = true
+edit-url-template = "https://github.com/gibbz00/redefmt/edit/main/{path}"
+git-repository-url = "https://github.com/gibbz00/redefmt"
+preferred-dark-theme = "navy"
