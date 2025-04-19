@@ -1,18 +1,35 @@
-use alloc::boxed::Box;
-use core::{error::Error, ops::Range};
+use core::ops::Range;
 
-pub trait Parse: Sized {
-    fn parse(str: &str) -> Result<Self, ParseError>;
+use crate::*;
+
+pub trait Parse: private::Sealed + Sized {
+    fn parse(offset: usize, str: &str) -> Result<Self, ParseError>;
 }
 
-#[derive(Debug)]
+mod private {
+    use crate::*;
+
+    pub trait Sealed {}
+
+    impl Sealed for Integer {}
+    impl Sealed for Identifier {}
+}
+
+#[derive(Debug, PartialEq)]
 pub struct ParseError {
     range: Range<usize>,
-    kind: Box<dyn Error>,
+    kind: ParseErrorKind,
 }
 
 impl ParseError {
-    pub(crate) fn new(range: Range<usize>, kind: impl Error + 'static) -> Self {
-        Self { range, kind: Box::new(kind) }
+    pub(crate) fn new(offset: usize, range: Range<usize>, kind: impl Into<ParseErrorKind>) -> Self {
+        let range = offset + range.start..offset + range.end;
+        Self { range, kind: kind.into() }
     }
+}
+
+#[derive(Debug, PartialEq, derive_more::From)]
+pub enum ParseErrorKind {
+    Integer(core::num::ParseIntError),
+    Identifier(IdentifierParseError),
 }

@@ -1,7 +1,7 @@
 use crate::*;
 
 pub struct FormatArgument {
-    identifier: Option<ArgumentIdentifier>,
+    identifier: Option<Parameter>,
     options: FormatOptions,
 }
 

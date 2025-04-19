@@ -11,13 +11,16 @@ mod integer;
 pub(crate) use integer::Integer;
 
 mod identifier;
-pub(crate) use identifier::ArgumentIdentifier;
+pub(crate) use identifier::{Identifier, IdentifierParseError};
 
-mod format_argument;
-pub(crate) use format_argument::FormatArgument;
+mod parameter;
+pub(crate) use parameter::Parameter;
 
 mod format_options;
 pub(crate) use format_options::*;
+
+mod format_argument;
+pub(crate) use format_argument::FormatArgument;
 
 mod format_string;
 pub(crate) use format_string::FormatString;
