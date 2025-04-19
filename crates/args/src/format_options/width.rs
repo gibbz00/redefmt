@@ -3,7 +3,7 @@ use crate::*;
 /// https://doc.rust-lang.org/std/fmt/index.html#width
 pub enum FormatWidth {
     CountLiteral(usize),
-    Argument(Parameter),
+    Argument(Argument),
 }
 
 #[cfg(test)]

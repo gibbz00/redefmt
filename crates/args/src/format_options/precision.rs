@@ -3,7 +3,7 @@ use crate::*;
 /// https://doc.rust-lang.org/std/fmt/index.html#precision
 pub enum FormatPrecision {
     CountLiteral(usize),
-    Argument(Parameter),
+    Argument(Argument),
     /// '*'
     NextArgument,
 }

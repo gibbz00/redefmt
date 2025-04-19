@@ -13,8 +13,8 @@ pub(crate) use integer::Integer;
 mod identifier;
 pub(crate) use identifier::{Identifier, IdentifierParseError};
 
-mod parameter;
-pub(crate) use parameter::Parameter;
+mod argument;
+pub(crate) use argument::Argument;
 
 mod format_options;
 pub(crate) use format_options::*;

@@ -13,7 +13,7 @@ mod private {
 
     impl Sealed for Integer {}
     impl Sealed for Identifier {}
-    impl Sealed for Parameter {}
+    impl Sealed for Argument {}
     impl Sealed for FormatTrait {}
 }
 
