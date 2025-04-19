@@ -7,6 +7,9 @@ pub struct FormatArgument {
 }
 
 impl Parse for FormatArgument {
+    // Context:
+    // - `str` is non-empty.
+    // - Does not contain opening and closing braces.
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         todo!()
     }
@@ -18,18 +21,22 @@ mod tests {
 
     #[test]
     fn parse_empty() {
-        // "{}"
         // "{:}"
     }
 
     #[test]
     fn parse_with_argument_only() {
-        // "{abc:}"
-        // "{abc}"
+        // "{x:}"
+        // "{x}"
     }
 
     #[test]
     fn parse_with_options_only() {
         // "{:?}"
+    }
+
+    #[test]
+    fn parse_with_both_argument_and_options() {
+        // "{x:?}"
     }
 }

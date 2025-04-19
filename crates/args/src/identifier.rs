@@ -1,5 +1,7 @@
 use alloc::string::{String, ToString};
 
+use unicode_xid::UnicodeXID;
+
 use crate::*;
 
 /// IDENTIFIER_OR_KEYWORD
@@ -18,81 +20,56 @@ pub struct Identifier {
 pub enum IdentifierParseError {
     /// ""
     Empty,
-    /// "_"
+    /// "_" or "r#_"
     Underscore,
-    /// "r#_"
-    ReservedRaw,
-    /// "r#<int>" or "<int>"
-    LeadingInteger,
-    /// "\t", " ", "\n" etc.
-    WhiteSpace,
     /// "\u{200C}"
     ZeroWidthNonJoiner,
+    InvalidStartCharacter,
+    InvalidContinueCharacter,
 }
 
 impl Parse for Identifier {
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         const RAW_START: &str = "r#";
-        const UNDERSCORE: &str = "_";
 
-        assert_not_empty(offset, str)?;
-
-        assert_no_whitespace(offset, str)?;
-
-        return match str.strip_prefix(RAW_START) {
-            Some(raw_ident) => parse_raw(offset + RAW_START.len(), raw_ident),
-            None => parse_non_raw(offset, str),
+        let (offset, ident, raw) = match str.strip_prefix(RAW_START) {
+            Some(raw_ident) => (offset + RAW_START.len(), raw_ident, true),
+            None => (offset, str, false),
         };
 
-        fn parse_raw(offset: usize, raw_ident: &str) -> Result<Identifier, ParseError> {
-            if raw_ident.len() == 1 && raw_ident == UNDERSCORE {
-                return Err(ParseError::new(offset, 0..1, IdentifierParseError::ReservedRaw));
-            }
+        assert_xid_chars(offset, ident)?;
 
-            assert_no_integer_start(offset, raw_ident)?;
+        return Ok(Identifier { raw, inner: ident.to_string() });
 
-            Ok(Identifier { raw: true, inner: raw_ident.to_string() })
-        }
-
-        fn parse_non_raw(offset: usize, ident: &str) -> Result<Identifier, ParseError> {
-            if ident.len() == 1 && ident == UNDERSCORE {
-                return Err(ParseError::new(offset, 0..1, IdentifierParseError::Underscore));
-            }
-
-            assert_no_integer_start(offset, ident)?;
-
-            Ok(Identifier { raw: false, inner: ident.to_string() })
-        }
-
-        fn assert_not_empty(offset: usize, str: &str) -> Result<(), ParseError> {
-            if str.is_empty() {
-                return Err(ParseError::new(offset, 0..0, IdentifierParseError::Empty));
-            }
-
-            Ok(())
-        }
-
-        fn assert_no_whitespace(offset: usize, ident: &str) -> Result<(), ParseError> {
+        fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseError> {
             const ZERO_WIDTH_NON_JOINER: char = '\u{200C}';
+            const UNDERSCORE: char = '_';
 
-            for (ident_index, ident_char) in ident.chars().enumerate() {
-                if ident_char.is_whitespace() {
-                    return single_char_error(offset, ident_index, IdentifierParseError::WhiteSpace);
+            let mut char_iter = ident.chars().enumerate();
+
+            let Some((_, first_char)) = char_iter.next() else {
+                return Err(ParseError::new(offset, 0..0, IdentifierParseError::Empty));
+            };
+
+            if first_char == UNDERSCORE {
+                if ident.len() == 1 {
+                    return Err(ParseError::new(offset, 0..1, IdentifierParseError::Underscore));
                 }
+            } else if first_char == ZERO_WIDTH_NON_JOINER {
+                return single_char_error(offset, 0, IdentifierParseError::ZeroWidthNonJoiner);
+            } else if !first_char.is_xid_start() {
+                return single_char_error(offset, 0, IdentifierParseError::InvalidStartCharacter);
+            }
 
-                if ident_char == ZERO_WIDTH_NON_JOINER {
-                    return single_char_error(offset, ident_index, IdentifierParseError::ZeroWidthNonJoiner);
+            for (next_char_index, next_char) in char_iter {
+                if !next_char.is_xid_continue() {
+                    return single_char_error(offset, next_char_index, IdentifierParseError::InvalidContinueCharacter);
+                } else if next_char == ZERO_WIDTH_NON_JOINER {
+                    return single_char_error(offset, next_char_index, IdentifierParseError::ZeroWidthNonJoiner);
                 }
             }
 
             Ok(())
-        }
-
-        fn assert_no_integer_start(offset: usize, ident: &str) -> Result<(), ParseError> {
-            ident
-                .starts_with(|ch: char| !ch.is_ascii_digit())
-                .then_some(())
-                .ok_or(ParseError::new(offset, 0..1, IdentifierParseError::LeadingInteger))
         }
 
         fn single_char_error(
@@ -123,9 +100,15 @@ mod tests {
     }
 
     #[test]
-    fn whitespace_error() {
-        assert_error("\nx", 0..1, IdentifierParseError::WhiteSpace);
-        assert_error("x\n", 1..2, IdentifierParseError::WhiteSpace);
+    fn invalid_identifier_chars() {
+        assert_error("1", 0..1, IdentifierParseError::InvalidStartCharacter);
+        assert_error("r#1", 2..3, IdentifierParseError::InvalidStartCharacter);
+
+        assert_error("x#", 1..2, IdentifierParseError::InvalidContinueCharacter);
+        assert_error("r#x#", 3..4, IdentifierParseError::InvalidContinueCharacter);
+
+        assert_error("\nx", 0..1, IdentifierParseError::InvalidStartCharacter);
+        assert_error("x\n", 1..2, IdentifierParseError::InvalidContinueCharacter);
     }
 
     #[test]
@@ -135,29 +118,15 @@ mod tests {
     }
 
     #[test]
-    fn raw_with_underscore_ok() {
-        assert_ok("r#_x", true);
-    }
-
-    #[test]
-    fn raw_with_underscore_error() {
-        assert_error("r#_", 2..3, IdentifierParseError::ReservedRaw);
-    }
-
-    #[test]
     fn underscore_ok() {
         assert_ok("_x", false);
+        assert_ok("r#_x", true);
     }
 
     #[test]
     fn underscore_error() {
         assert_error("_", 0..1, IdentifierParseError::Underscore);
-    }
-
-    #[test]
-    fn leading_integer_error() {
-        assert_error("1", 0..1, IdentifierParseError::LeadingInteger);
-        assert_error("r#1", 2..3, IdentifierParseError::LeadingInteger);
+        assert_error("r#_", 2..3, IdentifierParseError::Underscore);
     }
 
     fn assert_ok(ident_str: &str, expected_raw: bool) {
@@ -178,6 +147,6 @@ mod tests {
 
         let actual_error = Identifier::parse(mock_offset, str).unwrap_err();
 
-        assert_eq!(expected_error, actual_error);
+        assert_eq!(expected_error, actual_error, "input string: {}", str);
     }
 }
