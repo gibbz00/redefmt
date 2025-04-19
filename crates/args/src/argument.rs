@@ -1,12 +1,14 @@
 use crate::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Argument {
     Index(Integer),
     Identifier(Identifier),
 }
 
 impl Parse for Argument {
+    // Context from `FormatArgument::parse`:
+    // - `str` not empty
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         match str.starts_with(|ch: char| ch.is_ascii_digit()) {
             true => Integer::parse(offset, str).map(Argument::Index),

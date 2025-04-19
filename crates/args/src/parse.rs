@@ -2,23 +2,9 @@ use core::ops::Range;
 
 use crate::*;
 
-// TODO: remove sealed requirement given that trait should only be pub(crate)?
-pub trait Parse: private::Sealed + Sized {
+// Need not be sealed as trait should not be made public
+pub trait Parse: Sized {
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError>;
-}
-
-mod private {
-    use crate::*;
-
-    pub trait Sealed {}
-
-    macro_rules! impl_sealed {
-        ($($ident:ty,)*) => {
-            $(impl Sealed for $ident {})*
-        };
-    }
-
-    impl_sealed!(Integer, Identifier, Argument, FormatTrait, FormatArgument, FormatString,);
 }
 
 #[derive(Debug, PartialEq)]

@@ -1,7 +1,7 @@
 use crate::*;
 
 /// Decimal integer that may contain leading zeroes, and must fit into an usize
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Integer(usize);
 
 impl Parse for Integer {

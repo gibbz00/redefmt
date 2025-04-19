@@ -9,9 +9,18 @@ readme.workspace = true
 repository.workspace = true
 version.workspace = true
 
+[features]
+builder = ["dep:bon"]
+
 [lints]
 workspace = true
 
 [dependencies]
 derive_more = { version = "2.0", features = ["from"] }
 unicode-xid = "0.2"
+
+# feature: builder
+bon = { version = "3.6", default-features = false, optional = true }
+
+[dev-dependencies]
+redefmt-args = { path = ".", features = ["builder"] }

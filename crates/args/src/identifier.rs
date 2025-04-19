@@ -9,7 +9,7 @@ use crate::*;
 /// As defined in <https://doc.rust-lang.org/reference/identifiers.html>
 ///
 /// Results in `format_args!("{match}", match = 10);` being a valid expression.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Identifier {
     raw: bool,
     // IMPROVEMENT: borrowed?
@@ -18,8 +18,6 @@ pub struct Identifier {
 
 #[derive(Debug, PartialEq)]
 pub enum IdentifierParseError {
-    /// ""
-    Empty,
     /// "_" or "r#_"
     Underscore,
     /// "\u{200C}"
@@ -29,6 +27,8 @@ pub enum IdentifierParseError {
 }
 
 impl Parse for Identifier {
+    // Context from `Argument::parse`:
+    // - `str` not empty
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         const RAW_START: &str = "r#";
 
@@ -47,9 +47,9 @@ impl Parse for Identifier {
 
             let mut char_iter = ident.chars().enumerate();
 
-            let Some((_, first_char)) = char_iter.next() else {
-                return Err(ParseError::new(offset, 0..0, IdentifierParseError::Empty));
-            };
+            let (_, first_char) = char_iter
+                .next()
+                .expect("call context should not have provided an empty string");
 
             if first_char == UNDERSCORE {
                 if ident.len() == 1 {
@@ -92,11 +92,6 @@ mod tests {
     fn parse() {
         assert_ok("x", false);
         assert_ok("r#x", true);
-    }
-
-    #[test]
-    fn empty_error() {
-        assert_error("", 0..0, IdentifierParseError::Empty);
     }
 
     #[test]
