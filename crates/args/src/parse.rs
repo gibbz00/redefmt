@@ -2,6 +2,7 @@ use core::ops::Range;
 
 use crate::*;
 
+// TODO: remove sealed requirement given that trait should only be pub(crate)?
 pub trait Parse: private::Sealed + Sized {
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError>;
 }
@@ -11,10 +12,13 @@ mod private {
 
     pub trait Sealed {}
 
-    impl Sealed for Integer {}
-    impl Sealed for Identifier {}
-    impl Sealed for Argument {}
-    impl Sealed for FormatTrait {}
+    macro_rules! impl_sealed {
+        ($($ident:ty,)*) => {
+            $(impl Sealed for $ident {})*
+        };
+    }
+
+    impl_sealed!(Integer, Identifier, Argument, FormatTrait, FormatArgument, FormatString,);
 }
 
 #[derive(Debug, PartialEq)]
@@ -35,4 +39,5 @@ pub enum ParseErrorKind {
     Integer(core::num::ParseIntError),
     Identifier(IdentifierParseError),
     FormatTrait(FormatTraitParseError),
+    FormatString(FormatStringParseError),
 }

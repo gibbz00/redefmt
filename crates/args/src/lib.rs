@@ -23,4 +23,4 @@ mod format_argument;
 pub(crate) use format_argument::FormatArgument;
 
 mod format_string;
-pub(crate) use format_string::FormatString;
+pub(crate) use format_string::{FormatString, FormatStringParseError};

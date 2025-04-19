@@ -1,9 +1,10 @@
 use crate::*;
 
 /// https://doc.rust-lang.org/std/fmt/index.html#formatting-traits
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub enum FormatTrait {
     /// ''
+    #[default]
     Display,
     /// '?'
     Debug,

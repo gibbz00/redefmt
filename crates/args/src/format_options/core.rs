@@ -1,5 +1,6 @@
 use crate::*;
 
+#[derive(Debug, Default, PartialEq)]
 pub struct FormatOptions {
     align: Option<FormatAlign>,
     sign: Option<Sign>,
