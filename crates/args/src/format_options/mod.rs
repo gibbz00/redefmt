@@ -14,4 +14,4 @@ mod precision;
 pub(crate) use precision::FormatPrecision;
 
 mod r#trait;
-pub(crate) use r#trait::FormatTrait;
+pub(crate) use r#trait::{FormatTrait, FormatTraitParseError};

@@ -14,6 +14,7 @@ mod private {
     impl Sealed for Integer {}
     impl Sealed for Identifier {}
     impl Sealed for Parameter {}
+    impl Sealed for FormatTrait {}
 }
 
 #[derive(Debug, PartialEq)]
@@ -33,4 +34,5 @@ impl ParseError {
 pub enum ParseErrorKind {
     Integer(core::num::ParseIntError),
     Identifier(IdentifierParseError),
+    FormatTrait(FormatTraitParseError),
 }
