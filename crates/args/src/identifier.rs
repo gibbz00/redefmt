@@ -7,7 +7,7 @@ use crate::*;
 /// As defined in <https://doc.rust-lang.org/reference/identifiers.html>
 ///
 /// Results in `format_args!("{match}", match = 10);` being a valid expression.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Identifier {
     raw: bool,
     // IMPROVEMENT: borrowed?

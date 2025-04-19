@@ -13,6 +13,7 @@ mod private {
 
     impl Sealed for Integer {}
     impl Sealed for Identifier {}
+    impl Sealed for Parameter {}
 }
 
 #[derive(Debug, PartialEq)]
