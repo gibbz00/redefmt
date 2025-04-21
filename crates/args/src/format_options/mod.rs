@@ -7,6 +7,9 @@ pub(crate) use align::{Alignment, FormatAlign};
 mod sign;
 pub(crate) use sign::Sign;
 
+mod count;
+pub(crate) use count::FormatCount;
+
 mod width;
 pub(crate) use width::FormatWidth;
 
