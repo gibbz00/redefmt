@@ -51,14 +51,20 @@ impl Parse for Identifier {
                 .next()
                 .expect("call context should not have provided an empty string");
 
-            if first_char == UNDERSCORE {
-                if ident.len() == 1 {
-                    return Err(ParseError::new(offset, 0..1, IdentifierParseError::Underscore));
+            {
+                let first_char_error = if first_char == UNDERSCORE {
+                    (ident.len() == 1).then_some(IdentifierParseError::Underscore)
+                } else if first_char == ZERO_WIDTH_NON_JOINER {
+                    Some(IdentifierParseError::ZeroWidthNonJoiner)
+                } else if !first_char.is_xid_start() {
+                    Some(IdentifierParseError::InvalidStartCharacter)
+                } else {
+                    None
+                };
+
+                if let Some(error) = first_char_error {
+                    return Err(ParseError::new_char(offset, error));
                 }
-            } else if first_char == ZERO_WIDTH_NON_JOINER {
-                return single_char_error(offset, 0, IdentifierParseError::ZeroWidthNonJoiner);
-            } else if !first_char.is_xid_start() {
-                return single_char_error(offset, 0, IdentifierParseError::InvalidStartCharacter);
             }
 
             for (next_char_index, next_char) in char_iter {
@@ -77,7 +83,7 @@ impl Parse for Identifier {
             char_index: usize,
             parse_error: IdentifierParseError,
         ) -> Result<(), ParseError> {
-            Err(ParseError::new(offset + char_index, 0..1, parse_error))
+            Err(ParseError::new_char(offset + char_index, parse_error))
         }
     }
 }

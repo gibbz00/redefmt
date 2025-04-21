@@ -58,9 +58,8 @@ impl Parse for FormatString {
             match char {
                 OPENING_BRACE => {
                     let Some((next_char_index, next_char)) = char_iter.next() else {
-                        return Err(ParseError::new(
+                        return Err(ParseError::new_char(
                             offset + char_index,
-                            0..1,
                             FormatStringParseError::UnmatchedOpen,
                         ));
                     };
@@ -83,6 +82,9 @@ impl Parse for FormatString {
                         Some((argument_end_index, _)) => {
                             let format_argument = FormatArgument::parse(
                                 offset + next_char_index,
+                                // Slicing should be safe given that both
+                                // indexes should point to one byte ASCII
+                                // characters, '{' and '}' respectively.
                                 &str[next_char_index..argument_end_index],
                             )?;
 
@@ -90,9 +92,8 @@ impl Parse for FormatString {
                             last_segment_end = Some(argument_end_index + 1);
                         }
                         None => {
-                            return Err(ParseError::new(
+                            return Err(ParseError::new_char(
                                 offset + char_index,
-                                0..1,
                                 FormatStringParseError::UnmatchedOpen,
                             ));
                         }
@@ -100,9 +101,8 @@ impl Parse for FormatString {
                 }
                 CLOSING_BRACE => {
                     if char_iter.next().is_none_or(|(_, next_char)| next_char != CLOSING_BRACE) {
-                        return Err(ParseError::new(
+                        return Err(ParseError::new_char(
                             offset + char_index,
-                            0..1,
                             FormatStringParseError::UnmatchedClose,
                         ));
                     }
@@ -234,7 +234,7 @@ mod tests {
         assert_open_error("{x");
 
         fn assert_open_error(str: &str) {
-            let expected_error = ParseError::new(0, 0..1, FormatStringParseError::UnmatchedOpen);
+            let expected_error = ParseError::new_char(0, FormatStringParseError::UnmatchedOpen);
             let actual_error = FormatString::parse(0, str).unwrap_err();
 
             assert_eq!(expected_error, actual_error);
