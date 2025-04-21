@@ -7,9 +7,9 @@ pub struct FormatArgument {
 }
 
 impl Parse for FormatArgument {
-    // Context from `FormatString::parse`:
-    // - Does not contain opening and closing braces.
-    // - `str` not empty.
+    /// Context from `FormatString::parse`:
+    /// - Does not contain opening and closing braces.
+    /// - `str` not empty.
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         let format_argument = match str.find(':') {
             Some(split_index) => {

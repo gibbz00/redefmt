@@ -17,10 +17,10 @@ pub struct FormatOptions {
 }
 
 impl Parse for FormatOptions {
-    // Context from `FormatArgument::parse`:
-    // - Does not include semicolon.
-    // - `str` may be empty.
-    // - Contains no trailing whitespace.
+    /// Context from `FormatArgument::parse`:
+    /// - Does not include semicolon.
+    /// - `str` may be empty.
+    /// - Contains no trailing whitespace.
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         if str.is_empty() {
             return Ok(Self::default());

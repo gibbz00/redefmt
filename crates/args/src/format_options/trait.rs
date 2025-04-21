@@ -34,6 +34,8 @@ pub enum FormatTraitParseError {
 }
 
 impl Parse for FormatTrait {
+    /// Context from `FormatOptions::parse`:
+    /// - `str` not empty
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         let format_trait = match str {
             "" => FormatTrait::Display,

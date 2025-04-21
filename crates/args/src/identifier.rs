@@ -27,8 +27,8 @@ pub enum IdentifierParseError {
 }
 
 impl Parse for Identifier {
-    // Context from `Argument::parse`:
-    // - `str` not empty
+    /// Context from `Argument::parse`:
+    /// - `str` not empty
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         const RAW_START: &str = "r#";
 
