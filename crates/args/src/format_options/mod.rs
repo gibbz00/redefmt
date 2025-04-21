@@ -8,10 +8,7 @@ mod sign;
 pub(crate) use sign::Sign;
 
 mod count;
-pub(crate) use count::FormatCount;
-
-mod width;
-pub(crate) use width::FormatWidth;
+pub(crate) use count::{FormatCount, FormatCountParseError};
 
 mod precision;
 pub(crate) use precision::{FormatPrecision, FormatPrecisionParseError};

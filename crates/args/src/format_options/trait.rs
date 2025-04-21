@@ -38,7 +38,6 @@ impl Parse for FormatTrait {
     /// - `str` not empty
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         let format_trait = match str {
-            "" => FormatTrait::Display,
             "?" => FormatTrait::Debug,
             "x?" => FormatTrait::DebugLowerHex,
             "X?" => FormatTrait::DebugUpperHex,
@@ -61,8 +60,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn default() {
+        assert_eq!(FormatTrait::Display, Default::default())
+    }
+
+    #[test]
     fn parse() {
-        assert_parse("", FormatTrait::Display);
         assert_parse("?", FormatTrait::Debug);
         assert_parse("x?", FormatTrait::DebugLowerHex);
         assert_parse("X?", FormatTrait::DebugUpperHex);

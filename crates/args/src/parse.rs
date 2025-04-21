@@ -1,4 +1,4 @@
-use core::{ops::Range, str::ParseBoolError};
+use core::ops::Range;
 
 use crate::*;
 
@@ -9,6 +9,7 @@ pub trait Parse: Sized {
 
 #[derive(Debug, PartialEq)]
 pub struct ParseError {
+    // NOTE: character indices, not byte
     range: Range<usize>,
     kind: ParseErrorKind,
 }
@@ -28,6 +29,7 @@ impl ParseError {
 pub enum ParseErrorKind {
     Integer(core::num::ParseIntError),
     Identifier(IdentifierParseError),
+    Count(FormatCountParseError),
     Precision(FormatPrecisionParseError),
     Trait(FormatTraitParseError),
     String(FormatStringParseError),

@@ -2,7 +2,7 @@ use crate::*;
 
 /// Decimal integer that may contain leading zeroes, and must fit into an usize
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Integer(usize);
+pub struct Integer(pub(crate) usize);
 
 impl Parse for Integer {
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
