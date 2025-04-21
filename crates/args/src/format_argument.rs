@@ -20,7 +20,7 @@ impl Parse for FormatArgument {
                     false => Some(Argument::parse(offset, argument_str)?),
                 };
 
-                let format_options_str = &str[split_index + 1..];
+                let format_options_str = &str[split_index + 1..].trim_end();
                 let options = FormatOptions::parse(offset + split_index + 1, format_options_str)?;
 
                 Self { argument, options }
@@ -42,6 +42,11 @@ mod tests {
     #[test]
     fn parse_empty() {
         assert_parse(":", None, Default::default());
+    }
+
+    #[test]
+    fn trim_whispcace_end() {
+        assert_parse(":\t\r\n ", None, Default::default());
     }
 
     #[test]
