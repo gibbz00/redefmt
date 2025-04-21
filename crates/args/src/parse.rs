@@ -1,4 +1,4 @@
-use core::ops::Range;
+use core::{ops::Range, str::ParseBoolError};
 
 use crate::*;
 
@@ -18,12 +18,17 @@ impl ParseError {
         let range = offset + range.start..offset + range.end;
         Self { range, kind: kind.into() }
     }
+
+    pub(crate) fn new_char(offset: usize, kind: impl Into<ParseErrorKind>) -> Self {
+        Self::new(offset, 0..1, kind)
+    }
 }
 
 #[derive(Debug, PartialEq, derive_more::From)]
 pub enum ParseErrorKind {
     Integer(core::num::ParseIntError),
     Identifier(IdentifierParseError),
-    FormatTrait(FormatTraitParseError),
-    FormatString(FormatStringParseError),
+    Precision(FormatPrecisionParseError),
+    Trait(FormatTraitParseError),
+    String(FormatStringParseError),
 }

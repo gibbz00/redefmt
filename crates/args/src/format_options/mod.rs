@@ -14,7 +14,7 @@ mod width;
 pub(crate) use width::FormatWidth;
 
 mod precision;
-pub(crate) use precision::FormatPrecision;
+pub(crate) use precision::{FormatPrecision, FormatPrecisionParseError};
 
 mod r#trait;
 pub(crate) use r#trait::{FormatTrait, FormatTraitParseError};
