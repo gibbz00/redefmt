@@ -45,7 +45,7 @@ impl Parse for Identifier {
             const ZERO_WIDTH_NON_JOINER: char = '\u{200C}';
             const UNDERSCORE: char = '_';
 
-            let mut char_iter = ident.chars().enumerate();
+            let mut char_iter = ident.char_indices();
 
             let (_, first_char) = char_iter
                 .next()

@@ -50,7 +50,7 @@ impl Parse for FormatString {
         const CLOSING_BRACE: char = '}';
 
         let mut segments = Vec::new();
-        let mut char_iter = str.chars().enumerate();
+        let mut char_iter = str.char_indices();
         // index exclusive
         let mut last_segment_end = None;
 
@@ -82,9 +82,6 @@ impl Parse for FormatString {
                         Some((argument_end_index, _)) => {
                             let format_argument = FormatArgument::parse(
                                 offset + next_char_index,
-                                // Slicing should be safe given that both
-                                // indexes should point to one byte ASCII
-                                // characters, '{' and '}' respectively.
                                 &str[next_char_index..argument_end_index],
                             )?;
 
