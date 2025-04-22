@@ -2,10 +2,20 @@ use crate::*;
 
 /// Decimal integer that may contain leading zeroes, and must fit into an usize
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Integer(pub(crate) usize);
+pub struct Integer(usize);
 
-impl Parse for Integer {
-    fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+impl Integer {
+    pub(crate) fn new(inner: usize) -> Self {
+        Self(inner)
+    }
+
+    pub(crate) fn inner(&self) -> usize {
+        self.0
+    }
+}
+
+impl Integer {
+    pub(crate) fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         str.parse::<usize>()
             .map(Self)
             .map_err(|err| ParseError::new(offset, 0..str.len(), err))

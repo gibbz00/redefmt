@@ -1,10 +1,14 @@
-use crate::*;
-
 /// https://doc.rust-lang.org/std/fmt/index.html#fillalignment
 #[derive(Debug, PartialEq)]
 pub struct FormatAlign {
-    pub(crate) alignment: Alignment,
-    pub(crate) character: Option<char>,
+    alignment: Alignment,
+    character: Option<char>,
+}
+
+impl FormatAlign {
+    pub(crate) fn new(alignment: Alignment, character: Option<char>) -> Self {
+        Self { alignment, character }
+    }
 }
 
 #[derive(Debug, PartialEq)]

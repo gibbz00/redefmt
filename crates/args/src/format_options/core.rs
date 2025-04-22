@@ -4,9 +4,9 @@ use crate::*;
 
 type StrIter<'a> = Peekable<CharIndices<'a>>;
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, derive_getters::Getters)]
 #[cfg_attr(feature = "builder", derive(bon::Builder))]
-pub struct FormatOptions {
+pub struct FormatOptions<'a> {
     align: Option<FormatAlign>,
     sign: Option<Sign>,
     #[cfg_attr(feature = "builder", builder(default))]
@@ -14,18 +14,18 @@ pub struct FormatOptions {
     /// https://doc.rust-lang.org/std/fmt/index.html#sign0
     #[cfg_attr(feature = "builder", builder(default))]
     use_zero_padding: bool,
-    width: Option<FormatCount>,
-    precision: Option<FormatPrecision>,
+    width: Option<FormatCount<'a>>,
+    precision: Option<FormatPrecision<'a>>,
     #[cfg_attr(feature = "builder", builder(default))]
     format_trait: FormatTrait,
 }
 
-impl Parse for FormatOptions {
+impl<'a> FormatOptions<'a> {
     /// Context from `FormatSegment::parse`:
     /// - Does not include semicolon.
     /// - `str` may be empty.
     /// - Contains no trailing whitespace.
-    fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
         let mut format_options = FormatOptions::default();
         let mut str_iter = str.char_indices().peekable();
 
@@ -35,11 +35,11 @@ impl Parse for FormatOptions {
     }
 }
 
-fn parse_from_align(
+fn parse_from_align<'a>(
     offset: usize,
-    initial_str: &str,
-    str_iter: &mut StrIter,
-    format_options: &mut FormatOptions,
+    initial_str: &'a str,
+    str_iter: &mut StrIter<'a>,
+    format_options: &mut FormatOptions<'a>,
 ) -> Result<(), ParseError> {
     let Some((ch_index, ch)) = str_iter.next() else {
         return Ok(());
@@ -54,11 +54,11 @@ fn parse_from_align(
 
     match alignment {
         Some(alignment) => {
-            format_options.align = Some(FormatAlign { alignment, character: None });
+            format_options.align = Some(FormatAlign::new(alignment, None));
         }
         None => {
             if let Some(alignment) = str_iter.peek().and_then(|(_, ch)| Alignment::from_char(*ch)) {
-                format_options.align = Some(FormatAlign { alignment, character: Some(ch) });
+                format_options.align = Some(FormatAlign::new(alignment, Some(ch)));
                 str_iter.next();
             }
         }
@@ -73,12 +73,12 @@ fn parse_from_align(
     )
 }
 
-fn parse_from_sign(
+fn parse_from_sign<'a>(
     prev_char: Option<(usize, char)>,
     offset: usize,
-    initial_str: &str,
-    str_iter: &mut StrIter,
-    format_options: &mut FormatOptions,
+    initial_str: &'a str,
+    str_iter: &mut StrIter<'a>,
+    format_options: &mut FormatOptions<'a>,
 ) -> Result<(), ParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
@@ -99,12 +99,12 @@ fn parse_from_sign(
     )
 }
 
-fn parse_from_alternate_form(
+fn parse_from_alternate_form<'a>(
     prev_char: Option<(usize, char)>,
     offset: usize,
-    initial_str: &str,
-    str_iter: &mut StrIter,
-    format_options: &mut FormatOptions,
+    initial_str: &'a str,
+    str_iter: &mut StrIter<'a>,
+    format_options: &mut FormatOptions<'a>,
 ) -> Result<(), ParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
@@ -123,12 +123,12 @@ fn parse_from_alternate_form(
     )
 }
 
-fn parse_from_zero_padding(
+fn parse_from_zero_padding<'a>(
     prev_char: Option<(usize, char)>,
     offset: usize,
-    initial_str: &str,
-    str_iter: &mut StrIter,
-    format_options: &mut FormatOptions,
+    initial_str: &'a str,
+    str_iter: &mut StrIter<'a>,
+    format_options: &mut FormatOptions<'a>,
 ) -> Result<(), ParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
@@ -147,12 +147,12 @@ fn parse_from_zero_padding(
     )
 }
 
-fn parse_from_width(
+fn parse_from_width<'a>(
     prev_char: Option<(usize, char)>,
     offset: usize,
-    initial_str: &str,
-    str_iter: &mut StrIter,
-    format_options: &mut FormatOptions,
+    initial_str: &'a str,
+    str_iter: &mut StrIter<'a>,
+    format_options: &mut FormatOptions<'a>,
 ) -> Result<(), ParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
@@ -180,12 +180,12 @@ fn parse_from_width(
     }
 }
 
-fn parse_from_precision(
+fn parse_from_precision<'a>(
     prev_char: Option<(usize, char)>,
     offset: usize,
-    initial_str: &str,
-    str_iter: &mut StrIter,
-    format_options: &mut FormatOptions,
+    initial_str: &'a str,
+    str_iter: &mut StrIter<'a>,
+    format_options: &mut FormatOptions<'a>,
 ) -> Result<(), ParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
@@ -202,12 +202,12 @@ fn parse_from_precision(
         format_options,
     );
 
-    fn parse_precision(
+    fn parse_precision<'a>(
         offset: usize,
         dot_index: usize,
-        initial_str: &str,
-        str_iter: &mut StrIter,
-    ) -> Result<FormatPrecision, ParseError> {
+        initial_str: &'a str,
+        str_iter: &mut StrIter<'a>,
+    ) -> Result<FormatPrecision<'a>, ParseError> {
         let Some((first_char_index, first_char)) = str_iter.next() else {
             return Err(ParseError::new_char(
                 offset + dot_index,
@@ -239,13 +239,13 @@ fn parse_from_format_trait(
     Ok(())
 }
 
-fn parse_count(
+fn parse_count<'a>(
     offset: usize,
     first_char: char,
     first_char_index: usize,
-    initial_str: &str,
-    str_iter: &mut StrIter,
-) -> Result<FormatCount, ParseError> {
+    initial_str: &'a str,
+    str_iter: &mut StrIter<'a>,
+) -> Result<FormatCount<'a>, ParseError> {
     // count integer or count index argument
     if let Some(first_digit) = first_char.to_digit(10) {
         let mut number = first_digit;
@@ -263,14 +263,14 @@ fn parse_count(
             if *next_char == '$' {
                 str_iter.next();
 
-                return Ok(FormatCount::Argument(Argument::Index(Integer(number as usize))));
+                return Ok(FormatCount::Argument(Argument::Index(Integer::new(number as usize))));
             } else {
-                return Ok(FormatCount::Integer(Integer(number as usize)));
+                return Ok(FormatCount::Integer(Integer::new(number as usize)));
             }
         }
 
         // Reached end of string
-        Ok(FormatCount::Integer(Integer(number as usize)))
+        Ok(FormatCount::Integer(Integer::new(number as usize)))
     }
     // count named argument
     else {
@@ -302,7 +302,7 @@ mod tests {
     #[test]
     fn parse_alignment() {
         let expected = FormatOptions::builder()
-            .align(FormatAlign { alignment: Alignment::Left, character: None })
+            .align(FormatAlign::new(Alignment::Left, None))
             .build();
 
         assert_format_options("<", expected);
@@ -311,7 +311,7 @@ mod tests {
     #[test]
     fn parse_fill_alignment() {
         let expected = FormatOptions::builder()
-            .align(FormatAlign { alignment: Alignment::Center, character: Some('🦀') })
+            .align(FormatAlign::new(Alignment::Center, Some('🦀')))
             .build();
 
         assert_format_options("🦀^", expected);
@@ -343,14 +343,16 @@ mod tests {
 
     #[test]
     fn parse_width_count_literal() {
-        let expected = FormatOptions::builder().width(FormatCount::Integer(Integer(1))).build();
+        let expected = FormatOptions::builder()
+            .width(FormatCount::Integer(Integer::new(1)))
+            .build();
         assert_format_options("1", expected);
     }
 
     #[test]
     fn parse_width_count_index_argument() {
         let expected = FormatOptions::builder()
-            .width(FormatCount::Argument(Argument::Index(Integer(1))))
+            .width(FormatCount::Argument(Argument::Index(Integer::new(1))))
             .build();
         assert_format_options("1$", expected);
     }
@@ -377,7 +379,7 @@ mod tests {
     #[test]
     fn parse_precision_count_literal() {
         let expected = FormatOptions::builder()
-            .precision(FormatPrecision::Count(FormatCount::Integer(Integer(1))))
+            .precision(FormatPrecision::Count(FormatCount::Integer(Integer::new(1))))
             .build();
         assert_format_options(".01", expected);
     }
@@ -396,7 +398,7 @@ mod tests {
         let count = FormatCount::Argument(Argument::Identifier(identifier));
 
         let expected = FormatOptions::builder()
-            .align(FormatAlign { alignment: Alignment::Right, character: Some('🦀') })
+            .align(FormatAlign::new(Alignment::Right, Some('🦀')))
             .sign(Sign::Plus)
             .use_alternate_form(true)
             .use_zero_padding(true)

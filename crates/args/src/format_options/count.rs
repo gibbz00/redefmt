@@ -1,9 +1,9 @@
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum FormatCount {
+pub enum FormatCount<'a> {
     Integer(Integer),
-    Argument(Argument),
+    Argument(Argument<'a>),
 }
 
 #[derive(Debug, PartialEq)]

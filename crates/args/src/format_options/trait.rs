@@ -33,10 +33,10 @@ pub enum FormatTraitParseError {
     Unknown,
 }
 
-impl Parse for FormatTrait {
+impl FormatTrait {
     /// Context from `FormatOptions::parse`:
     /// - `str` not empty
-    fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         let format_trait = match str {
             "?" => FormatTrait::Debug,
             "x?" => FormatTrait::DebugLowerHex,

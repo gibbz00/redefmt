@@ -2,11 +2,6 @@ use core::ops::Range;
 
 use crate::*;
 
-// Need not be sealed as trait should not be made public
-pub trait Parse: Sized {
-    fn parse(offset: usize, str: &str) -> Result<Self, ParseError>;
-}
-
 #[derive(Debug, PartialEq)]
 pub struct ParseError {
     // NOTE: character indices, not byte

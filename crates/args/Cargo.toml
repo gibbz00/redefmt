@@ -16,7 +16,10 @@ builder = ["dep:bon"]
 workspace = true
 
 [dependencies]
+bit-set = { version = "0.8", default-features = false }
+derive-getters = "0.5"
 derive_more = { version = "2.0", features = ["from"] }
+hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
 unicode-xid = "0.2"
 
 # feature: builder

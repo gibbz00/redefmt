@@ -1,15 +1,15 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Argument {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Argument<'a> {
     Index(Integer),
-    Identifier(Identifier),
+    Identifier(Identifier<'a>),
 }
 
-impl Parse for Argument {
+impl<'a> Argument<'a> {
     /// Context from `FormatSegment::parse`:
     /// - `str` not empty
-    fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
         match str.starts_with(|ch: char| ch.is_ascii_digit()) {
             true => Integer::parse(offset, str).map(Argument::Index),
             false => Identifier::parse(offset, str).map(Argument::Identifier),

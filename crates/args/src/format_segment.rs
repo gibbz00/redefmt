@@ -1,16 +1,16 @@
 use crate::*;
 
-#[derive(Debug, Default, PartialEq)]
-pub struct FormatSegment {
-    pub(crate) argument: Option<Argument>,
-    pub(crate) options: FormatOptions,
+#[derive(Debug, Default, PartialEq, derive_getters::Getters)]
+pub struct FormatSegment<'a> {
+    argument: Option<Argument<'a>>,
+    options: FormatOptions<'a>,
 }
 
-impl Parse for FormatSegment {
+impl<'a> FormatSegment<'a> {
     /// Context from `FormatString::parse`:
     /// - Does not contain opening and closing braces.
     /// - `str` not empty.
-    fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
         let format_segment = match str.find(':') {
             Some(split_index) => {
                 let argument_str = &str[0..split_index];
@@ -72,12 +72,12 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    fn mock_argument() -> Option<Argument> {
+    fn mock_argument() -> Option<Argument<'static>> {
         let argument = Argument::parse(0, "x").unwrap();
         Some(argument)
     }
 
-    fn mock_options() -> FormatOptions {
+    fn mock_options() -> FormatOptions<'static> {
         FormatOptions::builder().format_trait(FormatTrait::Debug).build()
     }
 }

@@ -1,5 +1,3 @@
-use alloc::string::{String, ToString};
-
 use unicode_xid::UnicodeXID;
 
 use crate::*;
@@ -9,11 +7,11 @@ use crate::*;
 /// As defined in <https://doc.rust-lang.org/reference/identifiers.html>
 ///
 /// Results in `format_args!("{match}", match = 10);` being a valid expression.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Identifier {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Identifier<'a> {
     raw: bool,
     // IMPROVEMENT: borrowed?
-    inner: String,
+    inner: &'a str,
 }
 
 #[derive(Debug, PartialEq)]
@@ -26,10 +24,10 @@ pub enum IdentifierParseError {
     InvalidContinueCharacter,
 }
 
-impl Parse for Identifier {
+impl<'a> Identifier<'a> {
     /// Context from `Argument::parse`:
     /// - `str` not empty
-    fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
         const RAW_START: &str = "r#";
 
         let (offset, ident, raw) = match str.strip_prefix(RAW_START) {
@@ -39,7 +37,7 @@ impl Parse for Identifier {
 
         assert_xid_chars(offset, ident)?;
 
-        return Ok(Identifier { raw, inner: ident.to_string() });
+        return Ok(Identifier { raw, inner: ident });
 
         fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseError> {
             const ZERO_WIDTH_NON_JOINER: char = '\u{200C}';
@@ -136,8 +134,8 @@ mod tests {
         assert_eq!(expected_raw, actual_ident.raw);
 
         match expected_raw {
-            true => assert_eq!(&ident_str[2..], &actual_ident.inner),
-            false => assert_eq!(ident_str, &actual_ident.inner),
+            true => assert_eq!(&ident_str[2..], actual_ident.inner),
+            false => assert_eq!(ident_str, actual_ident.inner),
         }
     }
 
