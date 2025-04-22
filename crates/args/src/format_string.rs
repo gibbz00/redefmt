@@ -7,9 +7,9 @@ use core::{ops::Range, str::FromStr};
 use crate::*;
 
 #[derive(Debug, PartialEq)]
-enum FormatStringSegment {
-    StringLiteral(Range<usize>),
-    FormatArgument(FormatArgument),
+enum Segment {
+    Literal(Range<usize>),
+    Format(FormatSegment),
 }
 
 #[derive(Debug, PartialEq)]
@@ -24,7 +24,7 @@ pub enum FormatStringParseError {
 pub struct FormatString {
     // IMPROVEMENT: borrowed?
     inner: String,
-    segments: Vec<FormatStringSegment>,
+    segments: Vec<Segment>,
 }
 
 impl FormatString {
@@ -73,19 +73,19 @@ impl Parse for FormatString {
 
                     // empty format argument
                     if next_char == CLOSING_BRACE {
-                        segments.push(FormatStringSegment::FormatArgument(Default::default()));
+                        segments.push(Segment::Format(Default::default()));
                         last_segment_end = Some(next_char_index + 1);
                         continue;
                     }
 
                     match char_iter.find(|(_, char)| *char == CLOSING_BRACE) {
                         Some((argument_end_index, _)) => {
-                            let format_argument = FormatArgument::parse(
+                            let format_segment = FormatSegment::parse(
                                 offset + next_char_index,
                                 &str[next_char_index..argument_end_index],
                             )?;
 
-                            segments.push(FormatStringSegment::FormatArgument(format_argument));
+                            segments.push(Segment::Format(format_segment));
                             last_segment_end = Some(argument_end_index + 1);
                         }
                         None => {
@@ -112,12 +112,12 @@ impl Parse for FormatString {
         match last_segment_end {
             Some(last_end) => {
                 if last_end != str.len() {
-                    segments.push(FormatStringSegment::StringLiteral(last_end..str.len()));
+                    segments.push(Segment::Literal(last_end..str.len()));
                 }
             }
             None => {
                 if !str.is_empty() {
-                    segments.push(FormatStringSegment::StringLiteral(0..str.len()));
+                    segments.push(Segment::Literal(0..str.len()));
                 }
             }
         }
@@ -125,7 +125,7 @@ impl Parse for FormatString {
         return Ok(Self { segments, inner: str.to_string() });
 
         fn terminate_string_literal_segment(
-            segments: &mut Vec<FormatStringSegment>,
+            segments: &mut Vec<Segment>,
             last_segment_end: Option<usize>,
             current_char_index: usize,
         ) {
@@ -137,15 +137,13 @@ impl Parse for FormatString {
                         .last()
                         .expect("registered last segment end without pushing to segments buffer");
 
-                    if matches!(last_segment, FormatStringSegment::FormatArgument(_))
-                        && segment_end != current_char_index
-                    {
-                        segments.push(FormatStringSegment::StringLiteral(segment_end..current_char_index));
+                    if matches!(last_segment, Segment::Format(_)) && segment_end != current_char_index {
+                        segments.push(Segment::Literal(segment_end..current_char_index));
                     }
                 }
                 None => {
                     if current_char_index != 0 {
-                        segments.push(FormatStringSegment::StringLiteral(0..current_char_index));
+                        segments.push(Segment::Literal(0..current_char_index));
                     }
                 }
             }
@@ -174,28 +172,16 @@ mod tests {
     fn escaped_opening_brace() {
         assert_format_string_no_args("text{{");
         assert_format_string_no_args("{{text");
-        assert_format_string(
-            "{}{{",
-            vec![empty_arg_segment(), FormatStringSegment::StringLiteral(2..4)],
-        );
-        assert_format_string(
-            "{{{}",
-            vec![FormatStringSegment::StringLiteral(0..2), empty_arg_segment()],
-        );
+        assert_format_string("{}{{", vec![empty_arg_segment(), Segment::Literal(2..4)]);
+        assert_format_string("{{{}", vec![Segment::Literal(0..2), empty_arg_segment()]);
     }
 
     #[test]
     fn escaped_closing_brace() {
         assert_format_string_no_args("text}}");
         assert_format_string_no_args("}}text");
-        assert_format_string(
-            "{}}}",
-            vec![empty_arg_segment(), FormatStringSegment::StringLiteral(2..4)],
-        );
-        assert_format_string(
-            "}}{}",
-            vec![FormatStringSegment::StringLiteral(0..2), empty_arg_segment()],
-        );
+        assert_format_string("{}}}", vec![empty_arg_segment(), Segment::Literal(2..4)]);
+        assert_format_string("}}{}", vec![Segment::Literal(0..2), empty_arg_segment()]);
     }
 
     #[test]
@@ -204,11 +190,7 @@ mod tests {
         assert_format_string_no_args("{{text}}");
         assert_format_string(
             "{{{}}}",
-            vec![
-                FormatStringSegment::StringLiteral(0..2),
-                empty_arg_segment(),
-                FormatStringSegment::StringLiteral(4..6),
-            ],
+            vec![Segment::Literal(0..2), empty_arg_segment(), Segment::Literal(4..6)],
         );
     }
 
@@ -238,7 +220,7 @@ mod tests {
         }
     }
 
-    fn assert_format_string(str: &str, segments: Vec<FormatStringSegment>) {
+    fn assert_format_string(str: &str, segments: Vec<Segment>) {
         let expected_format_string = FormatString { inner: str.to_string(), segments };
 
         let actual_format_string = str.parse().unwrap();
@@ -247,10 +229,10 @@ mod tests {
     }
 
     fn assert_format_string_no_args(str: &str) {
-        assert_format_string(str, vec![FormatStringSegment::StringLiteral(0..str.len())]);
+        assert_format_string(str, vec![Segment::Literal(0..str.len())]);
     }
 
-    fn empty_arg_segment() -> FormatStringSegment {
-        FormatStringSegment::FormatArgument(FormatArgument::default())
+    fn empty_arg_segment() -> Segment {
+        Segment::Format(FormatSegment::default())
     }
 }

@@ -19,8 +19,8 @@ pub(crate) use argument::Argument;
 mod format_options;
 pub(crate) use format_options::*;
 
-mod format_argument;
-pub(crate) use format_argument::FormatArgument;
+mod format_segment;
+pub(crate) use format_segment::FormatSegment;
 
 mod format_string;
 pub(crate) use format_string::{FormatString, FormatStringParseError};

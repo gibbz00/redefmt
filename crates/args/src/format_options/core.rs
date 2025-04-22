@@ -21,7 +21,7 @@ pub struct FormatOptions {
 }
 
 impl Parse for FormatOptions {
-    /// Context from `FormatArgument::parse`:
+    /// Context from `FormatSegment::parse`:
     /// - Does not include semicolon.
     /// - `str` may be empty.
     /// - Contains no trailing whitespace.

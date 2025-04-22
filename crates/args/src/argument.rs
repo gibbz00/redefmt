@@ -7,7 +7,7 @@ pub enum Argument {
 }
 
 impl Parse for Argument {
-    /// Context from `FormatArgument::parse`:
+    /// Context from `FormatSegment::parse`:
     /// - `str` not empty
     fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
         match str.starts_with(|ch: char| ch.is_ascii_digit()) {
