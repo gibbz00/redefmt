@@ -1,17 +1,13 @@
 //! redefmt commons.
 
-/// adds two digits
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![no_std]
+// TEMP:
+#![allow(missing_docs)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+extern crate alloc;
 
-    #[test]
-    fn addition() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+mod value;
+pub(crate) use value::*;
+
+mod documents;
+pub(crate) use documents::*;

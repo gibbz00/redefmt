@@ -12,6 +12,7 @@ repository = "https://github.com/gibbz00/redefmt"
 version = "0.1.0"
 
 [workspace.dependencies]
+redefmt-args = { path = "crates/args" }
 
 [workspace.lints.rust]
 missing_docs = "deny"
