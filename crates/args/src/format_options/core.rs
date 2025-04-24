@@ -158,7 +158,12 @@ fn parse_from_width<'a>(
         return Ok(());
     };
 
-    if ch.is_ascii_digit() || has_width_count_argument(initial_str) {
+    let has_width_argument = has_width_count_argument(initial_str);
+
+    if has_width_argument && ch == '$' && format_options.use_zero_padding {
+        format_options.use_zero_padding = false;
+        format_options.width = Some(FormatCount::Argument(Argument::Index(Integer::new(0))));
+    } else if ch.is_ascii_digit() || has_width_argument {
         format_options.width = Some(parse_count(offset, ch, ch_index, initial_str, str_iter)?);
     }
 
@@ -354,7 +359,20 @@ mod tests {
         let expected = FormatOptions::builder()
             .width(FormatCount::Argument(Argument::Index(Integer::new(1))))
             .build();
+
         assert_format_options("1$", expected);
+    }
+
+    // assert that this isn't parsed as zero padding with an unclosed width argument
+    #[test]
+    fn parse_width_count_zero_index_argument() {
+        let count = FormatCount::Argument(Argument::Index(Integer::new(0)));
+
+        let expected = FormatOptions::builder().width(count).build();
+        assert_format_options("0$", expected);
+
+        let expected = FormatOptions::builder().use_zero_padding(true).width(count).build();
+        assert_format_options("00$", expected);
     }
 
     #[test]
@@ -402,7 +420,7 @@ mod tests {
             .sign(Sign::Plus)
             .use_alternate_form(true)
             .use_zero_padding(true)
-            .width(count.clone())
+            .width(count)
             .precision(FormatPrecision::Count(count))
             .format_trait(FormatTrait::DebugLowerHex)
             .build();

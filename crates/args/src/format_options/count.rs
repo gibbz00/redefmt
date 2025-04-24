@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FormatCount<'a> {
     Integer(Integer),
     Argument(Argument<'a>),
