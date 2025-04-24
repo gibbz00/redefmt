@@ -1,5 +1,5 @@
 mod core;
-pub(crate) use core::FormatOptions;
+pub use core::FormatOptions;
 
 mod align;
 pub(crate) use align::{Alignment, FormatAlign};

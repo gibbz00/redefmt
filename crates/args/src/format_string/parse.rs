@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{borrow::Cow, vec::Vec};
 
 use crate::*;
 
@@ -78,12 +78,12 @@ impl<'a> FormatString<'a> {
         match last_segment_end {
             Some(last_end) => {
                 if last_end != str.len() {
-                    segments.push(FormatStringSegment::Literal(&str[last_end..]));
+                    segments.push(FormatStringSegment::Literal(Cow::Borrowed(&str[last_end..])));
                 }
             }
             None => {
                 if !str.is_empty() {
-                    segments.push(FormatStringSegment::Literal(str));
+                    segments.push(FormatStringSegment::Literal(Cow::Borrowed(str)));
                 }
             }
         }
@@ -105,14 +105,16 @@ impl<'a> FormatString<'a> {
                         .expect("registered last segment end without pushing to segments buffer");
 
                     if matches!(last_segment, FormatStringSegment::Format(_)) && segment_end != current_char_index {
-                        segments.push(FormatStringSegment::Literal(
+                        segments.push(FormatStringSegment::Literal(Cow::Borrowed(
                             &initial_str[segment_end..current_char_index],
-                        ));
+                        )));
                     }
                 }
                 None => {
                     if current_char_index != 0 {
-                        segments.push(FormatStringSegment::Literal(&initial_str[0..current_char_index]));
+                        segments.push(FormatStringSegment::Literal(Cow::Borrowed(
+                            &initial_str[0..current_char_index],
+                        )));
                     }
                 }
             }
@@ -122,7 +124,7 @@ impl<'a> FormatString<'a> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
+    use alloc::{borrow::Cow, vec};
 
     use super::*;
 
@@ -141,16 +143,16 @@ mod tests {
     fn escaped_opening_brace() {
         assert_format_string_no_args("text{{");
         assert_format_string_no_args("{{text");
-        assert_format_string("{}{{", vec![empty_arg_segment(), FormatStringSegment::Literal("{{")]);
-        assert_format_string("{{{}", vec![FormatStringSegment::Literal("{{"), empty_arg_segment()]);
+        assert_format_string("{}{{", vec![empty_arg_segment(), str_literal_segment("{{")]);
+        assert_format_string("{{{}", vec![str_literal_segment("{{"), empty_arg_segment()]);
     }
 
     #[test]
     fn escaped_closing_brace() {
         assert_format_string_no_args("text}}");
         assert_format_string_no_args("}}text");
-        assert_format_string("{}}}", vec![empty_arg_segment(), FormatStringSegment::Literal("}}")]);
-        assert_format_string("}}{}", vec![FormatStringSegment::Literal("}}"), empty_arg_segment()]);
+        assert_format_string("{}}}", vec![empty_arg_segment(), str_literal_segment("}}")]);
+        assert_format_string("}}{}", vec![str_literal_segment("}}"), empty_arg_segment()]);
     }
 
     #[test]
@@ -160,9 +162,9 @@ mod tests {
         assert_format_string(
             "{{{}}}",
             vec![
-                FormatStringSegment::Literal("{{"),
+                str_literal_segment("{{"),
                 empty_arg_segment(),
-                FormatStringSegment::Literal("}}"),
+                str_literal_segment("}}"),
             ],
         );
     }
@@ -202,7 +204,11 @@ mod tests {
     }
 
     fn assert_format_string_no_args(str: &str) {
-        assert_format_string(str, vec![FormatStringSegment::Literal(str)]);
+        assert_format_string(str, vec![str_literal_segment(str)]);
+    }
+
+    fn str_literal_segment(str: &str) -> FormatStringSegment<'_> {
+        FormatStringSegment::Literal(Cow::Borrowed(str))
     }
 
     fn empty_arg_segment() -> FormatStringSegment<'static> {

@@ -368,7 +368,7 @@ mod tests {
     fn parse_width_count_zero_index_argument() {
         let count = FormatCount::Argument(Argument::Index(Integer::new(0)));
 
-        let expected = FormatOptions::builder().width(count).build();
+        let expected = FormatOptions::builder().width(count.clone()).build();
         assert_format_options("0$", expected);
 
         let expected = FormatOptions::builder().use_zero_padding(true).width(count).build();
@@ -420,7 +420,7 @@ mod tests {
             .sign(Sign::Plus)
             .use_alternate_form(true)
             .use_zero_padding(true)
-            .width(count)
+            .width(count.clone())
             .precision(FormatPrecision::Count(count))
             .format_trait(FormatTrait::DebugLowerHex)
             .build();

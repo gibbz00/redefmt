@@ -19,6 +19,7 @@ mod argument;
 pub(crate) use argument::Argument;
 
 mod format_options;
+pub use format_options::FormatOptions;
 pub(crate) use format_options::*;
 
 mod format_segment;

@@ -1,3 +1,5 @@
+use alloc::borrow::Cow;
+
 use unicode_xid::UnicodeXID;
 
 use crate::*;
@@ -7,11 +9,10 @@ use crate::*;
 /// As defined in <https://doc.rust-lang.org/reference/identifiers.html>
 ///
 /// Results in `format_args!("{match}", match = 10);` being a valid expression.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Identifier<'a> {
     raw: bool,
-    // IMPROVEMENT: borrowed?
-    inner: &'a str,
+    inner: Cow<'a, str>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -37,7 +38,7 @@ impl<'a> Identifier<'a> {
 
         assert_xid_chars(offset, ident)?;
 
-        return Ok(Identifier { raw, inner: ident });
+        return Ok(Identifier { raw, inner: Cow::Borrowed(ident) });
 
         fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseError> {
             const ZERO_WIDTH_NON_JOINER: char = '\u{200C}';

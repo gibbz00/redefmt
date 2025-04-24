@@ -1,7 +1,7 @@
 #[derive(Debug, PartialEq)]
-pub struct RequiredArguments<'a> {
+pub struct RequiredArguments<'a, 's> {
     unnamed_argument_count: usize,
-    named_arguments: HashSet<Identifier<'a>>,
+    named_arguments: HashSet<&'s Identifier<'a>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -18,14 +18,14 @@ use hashbrown::HashSet;
 use crate::*;
 
 #[derive(Default)]
-pub struct ArgumentRegister<'a> {
+pub struct ArgumentRegister<'a, 's> {
     unnamed_argument_count: usize,
-    named_arguments: HashSet<Identifier<'a>>,
+    named_arguments: HashSet<&'s Identifier<'a>>,
     index_arguments: BitSet,
 }
 
-impl<'a> ArgumentRegister<'a> {
-    pub(crate) fn new(format_string: &FormatString<'a>) -> Self {
+impl<'a, 's> ArgumentRegister<'a, 's> {
+    pub(crate) fn new(format_string: &'s FormatString<'a>) -> Self {
         let mut register = ArgumentRegister::default();
 
         for segment in &format_string.segments {
@@ -55,26 +55,26 @@ impl<'a> ArgumentRegister<'a> {
         register
     }
 
-    fn register_argument(&mut self, argument: &Argument<'a>) {
+    fn register_argument(&mut self, argument: &'s Argument<'a>) {
         match argument {
             Argument::Index(integer) => self.index_arguments.insert(integer.inner()),
-            Argument::Identifier(identifier) => self.named_arguments.insert(*identifier),
+            Argument::Identifier(identifier) => self.named_arguments.insert(identifier),
         };
     }
 
-    pub(crate) fn resolve(self) -> Result<RequiredArguments<'a>, RequiredArgumentsError> {
+    pub(crate) fn resolve(self) -> Result<RequiredArguments<'a, 's>, RequiredArgumentsError> {
         match self.index_arguments.is_empty() {
             true => self.resolve_unindexed(),
             false => self.resolve_indexed(),
         }
     }
 
-    fn resolve_unindexed(self) -> Result<RequiredArguments<'a>, RequiredArgumentsError> {
+    fn resolve_unindexed(self) -> Result<RequiredArguments<'a, 's>, RequiredArgumentsError> {
         let ArgumentRegister { unnamed_argument_count, named_arguments, .. } = self;
         Ok(RequiredArguments { unnamed_argument_count, named_arguments })
     }
 
-    fn resolve_indexed(self) -> Result<RequiredArguments<'a>, RequiredArgumentsError> {
+    fn resolve_indexed(self) -> Result<RequiredArguments<'a, 's>, RequiredArgumentsError> {
         let max_index = self.max_index();
         let named_argument_count = self.named_arguments.len();
         let unnamed_argument_count = self.unnamed_argument_count;
@@ -124,6 +124,8 @@ impl<'a> ArgumentRegister<'a> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+
     use super::*;
 
     #[test]
@@ -239,10 +241,11 @@ mod tests {
             .as_ref()
             .iter()
             .map(|str| Identifier::parse(0, str).unwrap())
-            .collect::<HashSet<_>>();
+            .collect::<Vec<_>>();
+
         let expected = RequiredArguments {
             unnamed_argument_count: expected_unique,
-            named_arguments: expected_named_arguments,
+            named_arguments: HashSet::from_iter(expected_named_arguments.iter()),
         };
 
         let format_string = FormatString::parse(str).unwrap();
