@@ -1,48 +1,19 @@
-// TODO: premature optimization?
-mod string {
-    use alloc::string::String;
-
-    use uuid::Uuid;
-
-    // ID: UUID
-    pub struct StringDocumentId(Uuid);
-
-    /// Creates effectively an interning collection
-    /// TODO: really necessary?
-    pub struct StringDocument {
-        str: String,
-    }
-}
-pub(crate) use string::{StringDocument, StringDocumentId};
-
-mod write {
-    use redefmt_args::FormatOptions;
-    use uuid::Uuid;
-
-    use crate::*;
-
-    pub struct WriteDocumentId(Uuid);
-
-    // ID: write_id
-    pub struct WriteDocument {
-        segments: DisplaySegment,
-    }
-}
-pub(crate) use write::{WriteDocument, WriteDocumentId};
-
-mod r#type {
+mod format {
     use core::any::TypeId;
 
     use crate::*;
 
-    pub struct TypeDocumentId(TypeId);
+    pub struct FormatDocumentId(TypeId);
 
-    // ID: TypeID
-    pub struct TypeDocument {
-        r#type: Type,
+    // Created when implementing Format
+    pub enum FormatDocument {
+        // Often from derived implementations
+        Tree(NormalizedType),
+        // Often from manual implementations
+        WriteStatements(Vec<NormalizedSegment>),
     }
 }
-pub(crate) use r#type::{TypeDocument, TypeDocumentId};
+pub(crate) use format::{FormatDocument, FormatDocumentId};
 
 mod print {
     use uuid::Uuid;
@@ -51,21 +22,10 @@ mod print {
 
     pub struct PrintDocumentId(Uuid);
 
+    // TODO: denormalize PrintDocument
     pub struct PrintDocument {
-        segments: DisplaySegment,
-        /// None for regular `println!()` statements
-        log_level: Option<LogLevel>,
-        // File / module inferred by DB file path?
-        // Remaining would be line
-        location: (),
-    }
-
-    pub enum LogLevel {
-        Trace,
-        Debug,
-        Info,
-        Warn,
-        Error,
+        info: PrintInfo,
+        segments: Vec<NormalizedSegment>,
     }
 }
-pub(crate) use print::{LogLevel, PrintDocument, PrintDocumentId};
+pub(crate) use print::{PrintDocument, PrintDocumentId};
