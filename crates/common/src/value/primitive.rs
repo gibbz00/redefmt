@@ -8,6 +8,7 @@ pub enum Primitive {
     U16,
     U32,
     U64,
+    U128,
     F32,
     F64,
     ByteArray,

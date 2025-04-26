@@ -210,6 +210,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "redefmt-logger"
+version = "0.1.0"
+
+[[package]]
 name = "redefmt-printer"
 version = "0.1.0"
 dependencies = [
