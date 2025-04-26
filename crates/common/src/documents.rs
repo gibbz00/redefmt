@@ -1,3 +1,4 @@
+// TODO: premature optimization?
 mod string {
     use alloc::string::String;
 
@@ -24,13 +25,7 @@ mod write {
 
     // ID: write_id
     pub struct WriteDocument {
-        segments: StringDocumentId,
-    }
-
-    pub enum WriteSegment<'a> {
-        // TODO: just store string directly?
-        Str(StringDocumentId),
-        Arg(Value, FormatOptions<'a>),
+        segments: DisplaySegment,
     }
 }
 pub(crate) use write::{WriteDocument, WriteDocumentId};
@@ -48,3 +43,29 @@ mod r#type {
     }
 }
 pub(crate) use r#type::{TypeDocument, TypeDocumentId};
+
+mod print {
+    use uuid::Uuid;
+
+    use crate::*;
+
+    pub struct PrintDocumentId(Uuid);
+
+    pub struct PrintDocument {
+        segments: DisplaySegment,
+        /// None for regular `println!()` statements
+        log_level: Option<LogLevel>,
+        // File / module inferred by DB file path?
+        // Remaining would be line
+        location: (),
+    }
+
+    pub enum LogLevel {
+        Trace,
+        Debug,
+        Info,
+        Warn,
+        Error,
+    }
+}
+pub(crate) use print::{LogLevel, PrintDocument, PrintDocumentId};
