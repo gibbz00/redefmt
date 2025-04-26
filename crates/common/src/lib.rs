@@ -4,13 +4,8 @@
 // TEMP:
 #![allow(missing_docs)]
 
-extern crate alloc;
+mod pointer_width;
+pub(crate) use pointer_width::PointerWidth;
 
-mod value;
-pub(crate) use value::*;
-
-mod display_segment;
-pub(crate) use display_segment::DisplaySegment;
-
-mod documents;
-pub(crate) use documents::*;
+mod frontmatter;
+pub use frontmatter::FrontMatter;

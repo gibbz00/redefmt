@@ -1,5 +1,5 @@
 [package]
-name = "redefmt-logger"
+name = "redefmt-database"
 
 authors.workspace = true
 edition.workspace = true
@@ -13,4 +13,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-redefmt-common.workspace = true
+# Internal
+redefmt-args.workspace = true
+
+uuid = { version = "1.16", default-features = false }

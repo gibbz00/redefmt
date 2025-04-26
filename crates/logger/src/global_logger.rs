@@ -1,3 +1,5 @@
+use redefmt_common::FrontMatter;
+
 use crate::*;
 
 pub struct GlobalLogger;
@@ -8,11 +10,14 @@ impl GlobalLogger {
 
         dispatcher.acquire();
 
-        GlobalRegistry::stamper()
-            .map(Stamper::stamp)
-            .map(u64::from)
-            .unwrap_or_default()
-            .write_primitive(dispatcher);
+        let stamper = GlobalRegistry::stamper();
+
+        let front_matter = FrontMatter::new(stamper.is_some());
+        dispatcher.write(&[front_matter.bits()]);
+
+        if let Some(stamp) = stamper.map(Stamper::stamp) {
+            dispatcher.write(&stamp.to_le_bytes());
+        }
 
         print_document_id.write_primitive(dispatcher);
 
