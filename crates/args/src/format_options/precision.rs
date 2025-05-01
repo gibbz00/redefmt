@@ -1,5 +1,10 @@
 use crate::*;
 
+#[derive(Debug, PartialEq)]
+pub enum FormatPrecisionParseError {
+    Empty,
+}
+
 /// https://doc.rust-lang.org/std/fmt/index.html#precision
 #[derive(Debug, PartialEq)]
 pub enum FormatPrecision<'a> {
@@ -8,7 +13,11 @@ pub enum FormatPrecision<'a> {
     NextArgument,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum FormatPrecisionParseError {
-    Empty,
+impl FormatPrecision<'_> {
+    pub(crate) fn owned(&self) -> FormatPrecision<'static> {
+        match self {
+            FormatPrecision::Count(count) => FormatPrecision::Count(count.owned()),
+            FormatPrecision::NextArgument => FormatPrecision::NextArgument,
+        }
+    }
 }

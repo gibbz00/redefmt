@@ -1,7 +1,7 @@
 use crate::*;
 
 /// https://doc.rust-lang.org/std/fmt/index.html#formatting-traits
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum FormatTrait {
     /// ''
     #[default]

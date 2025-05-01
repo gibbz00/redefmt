@@ -33,6 +33,28 @@ impl<'a> FormatOptions<'a> {
 
         Ok(format_options)
     }
+
+    pub(crate) fn owned(&self) -> FormatOptions<'static> {
+        let FormatOptions {
+            align,
+            sign,
+            use_alternate_form,
+            use_zero_padding,
+            width,
+            precision,
+            format_trait,
+        } = self;
+
+        FormatOptions {
+            align: *align,
+            sign: *sign,
+            use_alternate_form: *use_alternate_form,
+            use_zero_padding: *use_zero_padding,
+            width: width.as_ref().map(|count| count.owned()),
+            precision: precision.as_ref().map(|precision| precision.owned()),
+            format_trait: *format_trait,
+        }
+    }
 }
 
 fn parse_from_align<'a>(

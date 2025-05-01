@@ -33,6 +33,15 @@ impl<'a> FormatSegment<'a> {
 
         Ok(format_segment)
     }
+
+    pub(crate) fn owned(&self) -> FormatSegment<'static> {
+        let FormatSegment { argument, options } = self;
+
+        FormatSegment {
+            argument: argument.as_ref().map(|arg| arg.owned()),
+            options: options.owned(),
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 /// https://doc.rust-lang.org/std/fmt/index.html#fillalignment
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FormatAlign {
     alignment: Alignment,
     character: Option<char>,
@@ -11,7 +11,7 @@ impl FormatAlign {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Alignment {
     /// '<'
     Left,

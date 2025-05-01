@@ -1,4 +1,4 @@
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, string::ToString};
 
 use unicode_xid::UnicodeXID;
 
@@ -84,6 +84,11 @@ impl<'a> Identifier<'a> {
         ) -> Result<(), ParseError> {
             Err(ParseError::new_char(offset + char_index, parse_error))
         }
+    }
+
+    pub(crate) fn owned(&self) -> Identifier<'static> {
+        let Identifier { raw, inner } = self;
+        Identifier { raw: *raw, inner: Cow::Owned(inner.to_string()) }
     }
 }
 

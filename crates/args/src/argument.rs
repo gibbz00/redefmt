@@ -15,6 +15,13 @@ impl<'a> Argument<'a> {
             false => Identifier::parse(offset, str).map(Argument::Identifier),
         }
     }
+
+    pub(crate) fn owned(&self) -> Argument<'static> {
+        match self {
+            Argument::Index(integer) => Argument::Index(*integer),
+            Argument::Identifier(identifier) => Argument::Identifier(identifier.owned()),
+        }
+    }
 }
 
 #[cfg(test)]
