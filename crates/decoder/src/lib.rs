@@ -1,7 +1,10 @@
 //! # `redefmt-decoder`
 
+// TEMP:
+#![allow(missing_docs)]
+
 mod core;
-pub(crate) use core::{RedefmtDecoder, RedefmtDecoderError};
+pub use core::{RedefmtDecoder, RedefmtDecoderError};
 
 mod frame {
     use redefmt_args::FormatOptions;

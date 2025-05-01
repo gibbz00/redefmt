@@ -15,10 +15,7 @@
 mod header;
 pub use header::Header;
 
-mod stamp {
-    #[derive(derive_more::AsRef)]
-    pub struct Stamp(u64);
-}
+mod stamp;
 pub use stamp::Stamp;
 
 mod write_content;
