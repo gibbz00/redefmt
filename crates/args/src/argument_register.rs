@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, derive_getters::Getters)]
 pub struct RequiredArguments<'a, 's> {
     unnamed_argument_count: usize,
     named_arguments: HashSet<&'s Identifier<'a>>,
