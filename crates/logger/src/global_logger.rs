@@ -1,4 +1,4 @@
-use redefmt_common::FrontMatter;
+use redefmt_common::codec::Header;
 
 use crate::*;
 
@@ -12,11 +12,11 @@ impl GlobalLogger {
 
         let stamper = GlobalRegistry::stamper();
 
-        let front_matter = FrontMatter::new(stamper.is_some());
-        dispatcher.write(&[front_matter.bits()]);
+        let header = Header::new(stamper.is_some());
+        dispatcher.write(&[header.bits()]);
 
         if let Some(stamp) = stamper.map(Stamper::stamp) {
-            dispatcher.write(&stamp.to_le_bytes());
+            dispatcher.write(&stamp.as_ref().to_le_bytes());
         }
 
         print_document_id.write_primitive(dispatcher);

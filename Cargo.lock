@@ -211,6 +211,7 @@ name = "redefmt-common"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "derive_more",
  "redefmt-args",
 ]
 
@@ -219,6 +220,7 @@ name = "redefmt-database"
 version = "0.1.0"
 dependencies = [
  "redefmt-args",
+ "redefmt-common",
  "uuid",
 ]
 

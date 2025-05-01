@@ -1,5 +1,5 @@
-use core::num::NonZeroU64;
+use redefmt_common::codec::Stamp;
 
 pub trait Stamper {
-    fn stamp(&self) -> u64;
+    fn stamp(&self) -> Stamp;
 }

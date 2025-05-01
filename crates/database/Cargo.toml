@@ -15,5 +15,6 @@ workspace = true
 [dependencies]
 # Internal
 redefmt-args.workspace = true
+redefmt-common.workspace = true
 
 uuid = { version = "1.16", default-features = false }

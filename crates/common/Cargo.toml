@@ -18,3 +18,4 @@ redefmt-args.workspace = true
 
 # External
 bitflags = "2.9.0"
+derive_more = { version = "2.0", features = ["as_ref"] }
