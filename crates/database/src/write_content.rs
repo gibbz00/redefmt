@@ -23,7 +23,6 @@ pub struct TypeStructure {
 pub enum TypeStructureVariant {
     Struct(StructVariant),
     Enum(Vec<(String, StructVariant)>),
-    Union { fields: Vec<String> },
 }
 
 pub enum StructVariant {

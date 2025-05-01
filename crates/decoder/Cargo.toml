@@ -1,0 +1,22 @@
+[package]
+name = "redefmt-decoder"
+
+authors.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Internal
+redefmt-args.workspace = true
+redefmt-common.workspace = true
+
+# External
+thiserror = "2.0"
+tokio-util = { version = "0.7", features = ["codec"] }

@@ -7,6 +7,7 @@ pub enum PointerWidth {
 }
 
 bitflags! {
+    #[derive(Debug, PartialEq)]
     pub struct Header: u8 {
         const PLUS_16_WIDTH = 0b00000001;
         const PLUS_32_WIDTH = 0b00000010;
