@@ -1,4 +1,4 @@
-//! # `redefmt-database`
+//! # `redefmt-db`
 
 // TEMP:
 #![allow(missing_docs)]

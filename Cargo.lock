@@ -392,7 +392,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "redefmt-database"
+name = "redefmt-db"
 version = "0.1.0"
 dependencies = [
  "derive_more",
