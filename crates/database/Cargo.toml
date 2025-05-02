@@ -17,4 +17,11 @@ workspace = true
 redefmt-args.workspace = true
 redefmt-common.workspace = true
 
+derive_more = { version = "2.0", features = ["display"] }
+thiserror = "2.0"
 uuid = { version = "1.16", default-features = false }
+xdg = "2.5"
+
+[dev-dependencies]
+serial_test = { version = "3.2", default-features = false }
+tempfile = "3.19"

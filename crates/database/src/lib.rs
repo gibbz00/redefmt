@@ -1,6 +1,12 @@
 //! # `redefmt-database`
 
+// TEMP:
+#![allow(missing_docs)]
+
 extern crate alloc;
+
+mod client;
+pub use client::DbClient;
 
 mod write_content;
 pub(crate) use write_content::*;
