@@ -1,0 +1,77 @@
+# Internals
+
+## Terminology
+
+There are to kind of *register* functions, write statemtens and print
+statements. The former is invoked when implementing the `Format` trait,
+whilst the latter is used for `println!()` and `log!()` like statement. Both
+register format statements, but only print statements register a log level and
+the call site location. Write statements may alternatively register type
+structures (field names etc.), letting a printer itself choose how types
+should be displayed.
+
+## Concurrency
+
+Proc macros aren't meant to be stateful so some challenges will arise by forcing to be so.
+
+The database must support multiple concurrent connections since crates and proc macros are
+executed in parallel. Sqlite3 should support this rather well in [WAL mode] and [PRAGMA
+synchronous] set to normal.
+
+Lock contention is further mitigated by creating one database per crate.
+Each proc macro begins by checking if a database for a crate exists, if
+not, it is created and given an ID in a `crates` table in the `main.sqlite`
+database. If it does exist from before, then the its ID is retrieved by name from
+the `main.sqlite` database, warranting an index on the name column.
+
+Crate names are usually provided by expanding declarative register macros to
+a proc macro call with a `env!("CARGO_CRATE_NAME")` parameter.
+
+[Checkpointing] is done at the end of a proc macro if any writes where
+executed. Unregistered writes by other connections should be moderately rare
+as proc macros are assumed to be executed sequentially within parallelly
+compiled crates.
+
+## Path lookup
+
+SQLite database files are first and foremost placed in
+`$XDG_STATE_HOME/redefmt`, but can be overridden with the `REDEFMT_STATE`
+variable. The resolved directory and its parent directories are created if
+they do not yet exist. Per crate databases are placed a `./crate` directory
+to not cause name collisions with for example `main.sqlite`.
+
+## Caching
+
+The write and print statement tables are usually NoSQL document-like by
+containing the columns `ID`, `HASH`, `JSON` only. It is the crate ID from
+`main.sqlite` and this table ID that is returned by the proc macro to later
+be written with the logger, before the printer reads the ID pair and looks
+up the interned string and formatting options stored in the DB.
+
+Register proc macros will first hash the data do be inserted and then check
+if that hash exists in the `HASH` column of the corresponding table. If
+some, then no new entry is created. If none, then the data is serialized to
+`JSON`, and a new record is inserted.
+
+The [ID column](row_id) in SQLite is always an `i64`. It's however quite
+improbable, if not impossible, for redefmt to ever be fill a register
+table with all 4.6 quintillion rows for a single crate (autoincrement
+starts halfway at 1). There's therefore more gained than lost by letting
+the register function truncate the `i64` IDs to `u16`s, especially when
+expecting relatively constrained target environments. Targets need now only
+store and send 4 bytes for each register statement instead of 16. (Recall
+that both crate table ID and register table ID are sent.)
+
+Exhausing 65K rows for one crate is still improbable, but not an unrealistic
+occurrence when developing large crates over a long time period. `i64` to `u16`
+conversions are therefore checked. Any failure to do so will throw a compiler
+error with instructions to clear the database.
+
+To sumamrize: As long as a project isn't using more than 65K crate dependencies,
+with no dependency using more than 65K register statements, then you're good
+to go.
+
+[WAL mode]: https://www.sqlite.org/wal.html
+[PRAGMA synchronous]: https://www.sqlite.org/pragma.html#pragma_synchronous
+[Checkpointing]: https://www.sqlite.org/wal.html#ckpt
+[row_id]: https://www.sqlite.org/lang_createtable.html#rowid
