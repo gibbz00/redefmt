@@ -1,5 +1,5 @@
 [package]
-name = "redefmt-database"
+name = "redefmt-db"
 
 authors.workspace = true
 edition.workspace = true
