@@ -1,8 +1,15 @@
-use std::path::Path;
+use std::{path::Path, sync::LazyLock};
 
+use include_dir::include_dir;
 use rusqlite::Connection;
+use rusqlite_migration::Migrations;
 
 use crate::*;
+
+static MIGRATIONS_DIR: include_dir::Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
+
+static MIGRATIONS: LazyLock<Migrations> =
+    LazyLock::new(|| Migrations::from_directory(&MIGRATIONS_DIR).expect("invalid migration directory structure"));
 
 pub struct DbClient {
     connection: Connection,
@@ -14,13 +21,16 @@ pub enum DbClientError {
     StateDir(#[from] StateDirError),
     #[error("internal database error")]
     Sqlite(#[from] rusqlite::Error),
+    #[error("failed to apply migrations")]
+    Migration(#[from] rusqlite_migration::Error),
 }
 
 impl DbClient {
     /// Create a new database client connection
     ///
-    /// Creates the database if it does not exist, and makes sure that that
-    /// journal_mode=WAL with synchronous=NORMAL is used.
+    /// Creates the database if it does not exist, applies any outstanding
+    /// migrations, and makes sure that that journal_mode=WAL with
+    /// synchronous=NORMAL is used.
     pub fn new(db: &DbType<'_>) -> Result<Self, DbClientError> {
         let dir = StateDir::resolve()?;
         Self::new_impl(&dir, db)
@@ -30,10 +40,12 @@ impl DbClient {
     pub(crate) fn new_impl(dir: &Path, db: &DbType<'_>) -> Result<Self, DbClientError> {
         let path = db.path(dir);
 
-        let connection = Connection::open(path)?;
+        let mut connection = Connection::open(path)?;
 
         connection.pragma_update(None, "journal_mode", "WAL")?;
         connection.pragma_update(None, "synchronous", "NORMAL")?;
+
+        MIGRATIONS.to_latest(&mut connection)?;
 
         Ok(Self { connection })
     }
