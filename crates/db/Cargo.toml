@@ -18,7 +18,9 @@ redefmt-args.workspace = true
 redefmt-common.workspace = true
 
 derive_more = { version = "2.0", features = ["deref", "display"] }
+include_dir = "0.7"
 rusqlite = { version = "0.35", features = ["bundled"] }
+rusqlite_migration = { version = "2.1", features = ["from-directory"] }
 thiserror = "2.0"
 uuid = { version = "1.16", default-features = false }
 xdg = "2.5"
