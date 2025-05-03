@@ -16,11 +16,14 @@ redefmt-args = { path = "crates/args" }
 redefmt-common = { path = "crates/common" }
 
 [workspace.lints.rust]
-missing_docs = "deny"
+missing_docs = "warn"
 unused_must_use = "deny"
 
 [workspace.lints.clippy]
-self_named_module_files = "deny"
+# TEMP: broken implementation
+# https://github.com/rust-lang/rust-clippy/issues/11916
+# https://github.com/rust-lang/rust-clippy/issues/14697
+# self_named_module_files = "deny"
 
 [profile.dev]
 # https://davidlattimore.github.io/posts/2024/02/04/speeding-up-the-rust-edit-build-run-cycle.html#avoid-linking-debug-info

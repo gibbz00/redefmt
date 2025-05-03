@@ -27,11 +27,6 @@ the `main.sqlite` database, warranting an index on the name column.
 Crate names are usually provided by expanding declarative register macros to
 a proc macro call with a `env!("CARGO_CRATE_NAME")` parameter.
 
-[Checkpointing] is done at the end of a proc macro if any writes where
-executed. Unregistered writes by other connections should be moderately rare
-as proc macros are assumed to be executed sequentially within parallelly
-compiled crates.
-
 ## Path lookup
 
 SQLite database files are first and foremost placed in
@@ -49,7 +44,7 @@ be written with the logger, before the printer reads the ID pair and looks
 up the interned string and formatting options stored in the DB.
 
 Register proc macros will first hash the data do be inserted and then check
-if that hash exists in the `HASH` column of the corresponding table. If
+if that hash exists in the indexed `HASH` column of the corresponding table. If
 some, then no new entry is created. If none, then the data is serialized to
 `JSON`, and a new record is inserted.
 

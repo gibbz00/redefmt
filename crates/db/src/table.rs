@@ -1,4 +1,4 @@
-mod _crate {
+mod krate {
     use crate::*;
 
     #[derive(Debug, Clone, Copy)]
@@ -26,7 +26,7 @@ mod _crate {
         fn create_crate_record(&self, record: &Crate<'_>) -> Result<CrateId, DbClientError>;
     }
 
-    impl CrateTable for DbClient {
+    impl CrateTable for DbClient<MainDb> {
         fn find_crate_record(&self, id: CrateId) -> Result<Option<Crate<'static>>, DbClientError> {
             let mut statement = self.connection.prepare("SELECT name FROM crate WHERE id = ?1")?;
             let mut row_iter = statement.query_map([id.0], |res| res.get::<_, String>(0))?;
@@ -68,7 +68,7 @@ mod _crate {
 
         #[test]
         fn find_and_create() {
-            let (_dir_guard, client) = DbClient::mock_main();
+            let (_dir_guard, client) = DbClient::mock_db();
 
             let mock_record = mock_crate_record();
 
@@ -84,7 +84,7 @@ mod _crate {
 
         #[test]
         fn unique_name_index() {
-            let (_dir_guard, client) = DbClient::mock_main();
+            let (_dir_guard, client) = DbClient::mock_db();
 
             let mock_record = mock_crate_record();
 
@@ -96,4 +96,4 @@ mod _crate {
         }
     }
 }
-pub(crate) use _crate::{Crate, CrateId, CrateTable, CrateTableError};
+pub(crate) use krate::{Crate, CrateId, CrateTable, CrateTableError};

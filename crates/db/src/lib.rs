@@ -9,8 +9,11 @@ pub(crate) use columns::*;
 mod state_dir;
 pub(crate) use state_dir::{StateDir, StateDirError};
 
-mod db_type;
-pub use db_type::DbType;
+mod migrations;
+pub(crate) use migrations::{CRATE_MIGRATIONS, MAIN_MIGRATIONS};
+
+mod db;
+pub(crate) use db::*;
 
 mod client;
 pub use client::{DbClient, DbClientError};
