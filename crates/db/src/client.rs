@@ -12,11 +12,15 @@ pub struct DbClient {
 pub enum DbClientError {
     #[error("state directory resolution error")]
     StateDir(#[from] StateDirError),
-    #[error("database open failure")]
-    Open(#[source] rusqlite::Error),
+    #[error("internal database error")]
+    Sqlite(#[from] rusqlite::Error),
 }
 
 impl DbClient {
+    /// Create a new database client connection
+    ///
+    /// Creates the database if it does not exist, and makes sure that that
+    /// journal_mode=WAL with synchronous=NORMAL is used.
     pub fn new(db: &DbType<'_>) -> Result<Self, DbClientError> {
         let dir = StateDir::resolve()?;
         Self::new_impl(&dir, db)
@@ -25,7 +29,11 @@ impl DbClient {
     /// Separate to method to simplify tests by letting them pass a `TempDir` parameter
     pub(crate) fn new_impl(dir: &Path, db: &DbType<'_>) -> Result<Self, DbClientError> {
         let path = db.path(dir);
-        let connection = Connection::open(path).map_err(DbClientError::Open)?;
+
+        let connection = Connection::open(path)?;
+
+        connection.pragma_update(None, "journal_mode", "WAL")?;
+        connection.pragma_update(None, "synchronous", "NORMAL")?;
 
         Ok(Self { connection })
     }
@@ -33,14 +41,38 @@ impl DbClient {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Debug;
+
+    use rusqlite::types::FromSql;
+
     use super::*;
 
     #[test]
-    fn new() {
+    fn new_with_pragma() {
+        const SYNCHRONOUS_NORMAL: usize = 1;
+
         let temp_dir = tempfile::tempdir().unwrap();
 
-        let result = DbClient::new_impl(temp_dir.path(), &DbType::Main);
+        let client = DbClient::new_impl(temp_dir.path(), &DbType::Main).unwrap();
 
-        assert!(result.is_ok());
+        assert_pragma(&client, "journal_mode", "wal".to_string());
+        assert_pragma(&client, "synchronous", SYNCHRONOUS_NORMAL);
+
+        fn assert_pragma<T: Debug + PartialEq + FromSql>(
+            client: &DbClient,
+            pragma_key: &str,
+            expected_pragma_value: T,
+        ) {
+            client
+                .connection
+                .pragma_query_value(None, pragma_key, |res| {
+                    let actual_pragma_value = res.get::<_, T>(0).unwrap();
+
+                    assert_eq!(expected_pragma_value, actual_pragma_value);
+
+                    Ok(())
+                })
+                .unwrap();
+        }
     }
 }
