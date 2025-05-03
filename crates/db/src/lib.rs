@@ -15,6 +15,9 @@ pub use db_type::DbType;
 mod client;
 pub use client::{DbClient, DbClientError};
 
+mod table;
+pub(crate) use table::*;
+
 mod write_content;
 pub(crate) use write_content::*;
 

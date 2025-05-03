@@ -1,0 +1,6 @@
+CREATE TABLE crate(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX name_index ON crate(name);

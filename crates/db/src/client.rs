@@ -12,7 +12,7 @@ static MIGRATIONS: LazyLock<Migrations> =
     LazyLock::new(|| Migrations::from_directory(&MIGRATIONS_DIR).expect("invalid migration directory structure"));
 
 pub struct DbClient {
-    connection: Connection,
+    pub(crate) connection: Connection,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -23,6 +23,10 @@ pub enum DbClientError {
     Sqlite(#[from] rusqlite::Error),
     #[error("failed to apply migrations")]
     Migration(#[from] rusqlite_migration::Error),
+    #[error("exhausted unique ID for table '{0}'")]
+    ExhaustedId(&'static str),
+    #[error(transparent)]
+    CrateTable(#[from] CrateTableError),
 }
 
 impl DbClient {
@@ -52,6 +56,23 @@ impl DbClient {
 }
 
 #[cfg(test)]
+mod mock {
+    use tempfile::TempDir;
+
+    use super::*;
+
+    impl DbClient {
+        pub fn mock_main() -> (TempDir, Self) {
+            let temp_dir = tempfile::tempdir().unwrap();
+
+            let client = DbClient::new_impl(temp_dir.path(), &DbType::Main).unwrap();
+
+            (temp_dir, client)
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::fmt::Debug;
 
@@ -63,9 +84,7 @@ mod tests {
     fn new_with_pragma() {
         const SYNCHRONOUS_NORMAL: usize = 1;
 
-        let temp_dir = tempfile::tempdir().unwrap();
-
-        let client = DbClient::new_impl(temp_dir.path(), &DbType::Main).unwrap();
+        let (_dir_guard, client) = DbClient::mock_main();
 
         assert_pragma(&client, "journal_mode", "wal".to_string());
         assert_pragma(&client, "synchronous", SYNCHRONOUS_NORMAL);
