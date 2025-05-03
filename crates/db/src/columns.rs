@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
-#[derive(Debug, derive_more::Deref)]
+#[derive(Debug, PartialEq, derive_more::Deref)]
 pub struct CrateName<'a>(Cow<'a, str>);
 
 #[derive(Debug, thiserror::Error)]
 pub enum CrateNameError {
-    #[error("'{0}' not a valid crate name character")]
-    InvalidChar(char),
+    #[error("'{0}' not a valid crate name character in '{1}'")]
+    InvalidChar(char, Cow<'static, str>),
 }
 
 impl<'a> CrateName<'a> {
@@ -23,7 +23,7 @@ impl<'a> CrateName<'a> {
 
         for char in cow_str.chars() {
             if !['_', '-'].contains(&char) && !char.is_ascii_alphanumeric() {
-                return Err(CrateNameError::InvalidChar(char));
+                return Err(CrateNameError::InvalidChar(char, Cow::Owned(cow_str.into_owned())));
             }
         }
 
@@ -58,7 +58,7 @@ mod tests {
             let err = CrateName::new(str).unwrap_err();
 
             match err {
-                CrateNameError::InvalidChar(char) => {
+                CrateNameError::InvalidChar(char, _) => {
                     assert_eq!(invalid_char, char, "initial str: {}", str)
                 }
             }
