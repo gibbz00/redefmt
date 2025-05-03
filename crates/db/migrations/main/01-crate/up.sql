@@ -3,4 +3,4 @@ CREATE TABLE crate(
     name TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX name_index ON crate(name);
+CREATE UNIQUE INDEX crate_name ON crate(name);

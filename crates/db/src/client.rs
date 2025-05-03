@@ -1,18 +1,12 @@
-use std::{path::Path, sync::LazyLock};
+use std::{marker::PhantomData, path::Path};
 
-use include_dir::include_dir;
 use rusqlite::Connection;
-use rusqlite_migration::Migrations;
 
 use crate::*;
 
-static MIGRATIONS_DIR: include_dir::Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
-
-static MIGRATIONS: LazyLock<Migrations> =
-    LazyLock::new(|| Migrations::from_directory(&MIGRATIONS_DIR).expect("invalid migration directory structure"));
-
-pub struct DbClient {
+pub struct DbClient<D: Db> {
     pub(crate) connection: Connection,
+    marker: PhantomData<D>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -25,33 +19,52 @@ pub enum DbClientError {
     Migration(#[from] rusqlite_migration::Error),
     #[error("exhausted unique ID for table '{0}'")]
     ExhaustedId(&'static str),
+    // IMPROVEMENT: only possible from MainDb
     #[error(transparent)]
     CrateTable(#[from] CrateTableError),
 }
 
-impl DbClient {
+impl DbClient<MainDb> {
+    pub fn new_main() -> Result<Self, DbClientError> {
+        let dir = StateDir::resolve()?;
+        Self::new_main_impl(&dir)
+    }
+
+    /// Separate to method to simplify tests by letting them pass a `TempDir` parameter
+    pub(crate) fn new_main_impl(dir: &Path) -> Result<Self, DbClientError> {
+        let path = MainDb::path(dir);
+        Self::init(&path)
+    }
+}
+
+impl DbClient<CrateDb> {
+    pub fn new_crate(crate_name: &CrateName) -> Result<Self, DbClientError> {
+        let dir = StateDir::resolve()?;
+        Self::new_crate_impl(&dir, crate_name)
+    }
+
+    /// Separate to method to simplify tests by letting them pass a `TempDir` parameter
+    pub(crate) fn new_crate_impl(dir: &Path, crate_name: &CrateName) -> Result<Self, DbClientError> {
+        let path = CrateDb::path(dir, crate_name);
+        Self::init(&path)
+    }
+}
+
+impl<D: Db> DbClient<D> {
     /// Create a new database client connection
     ///
     /// Creates the database if it does not exist, applies any outstanding
     /// migrations, and makes sure that that journal_mode=WAL with
     /// synchronous=NORMAL is used.
-    pub fn new(db: &DbType<'_>) -> Result<Self, DbClientError> {
-        let dir = StateDir::resolve()?;
-        Self::new_impl(&dir, db)
-    }
-
-    /// Separate to method to simplify tests by letting them pass a `TempDir` parameter
-    pub(crate) fn new_impl(dir: &Path, db: &DbType<'_>) -> Result<Self, DbClientError> {
-        let path = db.path(dir);
-
+    fn init(path: &Path) -> Result<Self, DbClientError> {
         let mut connection = Connection::open(path)?;
 
         connection.pragma_update(None, "journal_mode", "WAL")?;
         connection.pragma_update(None, "synchronous", "NORMAL")?;
 
-        MIGRATIONS.to_latest(&mut connection)?;
+        D::migrations().to_latest(&mut connection)?;
 
-        Ok(Self { connection })
+        Ok(Self { connection, marker: PhantomData })
     }
 }
 
@@ -61,11 +74,12 @@ mod mock {
 
     use super::*;
 
-    impl DbClient {
-        pub fn mock_main() -> (TempDir, Self) {
+    impl<D: Db> DbClient<D> {
+        pub fn mock_db() -> (TempDir, Self) {
             let temp_dir = tempfile::tempdir().unwrap();
+            let temp_path = temp_dir.path().join("test.sqlite");
 
-            let client = DbClient::new_impl(temp_dir.path(), &DbType::Main).unwrap();
+            let client = Self::init(&temp_path).unwrap();
 
             (temp_dir, client)
         }
@@ -84,13 +98,13 @@ mod tests {
     fn new_with_pragma() {
         const SYNCHRONOUS_NORMAL: usize = 1;
 
-        let (_dir_guard, client) = DbClient::mock_main();
+        let (_dir_guard, client) = DbClient::<MainDb>::mock_db();
 
         assert_pragma(&client, "journal_mode", "wal".to_string());
         assert_pragma(&client, "synchronous", SYNCHRONOUS_NORMAL);
 
         fn assert_pragma<T: Debug + PartialEq + FromSql>(
-            client: &DbClient,
+            client: &DbClient<impl Db>,
             pragma_key: &str,
             expected_pragma_value: T,
         ) {
