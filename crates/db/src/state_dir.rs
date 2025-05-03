@@ -3,11 +3,11 @@ use std::{io::Error as IoError, path::PathBuf};
 use redefmt_common::APPLICATION_NAME;
 use xdg::BaseDirectoriesError;
 
-use crate::*;
-
 const XDG_ENV_NAME: &str = "XDG_STATE_HOME";
 
 const OVERRIDE_ENV_NAME: &str = "REDEFMT_STATE";
+
+pub struct StateDir;
 
 #[derive(Debug, Clone, Copy, derive_more::Display)]
 pub enum StateDirSource {
@@ -35,12 +35,12 @@ pub enum StateDirError {
     Create(PathBuf, StateDirSource, #[source] IoError),
 }
 
-impl DbClient {
+impl StateDir {
     /// Resolves `redefmt`'s state directory
     ///
     /// The returned `PathBuf` can be expected to not be empty, exist, be in
     /// canonical form, and a directory.
-    pub fn state_dir() -> Result<PathBuf, StateDirError> {
+    pub fn resolve() -> Result<PathBuf, StateDirError> {
         match std::env::var_os(OVERRIDE_ENV_NAME) {
             Some(override_path) => {
                 let path_buf = PathBuf::from(override_path);
@@ -123,7 +123,7 @@ mod tests {
             std::env::set_var(env_name, temp_dir.path().as_os_str());
         }
 
-        let actual = DbClient::state_dir().unwrap();
+        let actual = StateDir::resolve().unwrap();
 
         let mut expected = temp_dir.into_path();
         if let Some(join) = join {
@@ -142,7 +142,7 @@ mod tests {
     fn valid_if_some() {
         let temp_dir = tempfile::tempdir().unwrap();
 
-        let prepare_result = DbClient::prepare_state_directory(temp_dir.path().to_path_buf(), StateDirSource::Env);
+        let prepare_result = StateDir::prepare_state_directory(temp_dir.path().to_path_buf(), StateDirSource::Env);
 
         assert!(prepare_result.is_ok());
     }
@@ -155,7 +155,7 @@ mod tests {
 
         assert!(!state_dir.exists());
 
-        let returned_dir = DbClient::prepare_state_directory(state_dir.clone(), StateDirSource::Env).unwrap();
+        let returned_dir = StateDir::prepare_state_directory(state_dir.clone(), StateDirSource::Env).unwrap();
 
         assert_eq!(state_dir, returned_dir);
 
@@ -166,7 +166,7 @@ mod tests {
     fn empty_path_error() {
         let state_dir = PathBuf::new();
 
-        let result = DbClient::prepare_state_directory(state_dir, StateDirSource::Env);
+        let result = StateDir::prepare_state_directory(state_dir, StateDirSource::Env);
 
         assert!(matches!(result, Err(StateDirError::EmptyPath(_))));
     }
@@ -175,7 +175,7 @@ mod tests {
     fn non_dir_error() {
         let state_dir = tempfile::NamedTempFile::new().unwrap();
 
-        let result = DbClient::prepare_state_directory(state_dir.path().to_path_buf(), StateDirSource::Env);
+        let result = StateDir::prepare_state_directory(state_dir.path().to_path_buf(), StateDirSource::Env);
 
         assert!(matches!(result, Err(StateDirError::NonDir(_, _))));
     }

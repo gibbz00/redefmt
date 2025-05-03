@@ -3,10 +3,17 @@
 // TEMP:
 #![allow(missing_docs)]
 
-extern crate alloc;
+mod columns;
+pub(crate) use columns::*;
+
+mod state_dir;
+pub(crate) use state_dir::{StateDir, StateDirError};
+
+mod db_type;
+pub use db_type::DbType;
 
 mod client;
-pub use client::DbClient;
+pub use client::{DbClient, DbClientError};
 
 mod write_content;
 pub(crate) use write_content::*;
