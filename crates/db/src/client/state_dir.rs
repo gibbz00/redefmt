@@ -3,6 +3,8 @@ use std::{io::Error as IoError, path::PathBuf};
 use redefmt_common::APPLICATION_NAME;
 use xdg::BaseDirectoriesError;
 
+use crate::*;
+
 const XDG_ENV_NAME: &str = "XDG_STATE_HOME";
 
 const OVERRIDE_ENV_NAME: &str = "REDEFMT_STATE";
@@ -32,8 +34,6 @@ pub enum StateDirError {
     #[error("failed to create state directory and its parent source at {0}; source {1}")]
     Create(PathBuf, StateDirSource, #[source] IoError),
 }
-
-pub struct DbClient {}
 
 impl DbClient {
     /// Resolves `redefmt`'s state directory
@@ -94,93 +94,89 @@ impl DbClient {
 mod tests {
     use super::*;
 
-    mod state_dir {
-        use super::*;
+    #[test]
+    #[serial_test::serial(state_dir)]
+    fn uses_xdg() {
+        // SAFETY: test called with serial_test
+        unsafe {
+            assert_uses_env(XDG_ENV_NAME, Some(APPLICATION_NAME));
+        }
+    }
 
-        #[test]
-        #[serial_test::serial(state_dir)]
-        fn uses_xdg() {
-            // SAFETY: test called with serial_test
-            unsafe {
-                assert_uses_env(XDG_ENV_NAME, Some(APPLICATION_NAME));
-            }
+    #[test]
+    #[serial_test::serial(state_dir)]
+    fn uses_override_env() {
+        // SAFETY: test called with serial_test
+        unsafe {
+            assert_uses_env(OVERRIDE_ENV_NAME, None);
+        }
+    }
+
+    /// # SAFETY
+    ///
+    /// Test calling this function must be serial
+    unsafe fn assert_uses_env(env_name: &str, join: Option<&str>) {
+        let temp_dir = tempfile::tempdir().unwrap();
+
+        // SAFETY: method should only called by one thread at the time
+        unsafe {
+            std::env::set_var(env_name, temp_dir.path().as_os_str());
         }
 
-        #[test]
-        #[serial_test::serial(state_dir)]
-        fn uses_override_env() {
-            // SAFETY: test called with serial_test
-            unsafe {
-                assert_uses_env(OVERRIDE_ENV_NAME, None);
-            }
+        let actual = DbClient::state_dir().unwrap();
+
+        let mut expected = temp_dir.into_path();
+        if let Some(join) = join {
+            expected = expected.join(join);
         }
 
-        /// # SAFETY
-        ///
-        /// Test calling this function must be serial
-        unsafe fn assert_uses_env(env_name: &str, join: Option<&str>) {
-            let temp_dir = tempfile::tempdir().unwrap();
+        assert_eq!(expected, actual);
 
-            // SAFETY: method should only called by one thread at the time
-            unsafe {
-                std::env::set_var(env_name, temp_dir.path().as_os_str());
-            }
-
-            let actual = DbClient::state_dir().unwrap();
-
-            let mut expected = temp_dir.into_path();
-            if let Some(join) = join {
-                expected = expected.join(join);
-            }
-
-            assert_eq!(expected, actual);
-
-            // SAFETY: method should only called by one thread at the time
-            unsafe {
-                std::env::remove_var(env_name);
-            }
+        // SAFETY: method should only called by one thread at the time
+        unsafe {
+            std::env::remove_var(env_name);
         }
+    }
 
-        #[test]
-        fn valid_if_some() {
-            let temp_dir = tempfile::tempdir().unwrap();
+    #[test]
+    fn valid_if_some() {
+        let temp_dir = tempfile::tempdir().unwrap();
 
-            let prepare_result = DbClient::prepare_state_directory(temp_dir.path().to_path_buf(), StateDirSource::Env);
+        let prepare_result = DbClient::prepare_state_directory(temp_dir.path().to_path_buf(), StateDirSource::Env);
 
-            assert!(prepare_result.is_ok());
-        }
+        assert!(prepare_result.is_ok());
+    }
 
-        #[test]
-        fn create_if_none() {
-            let temp_dir = tempfile::tempdir().unwrap();
+    #[test]
+    fn create_if_none() {
+        let temp_dir = tempfile::tempdir().unwrap();
 
-            let state_dir = temp_dir.path().join("new");
+        let state_dir = temp_dir.path().join("new");
 
-            assert!(!state_dir.exists());
+        assert!(!state_dir.exists());
 
-            let returned_dir = DbClient::prepare_state_directory(state_dir.clone(), StateDirSource::Env).unwrap();
+        let returned_dir = DbClient::prepare_state_directory(state_dir.clone(), StateDirSource::Env).unwrap();
 
-            assert_eq!(state_dir, returned_dir);
+        assert_eq!(state_dir, returned_dir);
 
-            assert!(state_dir.exists());
-        }
+        assert!(state_dir.exists());
+    }
 
-        #[test]
-        fn empty_path_error() {
-            let state_dir = PathBuf::new();
+    #[test]
+    fn empty_path_error() {
+        let state_dir = PathBuf::new();
 
-            let result = DbClient::prepare_state_directory(state_dir, StateDirSource::Env);
+        let result = DbClient::prepare_state_directory(state_dir, StateDirSource::Env);
 
-            assert!(matches!(result, Err(StateDirError::EmptyPath(_))));
-        }
+        assert!(matches!(result, Err(StateDirError::EmptyPath(_))));
+    }
 
-        #[test]
-        fn non_dir_error() {
-            let state_dir = tempfile::NamedTempFile::new().unwrap();
+    #[test]
+    fn non_dir_error() {
+        let state_dir = tempfile::NamedTempFile::new().unwrap();
 
-            let result = DbClient::prepare_state_directory(state_dir.path().to_path_buf(), StateDirSource::Env);
+        let result = DbClient::prepare_state_directory(state_dir.path().to_path_buf(), StateDirSource::Env);
 
-            assert!(matches!(result, Err(StateDirError::NonDir(_, _))));
-        }
+        assert!(matches!(result, Err(StateDirError::NonDir(_, _))));
     }
 }
