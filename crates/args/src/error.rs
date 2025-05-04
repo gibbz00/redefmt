@@ -20,12 +20,18 @@ impl ParseError {
     }
 }
 
-#[derive(Debug, PartialEq, derive_more::From)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum ParseErrorKind {
-    Integer(core::num::ParseIntError),
-    Identifier(IdentifierParseError),
-    Count(FormatCountParseError),
-    Precision(FormatPrecisionParseError),
-    Trait(FormatTraitParseError),
-    String(FormatStringParseError),
+    #[error("failed to parse integer")]
+    Integer(#[from] core::num::ParseIntError),
+    #[error(transparent)]
+    Identifier(#[from] IdentifierParseError),
+    #[error(transparent)]
+    Count(#[from] FormatCountParseError),
+    #[error(transparent)]
+    Precision(#[from] FormatPrecisionParseError),
+    #[error(transparent)]
+    Trait(#[from] FormatTraitParseError),
+    #[error(transparent)]
+    String(#[from] FormatStringParseError),
 }
