@@ -28,8 +28,10 @@ pub enum FormatTrait {
     UpperExp,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, thiserror::Error)]
+#[error("failed to parse format trait")]
 pub enum FormatTraitParseError {
+    #[error("unknown variant")]
     Unknown,
 }
 

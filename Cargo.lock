@@ -448,9 +448,9 @@ dependencies = [
  "bit-set",
  "bon",
  "derive-getters",
- "derive_more",
  "hashbrown",
  "redefmt-args",
+ "thiserror",
  "unicode-xid",
 ]
 

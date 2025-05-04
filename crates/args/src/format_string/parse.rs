@@ -2,11 +2,12 @@ use alloc::{borrow::Cow, vec::Vec};
 
 use crate::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, thiserror::Error)]
+#[error("found unclosed format strings arguments")]
 pub enum FormatStringParseError {
-    /// No '{' found for before '}'
+    #[error("no '{{' found for before '}}'")]
     UnmatchedClose,
-    /// No '}' found for after '{'
+    #[error("no '}}' found for after '{{'")]
     UnmatchedOpen,
 }
 
