@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, thiserror::Error)]
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
 #[error("failed to parse precision format option")]
 pub enum FormatPrecisionParseError {
     #[error("empty string after '.', expected a precision count or argument")]
@@ -9,7 +9,9 @@ pub enum FormatPrecisionParseError {
 
 /// https://doc.rust-lang.org/std/fmt/index.html#precision
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatPrecision<'a> {
+    #[cfg_attr(feature = "serde", serde(borrow))]
     Count(FormatCount<'a>),
     /// '*'
     NextArgument,

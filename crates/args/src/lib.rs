@@ -32,3 +32,5 @@ pub(crate) use format_string::*;
 mod argument_register;
 pub use argument_register::RequiredArgumentsError;
 pub(crate) use argument_register::{ArgumentRegister, RequiredArguments};
+
+mod serde_utils;
