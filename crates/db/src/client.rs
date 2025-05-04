@@ -17,8 +17,6 @@ pub enum DbClientError {
     Sqlite(#[from] rusqlite::Error),
     #[error("failed to apply migrations")]
     Migration(#[from] rusqlite_migration::Error),
-    #[error("exhausted unique ID for table '{0}'")]
-    ExhaustedId(&'static str),
     // IMPROVEMENT: only possible from MainDb
     #[error(transparent)]
     CrateTable(#[from] CrateTableError),
