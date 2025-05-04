@@ -1,7 +1,9 @@
 use crate::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, thiserror::Error)]
+#[error("failed to parse count argument")]
 pub enum FormatCountParseError {
+    #[error("no closing '$' found")]
     UnclosedArgument,
 }
 

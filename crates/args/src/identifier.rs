@@ -15,13 +15,16 @@ pub struct Identifier<'a> {
     inner: Cow<'a, str>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, thiserror::Error)]
+#[error("failed to parse identifier")]
 pub enum IdentifierParseError {
-    /// "_" or "r#_"
+    #[error("first character--excluding any raw identifier marker ('r#')--may not begin with a underscore")]
     Underscore,
-    /// "U+200C" or U+200D
+    #[error("‌Zero width unicode characters (U+200C and U+200D) aren't not allowed")]
     ZeroWidth,
+    #[error("invalid XID_Start character")]
     InvalidStartCharacter,
+    #[error("invalid XID_Continue character")]
     InvalidContinueCharacter,
 }
 
