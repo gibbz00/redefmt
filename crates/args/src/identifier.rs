@@ -19,8 +19,8 @@ pub struct Identifier<'a> {
 pub enum IdentifierParseError {
     /// "_" or "r#_"
     Underscore,
-    /// "\u{200C}"
-    ZeroWidthNonJoiner,
+    /// "U+200C" or U+200D
+    ZeroWidth,
     InvalidStartCharacter,
     InvalidContinueCharacter,
 }
@@ -42,6 +42,8 @@ impl<'a> Identifier<'a> {
 
         fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseError> {
             const ZERO_WIDTH_NON_JOINER: char = '\u{200C}';
+            const ZERO_WIDTH_JOINER: char = '\u{200D}';
+
             const UNDERSCORE: char = '_';
 
             let mut char_iter = ident.char_indices();
@@ -53,8 +55,8 @@ impl<'a> Identifier<'a> {
             {
                 let first_char_error = if first_char == UNDERSCORE {
                     (ident.len() == 1).then_some(IdentifierParseError::Underscore)
-                } else if first_char == ZERO_WIDTH_NON_JOINER {
-                    Some(IdentifierParseError::ZeroWidthNonJoiner)
+                } else if first_char == ZERO_WIDTH_JOINER || first_char == ZERO_WIDTH_NON_JOINER {
+                    Some(IdentifierParseError::ZeroWidth)
                 } else if !first_char.is_xid_start() {
                     Some(IdentifierParseError::InvalidStartCharacter)
                 } else {
@@ -69,8 +71,8 @@ impl<'a> Identifier<'a> {
             for (next_char_index, next_char) in char_iter {
                 if !next_char.is_xid_continue() {
                     return single_char_error(offset, next_char_index, IdentifierParseError::InvalidContinueCharacter);
-                } else if next_char == ZERO_WIDTH_NON_JOINER {
-                    return single_char_error(offset, next_char_index, IdentifierParseError::ZeroWidthNonJoiner);
+                } else if next_char == ZERO_WIDTH_JOINER || next_char == ZERO_WIDTH_NON_JOINER {
+                    return single_char_error(offset, next_char_index, IdentifierParseError::ZeroWidth);
                 }
             }
 
@@ -117,9 +119,15 @@ mod tests {
     }
 
     #[test]
+    fn no_zero_width_joiner_error() {
+        assert_error("\u{200D}x", 0..1, IdentifierParseError::ZeroWidth);
+        assert_error("x\u{200D}", 1..2, IdentifierParseError::ZeroWidth);
+    }
+
+    #[test]
     fn no_zero_width_non_joiner_error() {
-        assert_error("\u{200C}x", 0..1, IdentifierParseError::ZeroWidthNonJoiner);
-        assert_error("x\u{200C}", 1..2, IdentifierParseError::ZeroWidthNonJoiner);
+        assert_error("\u{200C}x", 0..1, IdentifierParseError::ZeroWidth);
+        assert_error("x\u{200C}", 1..2, IdentifierParseError::ZeroWidth);
     }
 
     #[test]
@@ -152,6 +160,6 @@ mod tests {
 
         let actual_error = Identifier::parse(mock_offset, str).unwrap_err();
 
-        assert_eq!(expected_error, actual_error, "input string: {}", str);
+        assert_eq!(expected_error, actual_error, "input string: {str}");
     }
 }
