@@ -29,3 +29,6 @@ pub(crate) use print_info::PrintInfo;
 
 mod documents;
 pub(crate) use documents::*;
+
+mod sql_utils;
+pub(crate) use sql_utils::sql_newtype;

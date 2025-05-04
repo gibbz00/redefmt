@@ -1,7 +1,9 @@
 use crate::*;
 
 #[derive(Debug, Clone, Copy)]
-pub struct CrateId(u16);
+pub struct CrateId(ShortId);
+
+sql_newtype!(CrateId);
 
 #[derive(Debug, PartialEq)]
 pub struct Crate<'a> {
@@ -15,10 +17,6 @@ pub enum CrateTableError {
     Name(#[from] CrateNameError),
 }
 
-impl Crate<'_> {
-    const TABLE_NAME: &'static str = "crate";
-}
-
 pub trait CrateTable {
     fn find_crate_record(&self, id: CrateId) -> Result<Option<Crate<'static>>, DbClientError>;
 
@@ -28,7 +26,7 @@ pub trait CrateTable {
 impl CrateTable for DbClient<MainDb> {
     fn find_crate_record(&self, id: CrateId) -> Result<Option<Crate<'static>>, DbClientError> {
         let mut statement = self.connection.prepare("SELECT name FROM crate WHERE id = ?1")?;
-        let mut row_iter = statement.query_map([id.0], |res| res.get::<_, String>(0))?;
+        let mut row_iter = statement.query_map([id], |res| res.get::<_, String>(0))?;
 
         // unique index on name should result in only one record being returned
         let Some(name_string) = row_iter.next().transpose()? else {
@@ -41,15 +39,13 @@ impl CrateTable for DbClient<MainDb> {
     }
 
     fn create_crate_record(&self, record: &Crate<'_>) -> Result<CrateId, DbClientError> {
-        let long_id = self.connection.query_row_and_then(
-            "INSERT INTO crate(name) VALUES (?1) RETURNING id",
-            [record.name.as_ref()],
-            |res| res.get::<_, i64>(0),
-        )?;
-
-        let inner_id = u16::try_from(long_id).map_err(|_| DbClientError::ExhaustedId(Crate::TABLE_NAME))?;
-
-        Ok(CrateId(inner_id))
+        self.connection
+            .query_row_and_then(
+                "INSERT INTO crate(name) VALUES (?1) RETURNING id",
+                [record.name.as_ref()],
+                |res| res.get(0),
+            )
+            .map_err(Into::into)
     }
 }
 
@@ -58,7 +54,7 @@ mod tests {
     use super::*;
 
     fn mock_crate_id() -> CrateId {
-        CrateId(123)
+        CrateId(ShortId(123))
     }
 
     fn mock_crate_record() -> Crate<'static> {
