@@ -15,7 +15,7 @@ pub struct Identifier<'a> {
     inner: Cow<'a, str>,
 }
 
-#[derive(Debug, PartialEq, thiserror::Error)]
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
 #[error("failed to parse identifier")]
 pub enum IdentifierParseError {
     #[error("first character--excluding any raw identifier marker ('r#')--may not begin with a underscore")]
@@ -29,19 +29,40 @@ pub enum IdentifierParseError {
 }
 
 impl<'a> Identifier<'a> {
+    const RAW_START: &'static str = "r#";
+
     /// Context from `Argument::parse`:
     /// - `str` not empty
-    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
-        const RAW_START: &str = "r#";
+    pub(crate) fn parse(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
+        let cow_str = cow_str.into();
 
-        let (offset, ident, raw) = match str.strip_prefix(RAW_START) {
-            Some(raw_ident) => (offset + RAW_START.len(), raw_ident, true),
-            None => (offset, str, false),
+        let (offset, ident, raw) = match cow_str.strip_prefix(Self::RAW_START) {
+            Some(raw_ident) => (offset + Self::RAW_START.len(), raw_ident, true),
+            None => (offset, cow_str.as_ref(), false),
         };
 
         assert_xid_chars(offset, ident)?;
 
-        return Ok(Identifier { raw, inner: Cow::Borrowed(ident) });
+        let inner = match cow_str {
+            Cow::Borrowed(str) => {
+                let str = match raw {
+                    true => &str[Self::RAW_START.len()..],
+                    false => str,
+                };
+
+                Cow::Borrowed(str)
+            }
+            Cow::Owned(mut string) => {
+                let string = match raw {
+                    true => string.split_off(Self::RAW_START.len()),
+                    false => string,
+                };
+
+                Cow::Owned(string)
+            }
+        };
+
+        return Ok(Identifier { raw, inner });
 
         fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseError> {
             const ZERO_WIDTH_NON_JOINER: char = '\u{200C}';
@@ -94,6 +115,82 @@ impl<'a> Identifier<'a> {
     pub(crate) fn owned(&self) -> Identifier<'static> {
         let Identifier { raw, inner } = self;
         Identifier { raw: *raw, inner: Cow::Owned(inner.to_string()) }
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde {
+    use alloc::string::String;
+
+    use ::serde::{Deserialize, Serialize, Serializer};
+
+    use super::*;
+
+    impl<'a> Serialize for Identifier<'a> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match self.raw {
+                true => {
+                    let mut ident_string = String::with_capacity(Self::RAW_START.len() + self.inner.len());
+                    ident_string.push_str(Self::RAW_START);
+                    ident_string.push_str(&self.inner);
+
+                    serializer.serialize_str(&ident_string)
+                }
+                false => serializer.serialize_str(&self.inner),
+            }
+        }
+    }
+
+    impl<'a, 'de: 'a> Deserialize<'de> for Identifier<'a> {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: ::serde::Deserializer<'de>,
+        {
+            let cow_str = Cow::<'a, str>::deserialize(deserializer)?;
+
+            Self::parse(0, cow_str).map_err(|err| ::serde::de::Error::custom(err.kind()))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use serde_json::Value;
+
+        use super::*;
+
+        #[test]
+        fn serialize() {
+            assert_serialize("r#x");
+            assert_serialize("x_x");
+
+            fn assert_serialize(ident_str: &str) {
+                let ident = Identifier::parse(0, ident_str).unwrap();
+
+                let expected_json = Value::String(ident_str.to_string());
+
+                let actual_json = serde_json::to_value(ident).unwrap();
+
+                assert_eq!(expected_json, actual_json)
+            }
+        }
+
+        #[test]
+        fn deserialize() {
+            assert_deserialize("r#x");
+            assert_deserialize("x_x");
+
+            fn assert_deserialize(ident_str: &str) {
+                let expected_ident = Identifier::parse(0, ident_str).unwrap();
+
+                let value = Value::String(ident_str.to_string());
+                let actual_ident = Identifier::deserialize(value).unwrap();
+
+                assert_eq!(expected_ident, actual_ident)
+            }
+        }
     }
 }
 

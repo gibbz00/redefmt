@@ -240,7 +240,7 @@ mod tests {
         let expected_named_arguments = expected_named_arguments
             .as_ref()
             .iter()
-            .map(|str| Identifier::parse(0, str).unwrap())
+            .map(|str| Identifier::parse(0, *str).unwrap())
             .collect::<Vec<_>>();
 
         let expected = RequiredArguments {

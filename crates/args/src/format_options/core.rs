@@ -6,16 +6,24 @@ type StrIter<'a> = Peekable<CharIndices<'a>>;
 
 #[derive(Debug, Default, PartialEq, derive_getters::Getters)]
 #[cfg_attr(feature = "builder", derive(bon::Builder))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(default))]
 pub struct FormatOptions<'a> {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     align: Option<FormatAlign>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     sign: Option<Sign>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
     #[cfg_attr(feature = "builder", builder(default))]
     use_alternate_form: bool,
     /// https://doc.rust-lang.org/std/fmt/index.html#sign0
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
     #[cfg_attr(feature = "builder", builder(default))]
     use_zero_padding: bool,
+    #[cfg_attr(feature = "serde", serde(borrow, skip_serializing_if = "Option::is_none"))]
     width: Option<FormatCount<'a>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     precision: Option<FormatPrecision<'a>>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_default"))]
     #[cfg_attr(feature = "builder", builder(default))]
     format_trait: FormatTrait,
 }

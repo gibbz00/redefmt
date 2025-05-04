@@ -1,8 +1,10 @@
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Argument<'a> {
     Index(Integer),
+    #[cfg_attr(feature = "serde", serde(borrow))]
     Identifier(Identifier<'a>),
 }
 
