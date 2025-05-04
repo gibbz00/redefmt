@@ -10,6 +10,10 @@ pub struct ParseError {
 }
 
 impl ParseError {
+    pub fn kind(&self) -> &ParseErrorKind {
+        &self.kind
+    }
+
     pub(crate) fn new(offset: usize, range: Range<usize>, kind: impl Into<ParseErrorKind>) -> Self {
         let range = offset + range.start..offset + range.end;
         Self { range, kind: kind.into() }
@@ -20,7 +24,7 @@ impl ParseError {
     }
 }
 
-#[derive(Debug, PartialEq, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum ParseErrorKind {
     #[error("failed to parse integer")]
     Integer(#[from] core::num::ParseIntError),

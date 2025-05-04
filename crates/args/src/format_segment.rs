@@ -1,8 +1,11 @@
 use crate::*;
 
 #[derive(Debug, Default, PartialEq, derive_getters::Getters)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FormatSegment<'a> {
+    #[cfg_attr(feature = "serde", serde(default, borrow, skip_serializing_if = "Option::is_none"))]
     argument: Option<Argument<'a>>,
+    #[cfg_attr(feature = "serde", serde(borrow))]
     options: FormatOptions<'a>,
 }
 

@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, thiserror::Error)]
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
 #[error("failed to parse count argument")]
 pub enum FormatCountParseError {
     #[error("no closing '$' found")]
@@ -8,8 +8,10 @@ pub enum FormatCountParseError {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatCount<'a> {
     Integer(Integer),
+    #[cfg_attr(feature = "serde", serde(borrow))]
     Argument(Argument<'a>),
 }
 

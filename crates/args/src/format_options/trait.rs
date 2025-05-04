@@ -2,6 +2,7 @@ use crate::*;
 
 /// https://doc.rust-lang.org/std/fmt/index.html#formatting-traits
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatTrait {
     /// ''
     #[default]
@@ -28,7 +29,7 @@ pub enum FormatTrait {
     UpperExp,
 }
 
-#[derive(Debug, PartialEq, thiserror::Error)]
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
 #[error("failed to parse format trait")]
 pub enum FormatTraitParseError {
     #[error("unknown variant")]

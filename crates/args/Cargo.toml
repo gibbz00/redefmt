@@ -11,6 +11,7 @@ version.workspace = true
 
 [features]
 builder = ["dep:bon"]
+serde = ["dep:serde"]
 
 [lints]
 workspace = true
@@ -25,5 +26,9 @@ unicode-xid = "0.2"
 # feature: builder
 bon = { version = "3.6", default-features = false, optional = true }
 
+# feature: serde
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
+
 [dev-dependencies]
 redefmt-args = { path = ".", features = ["builder"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
