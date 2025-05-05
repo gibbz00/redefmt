@@ -2,7 +2,7 @@ use alloc::{borrow::Cow, string::ToString, vec::Vec};
 
 use crate::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct FormatString<'a> {
@@ -26,7 +26,7 @@ impl<'a> FormatString<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatStringSegment<'a> {
     Literal(Cow<'a, str>),
