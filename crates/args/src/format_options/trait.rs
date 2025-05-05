@@ -1,7 +1,7 @@
 use crate::*;
 
 /// https://doc.rust-lang.org/std/fmt/index.html#formatting-traits
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatTrait {
     /// ''

@@ -1,7 +1,7 @@
 use crate::*;
 
 /// Decimal integer that may contain leading zeroes, and must fit into an usize
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Integer(usize);

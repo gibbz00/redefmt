@@ -1,5 +1,5 @@
 /// https://doc.rust-lang.org/std/fmt/index.html#fillalignment
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FormatAlign {
     alignment: Alignment,
@@ -13,7 +13,7 @@ impl FormatAlign {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Alignment {
     /// '<'
