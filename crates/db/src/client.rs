@@ -15,6 +15,8 @@ pub enum DbClientError {
     StateDir(#[from] StateDirError),
     #[error("internal database error")]
     Sqlite(#[from] rusqlite::Error),
+    #[error("json serialization error")]
+    Json(#[from] serde_json::Error),
     #[error("failed to apply migrations")]
     Migration(#[from] rusqlite_migration::Error),
     // IMPROVEMENT: only possible from MainDb
