@@ -18,9 +18,6 @@ pub use header::Header;
 mod stamp;
 pub use stamp::Stamp;
 
-mod write_content;
-pub use write_content::WriteContentId;
-
 mod type_hint;
 pub use type_hint::TypeHint;
 
