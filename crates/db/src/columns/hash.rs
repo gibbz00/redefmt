@@ -1,5 +1,17 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use std::hash::{DefaultHasher, Hash as StdHash, Hasher};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(transparent)]
 pub struct Hash(u64);
+
+impl Hash {
+    pub fn new(object: &impl StdHash) -> Self {
+        let mut hasher = DefaultHasher::new();
+        object.hash(&mut hasher);
+        let inner = hasher.finish();
+        Hash(inner)
+    }
+}
 
 /// SQLite uses i64 exclusively. To the u64 output of `Hasher::finish`,
 /// we transmute the bytes to and from the signed counterpart.

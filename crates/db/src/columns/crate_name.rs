@@ -1,5 +1,10 @@
 use std::borrow::Cow;
 
+use rusqlite::{
+    ToSql,
+    types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
+};
+
 #[derive(Debug, PartialEq, derive_more::Deref)]
 pub struct CrateName<'a>(Cow<'a, str>);
 
@@ -31,6 +36,24 @@ impl<'a> CrateName<'a> {
     }
 }
 
+impl<'a> FromSql for CrateName<'a> {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let str = value
+            .as_str()?
+            // unfortunate allocation, think it's a result of FromSql trait
+            // signature not allowing lifetime bounds on ValueRef
+            .to_owned();
+
+        Self::new(str).map_err(|e| FromSqlError::Other(Box::new(e)))
+    }
+}
+
+impl<'a> ToSql for CrateName<'a> {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        self.0.to_sql()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -43,7 +66,7 @@ mod tests {
 
         fn assert_ok(str: &str) {
             let result = CrateName::new(str);
-            assert!(result.is_ok(), "initial str: {}", str)
+            assert!(result.is_ok(), "initial str: {str}")
         }
     }
 
@@ -59,7 +82,7 @@ mod tests {
 
             match err {
                 CrateNameError::InvalidChar(char, _) => {
-                    assert_eq!(invalid_char, char, "initial str: {}", str)
+                    assert_eq!(invalid_char, char, "initial str: {str}")
                 }
             }
         }

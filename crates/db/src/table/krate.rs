@@ -1,3 +1,5 @@
+use rusqlite::OptionalExtension;
+
 use crate::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -20,29 +22,25 @@ pub enum CrateTableError {
 pub trait CrateTable {
     fn find_crate_record(&self, id: CrateId) -> Result<Option<Crate<'static>>, DbClientError>;
 
-    fn create_crate_record(&self, record: &Crate<'_>) -> Result<CrateId, DbClientError>;
+    fn insert_crate_record(&self, record: &Crate<'_>) -> Result<CrateId, DbClientError>;
 }
 
 impl CrateTable for DbClient<MainDb> {
     fn find_crate_record(&self, id: CrateId) -> Result<Option<Crate<'static>>, DbClientError> {
-        let mut statement = self.connection.prepare("SELECT name FROM crate WHERE id = ?1")?;
-        let mut row_iter = statement.query_map([id], |res| res.get::<_, String>(0))?;
+        let krate = self
+            .connection
+            .query_row("SELECT name FROM crate WHERE id = ?1", [id], |res| res.get(0))
+            .optional()?
+            .map(|name| Crate { name });
 
-        // unique index on name should result in only one record being returned
-        let Some(name_string) = row_iter.next().transpose()? else {
-            return Ok(None);
-        };
-
-        let name = CrateName::new(name_string).map_err(CrateTableError::Name)?;
-
-        Ok(Some(Crate { name }))
+        Ok(krate)
     }
 
-    fn create_crate_record(&self, record: &Crate<'_>) -> Result<CrateId, DbClientError> {
+    fn insert_crate_record(&self, record: &Crate<'_>) -> Result<CrateId, DbClientError> {
         self.connection
             .query_row_and_then(
                 "INSERT INTO crate(name) VALUES (?1) RETURNING id",
-                [record.name.as_ref()],
+                [&record.name],
                 |res| res.get(0),
             )
             .map_err(Into::into)
@@ -67,7 +65,7 @@ mod tests {
 
         let mock_record = mock_crate_record();
 
-        let id = client.create_crate_record(&mock_record).unwrap();
+        let id = client.insert_crate_record(&mock_record).unwrap();
 
         let found_record = client.find_crate_record(id).unwrap().unwrap();
         assert_eq!(mock_record, found_record);
@@ -83,10 +81,10 @@ mod tests {
 
         let mock_record = mock_crate_record();
 
-        let first_insert_result = client.create_crate_record(&mock_record);
+        let first_insert_result = client.insert_crate_record(&mock_record);
         assert!(first_insert_result.is_ok());
 
-        let second_insert_result = client.create_crate_record(&mock_record);
+        let second_insert_result = client.insert_crate_record(&mock_record);
         assert!(second_insert_result.is_err());
     }
 }

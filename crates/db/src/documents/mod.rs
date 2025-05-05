@@ -6,9 +6,9 @@ mod print {
     pub struct PrintDocumentId(Uuid);
 
     // TODO: denormalize PrintDocument
-    pub struct PrintDocument {
+    pub struct PrintDocument<'a> {
         info: PrintInfo,
-        segments: Vec<Segment>,
+        segments: Vec<Segment<'a>>,
     }
 }
 pub(crate) use print::{PrintDocument, PrintDocumentId};
