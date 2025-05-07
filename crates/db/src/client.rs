@@ -79,9 +79,9 @@ mod mock {
             let temp_dir = tempfile::tempdir().unwrap();
             let temp_path = temp_dir.path().join("test.sqlite");
 
-            let client = Self::init(&temp_path).unwrap();
+            let db = Self::init(&temp_path).unwrap();
 
-            (temp_dir, client)
+            (temp_dir, db)
         }
     }
 }
@@ -98,18 +98,17 @@ mod tests {
     fn new_with_pragma() {
         const SYNCHRONOUS_NORMAL: usize = 1;
 
-        let (_dir_guard, client) = DbClient::<MainDb>::mock_db();
+        let (_dir_guard, db) = DbClient::<MainDb>::mock_db();
 
-        assert_pragma(&client, "journal_mode", "wal".to_string());
-        assert_pragma(&client, "synchronous", SYNCHRONOUS_NORMAL);
+        assert_pragma(&db, "journal_mode", "wal".to_string());
+        assert_pragma(&db, "synchronous", SYNCHRONOUS_NORMAL);
 
         fn assert_pragma<T: Debug + PartialEq + FromSql>(
-            client: &DbClient<impl Db>,
+            db: &DbClient<impl Db>,
             pragma_key: &str,
             expected_pragma_value: T,
         ) {
-            client
-                .connection
+            db.connection
                 .pragma_query_value(None, pragma_key, |res| {
                     let actual_pragma_value = res.get::<_, T>(0).unwrap();
 
