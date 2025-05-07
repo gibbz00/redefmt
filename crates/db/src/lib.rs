@@ -23,6 +23,10 @@ pub use client::{DbClient, DbClientError};
 mod short_id;
 pub(crate) use short_id::{ShortId, short_id_newtype};
 
+mod table;
+pub(crate) use table::Record;
+pub use table::Table;
+
 pub mod crate_table;
 pub(crate) use crate_table::*;
 

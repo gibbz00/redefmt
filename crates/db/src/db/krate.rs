@@ -34,7 +34,7 @@ mod tests {
 
         let dir = Path::new("/tmp");
         let crate_name = CrateName::new("abc").unwrap();
-        let actual = CrateDb::path(&dir, &crate_name).unwrap();
+        let actual = CrateDb::path(dir, &crate_name).unwrap();
 
         assert_eq!(expected, actual.as_os_str());
     }
