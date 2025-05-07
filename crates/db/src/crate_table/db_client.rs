@@ -2,24 +2,7 @@ use rusqlite::OptionalExtension;
 
 use crate::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CrateId(ShortId);
-
-sql_newtype!(CrateId);
-
-#[derive(Debug, PartialEq)]
-pub struct Crate<'a> {
-    name: CrateName<'a>,
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("encountered a crate record invariant error")]
-pub enum CrateTableError {
-    #[error(transparent)]
-    Name(#[from] CrateNameError),
-}
-
-pub trait CrateTable {
+pub trait CrateDbClient {
     fn find_crate_by_id(&self, id: CrateId) -> Result<Option<Crate<'static>>, DbClientError>;
 
     fn find_crate_by_name(&self, name: &CrateName<'_>) -> Result<Option<(CrateId, Crate<'static>)>, DbClientError>;
@@ -27,7 +10,7 @@ pub trait CrateTable {
     fn insert_crate_record(&self, record: &Crate<'_>) -> Result<CrateId, DbClientError>;
 }
 
-impl CrateTable for DbClient<MainDb> {
+impl CrateDbClient for DbClient<MainDb> {
     fn find_crate_by_id(&self, id: CrateId) -> Result<Option<Crate<'static>>, DbClientError> {
         let krate = self
             .connection
