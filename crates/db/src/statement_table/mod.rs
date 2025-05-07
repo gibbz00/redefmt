@@ -5,10 +5,10 @@ mod segment;
 pub(crate) use segment::Segment;
 
 mod write;
-pub(crate) use write::WriteStatement;
+pub(crate) use write::{WriteStatement, WriteStatementId};
 
 mod print;
-pub(crate) use print::PrintStatement;
+pub(crate) use print::{PrintStatement, PrintStatementId};
 
 mod table;
 pub(crate) use table::{StatementTable, statement_table};

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::*;
 
-statement_table!(PrintRegisterId, PrintStatement<'_>, "print_register");
+statement_table!(PrintStatementId, PrintStatement<'_>, "print_register");
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct PrintStatement<'a> {
@@ -48,7 +48,7 @@ mod tests {
 
     impl StatementTableTest for PrintStatement<'_> {
         fn mock_id() -> Self::Id {
-            PrintRegisterId(ShortId(123))
+            PrintStatementId(ShortId(123))
         }
 
         fn mock() -> Self {
