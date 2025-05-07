@@ -5,7 +5,7 @@
 
 // foundational client modules
 
-mod state_dir;
+pub mod state_dir;
 pub(crate) use state_dir::{StateDir, StateDirError};
 
 mod migrations;
@@ -21,7 +21,7 @@ pub use client::{DbClient, DbClientError};
 // table management modules
 
 mod short_id;
-pub(crate) use short_id::ShortId;
+pub(crate) use short_id::{ShortId, short_id_newtype};
 
 pub mod crate_table;
 pub(crate) use crate_table::*;

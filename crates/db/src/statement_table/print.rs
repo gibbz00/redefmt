@@ -11,6 +11,12 @@ pub struct PrintStatement<'a> {
     segments: Vec<Segment<'a>>,
 }
 
+impl<'a> PrintStatement<'a> {
+    pub fn new(info: PrintInfo<'a>, segments: Vec<Segment<'a>>) -> Self {
+        Self { info, segments }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct PrintInfo<'a> {
     /// None for regular `println!()` statements
@@ -18,7 +24,24 @@ pub struct PrintInfo<'a> {
     location: Location<'a>,
 }
 
+impl<'a> PrintInfo<'a> {
+    pub fn new(level: Option<LogLevel>, location: Location<'a>) -> Self {
+        Self { level, location }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
 /// Print statement call site location
+///
+/// Constructed with the [`location!`] macro.
 ///
 /// Crate inferred could be inferred the crate database itself, or by "parsing" the module path.
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -31,13 +54,18 @@ pub struct Location<'a> {
     line: u32,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum LogLevel {
-    Trace,
-    Debug,
-    Info,
-    Warn,
-    Error,
+impl<'a> Location<'a> {
+    #[doc(hidden)]
+    pub fn new(file: Cow<'a, str>, module: Cow<'a, str>, line: u32) -> Self {
+        Self { file, module, line }
+    }
+}
+
+#[macro_export]
+macro_rules! location {
+    () => {
+        $crate::statement_table::print::Location::new(file!().into(), module_path!().into(), line!())
+    };
 }
 
 #[cfg(test)]
@@ -48,22 +76,19 @@ mod tests {
 
     impl StatementTableTest for PrintStatement<'_> {
         fn mock_id() -> Self::Id {
-            PrintStatementId(ShortId(123))
+            PrintStatementId::new(123)
         }
 
         fn mock() -> Self {
-            PrintStatement { segments: vec![Segment::Str("x".into())], info: mock_print_info() }
+            PrintStatement::new(mock_print_info(), vec![Segment::Str("x".into())])
         }
 
         fn mock_other() -> Self {
-            PrintStatement { segments: vec![Segment::Str("y".into())], info: mock_print_info() }
+            PrintStatement::new(mock_print_info(), vec![Segment::Str("y".into())])
         }
     }
 
     fn mock_print_info() -> PrintInfo<'static> {
-        PrintInfo {
-            level: Some(LogLevel::Debug),
-            location: Location { file: file!().into(), module: module_path!().into(), line: line!() },
-        }
+        PrintInfo { level: Some(LogLevel::Debug), location: location!() }
     }
 }

@@ -1,4 +1,7 @@
-use std::{marker::PhantomData, path::Path};
+use std::{
+    marker::PhantomData,
+    path::{Path, PathBuf},
+};
 
 use rusqlite::Connection;
 
@@ -11,38 +14,28 @@ pub struct DbClient<D: Db> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DbClientError {
-    #[error("state directory resolution error")]
-    StateDir(#[from] StateDirError),
     #[error("internal database error")]
     Sqlite(#[from] rusqlite::Error),
     #[error("json serialization error")]
     Json(#[from] serde_json::Error),
     #[error("failed to apply migrations")]
     Migration(#[from] rusqlite_migration::Error),
+    #[error("unable to create crate directory in '{0}'")]
+    CrateDir(PathBuf, #[source] std::io::Error),
 }
 
 impl DbClient<MainDb> {
-    pub fn new_main() -> Result<Self, DbClientError> {
-        let dir = StateDir::resolve()?;
-        Self::new_main_impl(&dir)
-    }
-
-    /// Separate to method to simplify tests by letting them pass a `TempDir` parameter
-    pub(crate) fn new_main_impl(dir: &Path) -> Result<Self, DbClientError> {
+    /// Applications will normally supply `StateDir::resolve()` as `dir`.
+    pub fn new_main(dir: &Path) -> Result<Self, DbClientError> {
         let path = MainDb::path(dir);
         Self::init(&path)
     }
 }
 
 impl DbClient<CrateDb> {
-    pub fn new_crate(crate_name: &CrateName) -> Result<Self, DbClientError> {
-        let dir = StateDir::resolve()?;
-        Self::new_crate_impl(&dir, crate_name)
-    }
-
-    /// Separate to method to simplify tests by letting them pass a `TempDir` parameter
-    pub(crate) fn new_crate_impl(dir: &Path, crate_name: &CrateName) -> Result<Self, DbClientError> {
-        let path = CrateDb::path(dir, crate_name);
+    /// Applications will normally supply `StateDir::resolve()` as `dir`.
+    pub fn new_crate(dir: &Path, crate_name: &CrateName) -> Result<Self, DbClientError> {
+        let path = CrateDb::path(dir, crate_name)?;
         Self::init(&path)
     }
 }
@@ -88,6 +81,7 @@ mod tests {
     use std::fmt::Debug;
 
     use rusqlite::types::FromSql;
+    use tempfile::TempDir;
 
     use super::*;
 
@@ -115,5 +109,15 @@ mod tests {
                 })
                 .unwrap();
         }
+    }
+
+    #[test]
+    fn new_crate() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let crate_name = CrateName::new("x").unwrap();
+
+        let result = DbClient::new_crate(temp_dir.path(), &crate_name).unwrap();
+
+        // assert!(result.is_ok())
     }
 }

@@ -5,7 +5,7 @@ use rusqlite::{
     types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
 };
 
-#[derive(Debug, PartialEq, derive_more::Deref)]
+#[derive(Debug, Clone, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct CrateName<'a>(Cow<'a, str>);
 
 #[derive(Debug, thiserror::Error)]

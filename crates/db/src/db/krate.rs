@@ -13,8 +13,14 @@ impl Db for CrateDb {
 }
 
 impl CrateDb {
-    pub(crate) fn path(dir: &Path, crate_name: &CrateName) -> PathBuf {
-        dir.join("crates").join(crate_name.as_ref()).join("db.sqlite")
+    pub(crate) fn path(dir: &Path, crate_name: &CrateName) -> Result<PathBuf, DbClientError> {
+        let crate_dir = dir.join("crates").join(crate_name.as_ref());
+
+        if !crate_dir.exists() {
+            std::fs::create_dir_all(&crate_dir).map_err(|err| DbClientError::CrateDir(crate_dir.clone(), err))?;
+        }
+
+        Ok(crate_dir.join("db.sqlite"))
     }
 }
 
@@ -28,7 +34,7 @@ mod tests {
 
         let dir = Path::new("/tmp");
         let crate_name = CrateName::new("abc").unwrap();
-        let actual = CrateDb::path(dir, &crate_name);
+        let actual = CrateDb::path(&dir, &crate_name).unwrap();
 
         assert_eq!(expected, actual.as_os_str());
     }
