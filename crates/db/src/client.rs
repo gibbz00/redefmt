@@ -19,9 +19,6 @@ pub enum DbClientError {
     Json(#[from] serde_json::Error),
     #[error("failed to apply migrations")]
     Migration(#[from] rusqlite_migration::Error),
-    // IMPROVEMENT: only possible from MainDb
-    #[error(transparent)]
-    CrateTable(#[from] CrateTableError),
 }
 
 impl DbClient<MainDb> {

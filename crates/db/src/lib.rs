@@ -3,6 +3,8 @@
 // TEMP:
 #![allow(missing_docs)]
 
+// foundational client modules
+
 mod state_dir;
 pub(crate) use state_dir::{StateDir, StateDirError};
 
@@ -15,11 +17,16 @@ pub(crate) use db::*;
 mod client;
 pub use client::{DbClient, DbClientError};
 
-mod columns;
-pub(crate) use columns::*;
+// table management modules
 
-mod table;
-pub(crate) use table::*;
+mod short_id;
+pub(crate) use short_id::ShortId;
+
+mod crate_table;
+pub(crate) use crate_table::*;
+
+mod statement_table;
+pub(crate) use statement_table::*;
 
 mod sql_utils;
 pub(crate) use sql_utils::*;
