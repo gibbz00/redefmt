@@ -1,8 +1,8 @@
 mod name;
-pub(crate) use name::{CrateName, CrateNameError};
+pub use name::{CrateName, CrateNameError};
 
 mod table;
-pub(crate) use table::{Crate, CrateId};
+pub use table::{Crate, CrateId};
 
 mod db_client;
-pub(crate) use db_client::CrateDbClient;
+pub use db_client::CrateDbClient;

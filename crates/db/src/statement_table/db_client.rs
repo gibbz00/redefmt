@@ -5,22 +5,17 @@ use crate::*;
 pub trait StatementDbClient<T: StatementTable> {
     fn find_statement_by_id(&self, id: T::Id) -> Result<Option<T>, DbClientError>;
 
-    /// Returns a list due to the possibility of hash collisions
-    #[allow(clippy::type_complexity)]
-    fn find_statement_by_hash(&self, hash: Hash) -> Result<Vec<(T::Id, T)>, DbClientError>;
-
     fn insert_statement(&self, statement: &T) -> Result<T::Id, DbClientError>;
 }
 
-impl<T: StatementTable> StatementDbClient<T> for DbClient<CrateDb> {
-    fn find_statement_by_id(&self, id: T::Id) -> Result<Option<T>, DbClientError> {
-        let mut prepared_statement = self
-            .connection
-            .prepare(&format!("SELECT json(statement) FROM {} WHERE id = ?1", T::NAME))?;
+// Separate trait to avoid exposing `Hash` in public API
+pub trait StatementDbClientInner<T: StatementTable> {
+    /// Returns a list due to the possibility of hash collisions
+    #[allow(clippy::type_complexity)]
+    fn find_statement_by_hash(&self, hash: Hash) -> Result<Vec<(T::Id, T)>, DbClientError>;
+}
 
-        prepared_statement.query_row([id], |res| res.get(0)).optional_json()
-    }
-
+impl<T: StatementTable> StatementDbClientInner<T> for DbClient<CrateDb> {
     fn find_statement_by_hash(&self, hash: Hash) -> Result<Vec<(T::Id, T)>, DbClientError> {
         let mut prepared_statement = self
             .connection
@@ -43,11 +38,21 @@ impl<T: StatementTable> StatementDbClient<T> for DbClient<CrateDb> {
 
         Ok(records)
     }
+}
+
+impl<T: StatementTable> StatementDbClient<T> for DbClient<CrateDb> {
+    fn find_statement_by_id(&self, id: T::Id) -> Result<Option<T>, DbClientError> {
+        let mut prepared_statement = self
+            .connection
+            .prepare(&format!("SELECT json(statement) FROM {} WHERE id = ?1", T::NAME))?;
+
+        prepared_statement.query_row([id], |res| res.get(0)).optional_json()
+    }
 
     fn insert_statement(&self, statement: &T) -> Result<T::Id, DbClientError> {
         let hash = Hash::new(statement);
 
-        let current_write_registers = <Self as StatementDbClient<T>>::find_statement_by_hash(self, hash)?;
+        let current_write_registers = <Self as StatementDbClientInner<T>>::find_statement_by_hash(self, hash)?;
 
         for (current_id, current_statement) in current_write_registers {
             if &current_statement == statement {

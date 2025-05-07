@@ -3,11 +3,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::*;
 
-// TODO: seal?
-pub trait StatementTable: PartialEq + std::hash::Hash + Serialize + Deserialize<'static> {
+pub trait StatementTable: private::Sealed + PartialEq + std::hash::Hash + Serialize + Deserialize<'static> {
     type Id: ToSql + FromSql;
-
     const NAME: &'static str;
+}
+
+mod private {
+    use crate::*;
+
+    pub trait Sealed {}
+
+    impl Sealed for WriteStatement<'_> {}
+    impl Sealed for PrintStatement<'_> {}
 }
 
 macro_rules! statement_table {
