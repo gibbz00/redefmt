@@ -1,16 +1,16 @@
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TypeStructure {
     name: String,
     variant: TypeStructureVariant,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum TypeStructureVariant {
     Struct(StructVariant),
     Enum(Vec<(String, StructVariant)>),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum StructVariant {
     Unit,
     /// Inner u8 represents field count
