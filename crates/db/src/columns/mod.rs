@@ -15,3 +15,6 @@ pub(crate) use type_structure::{StructVariant, TypeStructure, TypeStructureVaria
 
 mod write_statement;
 pub(crate) use write_statement::WriteStatement;
+
+mod print_statement;
+pub(crate) use print_statement::PrintStatement;
