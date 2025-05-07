@@ -1,7 +1,7 @@
 use crate::*;
 
 // Created when implementing Format
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum WriteStatement<'a> {
     // Often from derived implementations
     TypeStructure(TypeStructure),

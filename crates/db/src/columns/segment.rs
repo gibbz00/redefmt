@@ -1,8 +1,10 @@
+use std::borrow::Cow;
+
 use redefmt_args::FormatOptions;
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Segment<'a> {
-    String(String),
+    Str(Cow<'a, str>),
     #[serde(borrow)]
     Arg(FormatOptions<'a>),
 }

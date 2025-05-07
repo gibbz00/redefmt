@@ -2,7 +2,7 @@ use rusqlite::OptionalExtension;
 
 use crate::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CrateId(ShortId);
 
 sql_newtype!(CrateId);
