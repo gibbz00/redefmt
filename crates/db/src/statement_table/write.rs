@@ -1,6 +1,6 @@
 use crate::*;
 
-statement_table!(WriteRegisterId, WriteStatement<'_>, "write_register");
+statement_table!(WriteStatementId, WriteStatement<'_>, "write_register");
 
 // Created when implementing Format
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -40,7 +40,7 @@ mod tests {
 
     impl StatementTableTest for WriteStatement<'_> {
         fn mock_id() -> Self::Id {
-            WriteRegisterId(ShortId(123))
+            WriteStatementId(ShortId(123))
         }
 
         fn mock() -> Self {
