@@ -23,9 +23,3 @@ pub(crate) use table::*;
 
 mod sql_utils;
 pub(crate) use sql_utils::*;
-
-// TEMP: for sketching print statement, move to column and table modules
-mod print_info;
-pub(crate) use print_info::PrintInfo;
-mod documents;
-pub(crate) use documents::*;
