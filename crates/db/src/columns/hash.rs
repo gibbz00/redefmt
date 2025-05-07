@@ -70,3 +70,21 @@ mod sql {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Hash)]
+    struct X(u64);
+
+    #[test]
+    fn hash() {
+        let first = Hash::new(&X(1));
+        let second = Hash::new(&X(1));
+        let third = Hash::new(&X(2));
+
+        assert_eq!(first, second);
+        assert_ne!(second, third);
+    }
+}
