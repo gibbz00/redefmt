@@ -19,10 +19,7 @@ mod private {
 
 macro_rules! statement_table {
     ($id:ident, $statement:ty, $table_name:literal) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-        pub struct $id($crate::ShortId);
-
-        sql_newtype!($id);
+        $crate::short_id_newtype!($id);
 
         impl $crate::StatementTable for $statement {
             type Id = $id;

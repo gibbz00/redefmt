@@ -3,7 +3,7 @@ use rusqlite::{
     types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, Value, ValueRef},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
 pub struct ShortId(pub(crate) u16);
 
 impl ToSql for ShortId {
@@ -22,3 +22,25 @@ impl FromSql for ShortId {
             .map_err(|_| FromSqlError::OutOfRange(int))
     }
 }
+
+macro_rules! short_id_newtype {
+    ($id:ident) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
+        pub struct $id($crate::ShortId);
+
+        impl $id {
+            pub fn new(inner: u16) -> Self {
+                Self(ShortId(inner))
+            }
+        }
+
+        impl AsRef<u16> for $id {
+            fn as_ref(&self) -> &u16 {
+                &self.0.0
+            }
+        }
+
+        $crate::sql_newtype!($id);
+    };
+}
+pub(crate) use short_id_newtype;

@@ -1,11 +1,14 @@
 use crate::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CrateId(pub(crate) ShortId);
+short_id_newtype!(CrateId);
 
-sql_newtype!(CrateId);
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, derive_getters::Getters)]
 pub struct Crate<'a> {
     pub(super) name: CrateName<'a>,
+}
+
+impl<'a> Crate<'a> {
+    pub fn new(name: CrateName<'a>) -> Self {
+        Self { name }
+    }
 }

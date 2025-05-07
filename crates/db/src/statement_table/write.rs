@@ -40,7 +40,7 @@ mod tests {
 
     impl StatementTableTest for WriteStatement<'_> {
         fn mock_id() -> Self::Id {
-            WriteStatementId(ShortId(123))
+            WriteStatementId::new(123)
         }
 
         fn mock() -> Self {
