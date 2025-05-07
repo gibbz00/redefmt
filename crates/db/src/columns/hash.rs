@@ -49,7 +49,7 @@ mod sql {
             let connection = Connection::open_in_memory().unwrap();
 
             connection
-                .execute("CREATE TABLE foo(hash INTEGER NOT NULL);", [])
+                .execute("CREATE TABLE foo(hash INTEGER NOT NULL)", [])
                 .unwrap();
 
             let hash = Hash(123);
