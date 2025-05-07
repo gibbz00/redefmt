@@ -17,6 +17,7 @@ impl CrateDb {
         dir.join("crates").join(crate_name.as_ref()).join("db.sqlite")
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

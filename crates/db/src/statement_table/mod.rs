@@ -2,21 +2,22 @@ mod hash;
 pub(crate) use hash::Hash;
 
 mod segment;
-pub(crate) use segment::Segment;
+pub use segment::Segment;
 
-mod write;
-pub(crate) use write::{WriteStatement, WriteStatementId};
+pub mod write;
+pub(crate) use write::WriteStatement;
 
-mod print;
-pub(crate) use print::{PrintStatement, PrintStatementId};
+pub mod print;
+pub(crate) use print::PrintStatement;
 
 mod table;
-pub(crate) use table::{StatementTable, statement_table};
+pub use table::StatementTable;
+pub(crate) use table::statement_table;
 
 mod db_client;
-pub(crate) use db_client::StatementDbClient;
+pub use db_client::StatementDbClient;
 #[cfg(test)]
-pub(crate) use db_client::insert_unchecked;
+pub(crate) use db_client::{StatementDbClientInner, insert_unchecked};
 
 #[cfg(test)]
 mod gen_tests;
