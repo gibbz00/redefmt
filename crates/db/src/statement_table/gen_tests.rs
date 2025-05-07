@@ -105,14 +105,14 @@ macro_rules! statement_table_tests {
                 db: &DbClient<CrateDb>,
                 id: <$statement_table as StatementTable>::Id,
             ) -> Option<$statement_table<'static>> {
-                db.find_statement_by_id(id).unwrap()
+                db.find_by_id(id).unwrap()
             }
 
             fn insert_helper<'a>(
                 db: &DbClient<CrateDb>,
                 statement: &$statement_table<'_>,
             ) -> <$statement_table<'a> as StatementTable>::Id {
-                db.insert_statement(statement).unwrap()
+                db.insert(statement).unwrap()
             }
         }
     };
