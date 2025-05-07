@@ -297,6 +297,21 @@ mod tests {
     }
 
     #[test]
+    fn print_crate_id_not_found_error() {
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock();
+
+        decoder.header = Some(Header::new(false));
+
+        let crate_id = CrateId::new(123);
+
+        let mut bytes = BytesMut::new();
+        bytes.put_u16(*crate_id.as_ref());
+
+        let error = decoder.decode(&mut bytes).unwrap_err();
+        assert!(matches!(error, RedefmtDecoderError::UnknownCrate(_)));
+    }
+
+    #[test]
     fn empty_after_print_crate_id() {
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock();
 
@@ -321,7 +336,7 @@ mod tests {
         assert!(decoder.print_statement_id.is_none());
         assert!(decoder.print_staments.is_empty());
 
-        decode_print_crate_id(&mut decoder, crate_id);
+        decode_print_statement_id(&mut decoder, print_statement_id);
 
         assert!(decoder.print_statement_id.is_some_and(|id| id == print_statement_id));
         assert!(decoder.print_staments.contains_key(&print_statement_id));

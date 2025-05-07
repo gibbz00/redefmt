@@ -17,11 +17,13 @@ use crate::*;
 /// Of the collections, all send a length hint, and a type new hint.
 /// The map collection sends an extra type hint.
 /// Write_id will in turn tell if if is a write_statement or type_structure.
+#[derive(Debug)]
 pub struct RedefmtFrame {
     stamp: Option<Stamp>,
     segments: Vec<DecodedSegment>,
 }
 
+#[derive(Debug)]
 pub enum DecodedSegment {
     Literal(String),
     Value(Value, FormatOptions<'static>),
