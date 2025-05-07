@@ -342,6 +342,24 @@ mod tests {
         assert!(decoder.print_staments.contains_key(&print_statement_id));
     }
 
+    #[test]
+    fn print_statement_id_not_found_error() {
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock();
+
+        decoder.header = Some(Header::new(false));
+
+        let crate_id = mock_crate(&mut decoder);
+        decode_print_crate_id(&mut decoder, crate_id);
+
+        let print_statement_id = PrintStatementId::new(123);
+
+        let mut bytes = BytesMut::new();
+        bytes.put_u16(*print_statement_id.as_ref());
+
+        let error = decoder.decode(&mut bytes).unwrap_err();
+        assert!(matches!(error, RedefmtDecoderError::UnknownPrintStatement(_, _)));
+    }
+
     fn mock_crate(decoder: &mut RedefmtDecoder) -> CrateId {
         let crate_name = CrateName::new("x").unwrap();
         let crate_record = Crate::new(crate_name);
