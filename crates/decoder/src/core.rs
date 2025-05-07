@@ -5,13 +5,10 @@ use std::{
 
 use redefmt_common::codec::{Header, Stamp};
 use redefmt_db::{
-    CrateDb, DbClient, DbClientError, MainDb,
-    crate_table::{Crate, CrateDbClient, CrateId, CrateName},
+    CrateDb, DbClient, DbClientError, MainDb, Table,
+    crate_table::{Crate, CrateId, CrateName},
     state_dir::{StateDir, StateDirError},
-    statement_table::{
-        StatementDbClient,
-        print::{PrintStatement, PrintStatementId},
-    },
+    statement_table::print::{PrintStatement, PrintStatementId},
 };
 use tokio_util::bytes::{Buf, BytesMut};
 
@@ -75,7 +72,7 @@ impl RedefmtDecoder {
 
     fn cache_crate_db(&mut self, crate_id: CrateId) -> Result<(), RedefmtDecoderError> {
         if let Entry::Vacant(vacant_entry) = self.crate_dbs.entry(crate_id) {
-            let Some(crate_record) = self.main_db.find_crate_by_id(crate_id)? else {
+            let Some(crate_record) = self.main_db.find_by_id(crate_id)? else {
                 return Err(RedefmtDecoderError::UnknownCrate(crate_id));
             };
 
@@ -97,8 +94,7 @@ impl RedefmtDecoder {
             let (print_crate_db, print_crate_record) =
                 self.crate_dbs.get(&crate_id).expect("crate database not loaded");
 
-            let Some(print_statement) = print_crate_db.find_statement_by_id::<PrintStatement>(print_statement_id)?
-            else {
+            let Some(print_statement) = print_crate_db.find_by_id(print_statement_id)? else {
                 return Err(RedefmtDecoderError::UnknownPrintStatement(
                     print_statement_id,
                     print_crate_record.name().clone(),
@@ -363,7 +359,7 @@ mod tests {
     fn mock_crate(decoder: &mut RedefmtDecoder) -> CrateId {
         let crate_name = CrateName::new("x").unwrap();
         let crate_record = Crate::new(crate_name);
-        decoder.main_db.insert_crate_record(&crate_record).unwrap()
+        decoder.main_db.insert(&crate_record).unwrap()
     }
 
     fn mock_print_statement(decoder: &mut RedefmtDecoder) -> PrintStatementId {
@@ -376,7 +372,7 @@ mod tests {
             vec![Segment::Str("x".into()), Segment::Arg(FormatOptions::default())],
         );
 
-        crate_db.insert_statement(&print_statement).unwrap()
+        crate_db.insert(&print_statement).unwrap()
     }
 
     fn decode_print_crate_id(decoder: &mut RedefmtDecoder, crate_id: CrateId) {
