@@ -475,6 +475,7 @@ dependencies = [
 name = "redefmt-db"
 version = "0.1.0"
 dependencies = [
+ "derive-getters",
  "derive_more",
  "include_dir",
  "redefmt-args",
@@ -496,6 +497,8 @@ version = "0.1.0"
 dependencies = [
  "redefmt-args",
  "redefmt-common",
+ "redefmt-db",
+ "tempfile",
  "thiserror",
  "tokio-util",
 ]

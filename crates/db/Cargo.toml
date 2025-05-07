@@ -17,6 +17,7 @@ workspace = true
 redefmt-args = { workspace = true, features = ["serde"] }
 redefmt-common.workspace = true
 
+derive-getters = "0.5"
 derive_more = { version = "2.0", features = ["deref", "display"] }
 include_dir = "0.7"
 rusqlite = { version = "0.35", features = ["bundled", "serde_json"] }

@@ -53,7 +53,7 @@ mod tests {
     use super::*;
 
     fn mock_crate_id() -> CrateId {
-        CrateId(ShortId(123))
+        CrateId::new(123)
     }
 
     fn mock_crate_record() -> Crate<'static> {
