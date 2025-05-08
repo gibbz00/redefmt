@@ -1,3 +1,5 @@
+use std::string::FromUtf8Error;
+
 use redefmt_common::codec::TypeHint;
 use redefmt_db::{
     DbClientError,
@@ -24,4 +26,8 @@ pub enum RedefmtDecoderError {
     UnknownTypeHint(u8),
     #[error("invalid bytes received for the given type hint '{0}', bytes: '{1:?}'")]
     InvalidValueBytes(TypeHint, Vec<u8>),
+    #[error("content length '{0}' does not fit host usize and will overflow")]
+    LengthOverflow(u64),
+    #[error("invalid UTF-8 bytes received for string type hint")]
+    InvalidStringBytes(#[from] FromUtf8Error),
 }
