@@ -285,7 +285,9 @@ mod tests {
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock();
 
         decoder.header = Some(Header::new(false));
-        decoder.print_crate_id = Some(CrateId::new(123));
+
+        let crate_id = mock_crate(&mut decoder);
+        decode_print_crate_id(&mut decoder, crate_id);
 
         let item = decoder.decode(&mut BytesMut::new()).unwrap();
         assert!(item.is_none());
