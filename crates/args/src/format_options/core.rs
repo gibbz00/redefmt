@@ -4,7 +4,7 @@ use crate::*;
 
 type StrIter<'a> = Peekable<CharIndices<'a>>;
 
-#[derive(Debug, Default, PartialEq, Eq, Hash, derive_getters::Getters)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, derive_getters::Getters)]
 #[cfg_attr(feature = "builder", derive(bon::Builder))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(default))]
 pub struct FormatOptions<'a> {
