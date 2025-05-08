@@ -1,12 +1,6 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Value {
-    Primitive(Primitive),
-    Collection(Collection),
-    Type(Type),
-}
-
-#[derive(Debug)]
-pub enum Primitive {
+    // Primitives
     Boolean(bool),
     U8(u8),
     U16(u16),
@@ -19,30 +13,29 @@ pub enum Primitive {
     I64(i64),
     F32(f32),
     F64(f64),
-}
 
-#[derive(Debug)]
-pub enum Collection {
+    // Collections
     String(String),
     Slice(Vec<Value>),
     Tuple(Vec<Value>),
     Set(Vec<Value>),
     Map(Vec<(Value, Value)>),
+    Type(Type),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Type {
     name: String,
     variant: TypeVariant,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TypeVariant {
     Struct(StructVariant),
     Enum(Vec<(String, StructVariant)>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum StructVariant {
     Unit,
     Tuple(Vec<Value>),
