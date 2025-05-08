@@ -502,6 +502,7 @@ dependencies = [
 name = "redefmt-decoder"
 version = "0.1.0"
 dependencies = [
+ "num-traits",
  "redefmt-args",
  "redefmt-common",
  "redefmt-db",

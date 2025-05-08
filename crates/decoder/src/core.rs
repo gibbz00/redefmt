@@ -197,7 +197,7 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
 
 /// Returns no if `src` does not yet contain enough bytes for the given type hint.
 fn decode_value(type_hint: TypeHint, src: &mut BytesMut) -> Result<Option<Value>, RedefmtDecoderError> {
-    let value = match type_hint {
+    match type_hint {
         TypeHint::Boolean => {
             if src.len() < std::mem::size_of::<bool>() {
                 return Ok(None);
@@ -213,28 +213,26 @@ fn decode_value(type_hint: TypeHint, src: &mut BytesMut) -> Result<Option<Value>
                 }
             };
 
-            Value::Boolean(boolean)
+            Ok(Some(Value::Boolean(boolean)))
         }
-        TypeHint::U8 => todo!(),
-        TypeHint::U16 => todo!(),
-        TypeHint::U32 => todo!(),
-        TypeHint::U64 => todo!(),
-        TypeHint::U128 => todo!(),
-        TypeHint::I8 => todo!(),
-        TypeHint::I16 => todo!(),
-        TypeHint::I32 => todo!(),
-        TypeHint::I64 => todo!(),
-        TypeHint::F32 => todo!(),
-        TypeHint::F64 => todo!(),
+        TypeHint::U8 => Ok((src.len() >= std::mem::size_of::<u8>()).then(|| Value::U8(src.get_u8()))),
+        TypeHint::U16 => Ok((src.len() >= std::mem::size_of::<u16>()).then(|| Value::U16(src.get_u16()))),
+        TypeHint::U32 => Ok((src.len() >= std::mem::size_of::<u32>()).then(|| Value::U32(src.get_u32()))),
+        TypeHint::U64 => Ok((src.len() >= std::mem::size_of::<u64>()).then(|| Value::U64(src.get_u64()))),
+        TypeHint::U128 => Ok((src.len() >= std::mem::size_of::<u128>()).then(|| Value::U128(src.get_u128()))),
+        TypeHint::I8 => Ok((src.len() >= std::mem::size_of::<i8>()).then(|| Value::I8(src.get_i8()))),
+        TypeHint::I16 => Ok((src.len() >= std::mem::size_of::<i16>()).then(|| Value::I16(src.get_i16()))),
+        TypeHint::I32 => Ok((src.len() >= std::mem::size_of::<i32>()).then(|| Value::I32(src.get_i32()))),
+        TypeHint::I64 => Ok((src.len() >= std::mem::size_of::<i64>()).then(|| Value::I64(src.get_i64()))),
+        TypeHint::F32 => Ok((src.len() >= std::mem::size_of::<f32>()).then(|| Value::F32(src.get_f32()))),
+        TypeHint::F64 => Ok((src.len() >= std::mem::size_of::<f64>()).then(|| Value::F64(src.get_f64()))),
         TypeHint::WriteContentId => todo!(),
         TypeHint::StringSlice => todo!(),
         TypeHint::Slice => todo!(),
         TypeHint::Tuple => todo!(),
         TypeHint::Set => todo!(),
         TypeHint::Map => todo!(),
-    };
-
-    Ok(Some(value))
+    }
 }
 
 #[cfg(test)]
@@ -293,6 +291,38 @@ mod tests {
             let error = decode_value(TypeHint::Boolean, &mut bytes).unwrap_err();
 
             assert!(matches!(error, RedefmtDecoderError::InvalidValueBytes(_, _)));
+        }
+
+        #[test]
+        fn decode_int() {
+            test_decode_int::<u8>(TypeHint::U8, Value::U8);
+            test_decode_int::<u16>(TypeHint::U16, Value::U16);
+            test_decode_int::<u32>(TypeHint::U32, Value::U32);
+            test_decode_int::<u64>(TypeHint::U64, Value::U64);
+            test_decode_int::<u128>(TypeHint::U128, Value::U128);
+            test_decode_int::<i8>(TypeHint::I8, Value::I8);
+            test_decode_int::<i16>(TypeHint::I16, Value::I16);
+            test_decode_int::<i32>(TypeHint::I32, Value::I32);
+            test_decode_int::<i64>(TypeHint::I64, Value::I64);
+            test_decode_int::<f32>(TypeHint::F32, Value::F32);
+            test_decode_int::<f64>(TypeHint::F64, Value::F64);
+
+            fn test_decode_int<T: num_traits::ToBytes + num_traits::One>(
+                type_hint: TypeHint,
+                from_inner: fn(T) -> Value,
+            ) {
+                let inner = T::one();
+
+                let mut bytes = BytesMut::from_iter(inner.to_be_bytes().as_ref());
+
+                let actual_value = decode_value(type_hint, &mut bytes).unwrap().unwrap();
+
+                let expected_value = from_inner(inner);
+
+                assert_eq!(expected_value, actual_value);
+
+                assert!(bytes.is_empty());
+            }
         }
     }
 
