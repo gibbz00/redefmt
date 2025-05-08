@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use redefmt_args::FormatOptions;
-use redefmt_common::codec::{Header, Stamp, TypeHint};
+use redefmt_common::codec::{Header, PointerWidth, Stamp, TypeHint};
 use redefmt_db::{
     DbClient, MainDb,
     crate_table::CrateId,
@@ -11,7 +11,7 @@ use redefmt_db::{
         print::{PrintInfo, PrintStatementId},
     },
 };
-use tokio_util::bytes::{Buf, BytesMut};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::*;
 
@@ -36,6 +36,7 @@ pub struct RedefmtDecoder {
     decoded_segments: Vec<DecodedSegment>,
     /// stage 5:
     next_value: Option<(TypeHint, FormatOptions<'static>)>,
+    value_context: ValueContext,
 }
 
 impl RedefmtDecoder {
@@ -59,6 +60,7 @@ impl RedefmtDecoder {
             print_statement_segments: Default::default(),
             decoded_segments: Default::default(),
             next_value: None,
+            value_context: Default::default(),
         })
     }
 }
@@ -142,11 +144,15 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
 
         // Always skipped until self.print_statement_segments.pop() returns an Arg which remains to be read.
         if let Some((type_hint, format_options)) = self.next_value.take() {
-            match decode_value(type_hint, src)? {
+            match decode_value(type_hint, src, header.pointer_width(), &mut self.value_context)? {
                 Some(value) => {
                     self.decoded_segments.push(DecodedSegment::Value(value, format_options));
+                    self.value_context = Default::default();
                 }
-                None => self.next_value = Some((type_hint, format_options)),
+                None => {
+                    self.next_value = Some((type_hint, format_options));
+                    return Ok(None);
+                }
             }
         }
 
@@ -167,9 +173,10 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
                     let type_hint = TypeHint::from_repr(type_hint_repr)
                         .ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
 
-                    match decode_value(type_hint, src)? {
+                    match decode_value(type_hint, src, header.pointer_width(), &mut self.value_context)? {
                         Some(value) => {
                             self.decoded_segments.push(DecodedSegment::Value(value, format_options));
+                            self.value_context = Default::default();
                         }
                         None => {
                             self.next_value = Some((type_hint, format_options));
@@ -190,13 +197,20 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
         self.header = None;
         self.print_crate_id = None;
         self.print_statement_info = None;
+        self.value_context = Default::default();
 
         Ok(Some(item))
     }
 }
 
 /// Returns no if `src` does not yet contain enough bytes for the given type hint.
-fn decode_value(type_hint: TypeHint, src: &mut BytesMut) -> Result<Option<Value>, RedefmtDecoderError> {
+/// `value_context` must be cleared by callee if function returns Ok(Some(value))
+fn decode_value(
+    type_hint: TypeHint,
+    src: &mut BytesMut,
+    pointer_width: PointerWidth,
+    value_context: &mut ValueContext,
+) -> Result<Option<Value>, RedefmtDecoderError> {
     match type_hint {
         TypeHint::Boolean => {
             if src.len() < std::mem::size_of::<bool>() {
@@ -226,8 +240,40 @@ fn decode_value(type_hint: TypeHint, src: &mut BytesMut) -> Result<Option<Value>
         TypeHint::I64 => Ok((src.len() >= std::mem::size_of::<i64>()).then(|| Value::I64(src.get_i64()))),
         TypeHint::F32 => Ok((src.len() >= std::mem::size_of::<f32>()).then(|| Value::F32(src.get_f32()))),
         TypeHint::F64 => Ok((src.len() >= std::mem::size_of::<f64>()).then(|| Value::F64(src.get_f64()))),
+        TypeHint::StringSlice => {
+            let length = match value_context.length {
+                Some(length) => length,
+                None => {
+                    if src.len() < pointer_width.size() {
+                        return Ok(None);
+                    }
+
+                    let length = match pointer_width {
+                        PointerWidth::U16 => src.get_u16() as u64,
+                        PointerWidth::U32 => src.get_u32() as u64,
+                        PointerWidth::U64 => src.get_u64(),
+                    };
+
+                    value_context.length = Some(length);
+
+                    length
+                }
+            };
+
+            let length = usize::try_from(length).map_err(|_| RedefmtDecoderError::LengthOverflow(length))?;
+
+            if src.len() < length {
+                return Ok(None);
+            }
+
+            let mut vec = Vec::with_capacity(length);
+            vec.put(src.take(length));
+
+            let string = String::from_utf8(vec)?;
+
+            Ok(Some(Value::String(string)))
+        }
         TypeHint::WriteContentId => todo!(),
-        TypeHint::StringSlice => todo!(),
         TypeHint::Slice => todo!(),
         TypeHint::Tuple => todo!(),
         TypeHint::Set => todo!(),
@@ -278,7 +324,16 @@ mod tests {
 
             fn test_decode_boolean(value: bool) {
                 let mut bytes = BytesMut::from_iter([value as u8]);
-                let actual_value = decode_value(TypeHint::Boolean, &mut bytes).unwrap().unwrap();
+
+                let actual_value = decode_value(
+                    TypeHint::Boolean,
+                    &mut bytes,
+                    PointerWidth::U64,
+                    &mut Default::default(),
+                )
+                .unwrap()
+                .unwrap();
+
                 let expected_value = Value::Boolean(value);
 
                 assert_eq!(expected_value, actual_value);
@@ -288,7 +343,13 @@ mod tests {
         #[test]
         fn boolean_err() {
             let mut bytes = BytesMut::from_iter([2]);
-            let error = decode_value(TypeHint::Boolean, &mut bytes).unwrap_err();
+            let error = decode_value(
+                TypeHint::Boolean,
+                &mut bytes,
+                PointerWidth::U64,
+                &mut Default::default(),
+            )
+            .unwrap_err();
 
             assert!(matches!(error, RedefmtDecoderError::InvalidValueBytes(_, _)));
         }
@@ -315,7 +376,9 @@ mod tests {
 
                 let mut bytes = BytesMut::from_iter(inner.to_be_bytes().as_ref());
 
-                let actual_value = decode_value(type_hint, &mut bytes).unwrap().unwrap();
+                let actual_value = decode_value(type_hint, &mut bytes, PointerWidth::U64, &mut Default::default())
+                    .unwrap()
+                    .unwrap();
 
                 let expected_value = from_inner(inner);
 
@@ -323,6 +386,49 @@ mod tests {
 
                 assert!(bytes.is_empty());
             }
+        }
+
+        #[test]
+        fn string() {
+            test_decode_string("abc");
+            test_decode_string("🦀");
+
+            fn test_decode_string(str: &str) {
+                let mut bytes = BytesMut::new();
+                bytes.put_slice(&str.len().to_be_bytes());
+                bytes.put_slice(str.as_bytes());
+
+                let actual_value = decode_value(
+                    TypeHint::StringSlice,
+                    &mut bytes,
+                    PointerWidth::of_target(),
+                    &mut Default::default(),
+                )
+                .unwrap()
+                .unwrap();
+
+                let expected_value = Value::String(str.to_string());
+
+                assert_eq!(expected_value, actual_value);
+            }
+        }
+
+        #[test]
+        fn string_invalid_utf8_error() {
+            let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
+            let mut bytes = BytesMut::new();
+            bytes.put_slice(&invalid_utf8_bytes.len().to_be_bytes());
+            bytes.put_slice(&invalid_utf8_bytes);
+
+            let error = decode_value(
+                TypeHint::StringSlice,
+                &mut bytes,
+                PointerWidth::of_target(),
+                &mut Default::default(),
+            )
+            .unwrap_err();
+
+            assert!(matches!(error, RedefmtDecoderError::InvalidStringBytes(_)))
         }
     }
 

@@ -1,10 +1,6 @@
 use bitflags::bitflags;
 
-pub enum PointerWidth {
-    U16,
-    U32,
-    U64,
-}
+use crate::*;
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -20,14 +16,13 @@ impl Header {
     pub fn new(has_stamp: bool) -> Self {
         let mut header = Self::empty();
 
-        #[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
-        {
-            header |= Self::PLUS_16_WIDTH;
-        }
-
-        #[cfg(target_pointer_width = "64")]
-        {
-            header |= Self::PLUS_32_WIDTH;
+        match PointerWidth::of_target() {
+            PointerWidth::U16 => {}
+            PointerWidth::U32 => header |= Self::PLUS_16_WIDTH,
+            PointerWidth::U64 => {
+                header |= Self::PLUS_16_WIDTH;
+                header |= Self::PLUS_32_WIDTH;
+            }
         }
 
         if has_stamp {
@@ -38,8 +33,9 @@ impl Header {
     }
 
     pub fn pointer_width(&self) -> PointerWidth {
-        // 48-bit pointer width is technically representable,
-        // but we ignore this as a reality for now
+        // NOTE: 48-bit pointer width is technically representable, but we
+        // ignore this as a reality for now since word sizes are usually in
+        // powers of 2
         if self.contains(Header::PLUS_32_WIDTH) {
             PointerWidth::U64
         } else if self.contains(Header::PLUS_16_WIDTH) {
