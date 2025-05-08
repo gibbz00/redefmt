@@ -270,6 +270,32 @@ mod tests {
 
     use super::*;
 
+    mod decode_value {
+        use super::*;
+
+        #[test]
+        fn boolean_false() {
+            test_decode_boolean(true);
+            test_decode_boolean(false);
+
+            fn test_decode_boolean(value: bool) {
+                let mut bytes = BytesMut::from_iter([value as u8]);
+                let actual_value = decode_value(TypeHint::Boolean, &mut bytes).unwrap().unwrap();
+                let expected_value = Value::Boolean(value);
+
+                assert_eq!(expected_value, actual_value);
+            }
+        }
+
+        #[test]
+        fn boolean_err() {
+            let mut bytes = BytesMut::from_iter([2]);
+            let error = decode_value(TypeHint::Boolean, &mut bytes).unwrap_err();
+
+            assert!(matches!(error, RedefmtDecoderError::InvalidValueBytes(_, _)));
+        }
+    }
+
     #[test]
     fn empty_after_new() {
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock();
