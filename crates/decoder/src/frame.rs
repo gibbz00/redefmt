@@ -1,5 +1,6 @@
 use redefmt_args::FormatOptions;
 use redefmt_common::codec::Stamp;
+use redefmt_db::statement_table::print::PrintInfo;
 
 use crate::*;
 
@@ -17,14 +18,18 @@ use crate::*;
 /// Of the collections, all send a length hint, and a type new hint.
 /// The map collection sends an extra type hint.
 /// Write_id will in turn tell if if is a write_statement or type_structure.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RedefmtFrame {
-    stamp: Option<Stamp>,
-    segments: Vec<DecodedSegment>,
+    pub(crate) stamp: Option<Stamp>,
+    // IMPROVEMENT: use Arc
+    pub(crate) print_info: PrintInfo<'static>,
+    pub(crate) segments: Vec<DecodedSegment>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DecodedSegment {
-    Literal(String),
+    // IMPROVEMENT: use Arc<str>
+    Str(String),
+    // IMPROVEMENT: use Arc for FormatOptions
     Value(Value, FormatOptions<'static>),
 }

@@ -3,8 +3,11 @@
 // TEMP:
 #![allow(missing_docs)]
 
+mod error;
+pub(crate) use error::RedefmtDecoderError;
+
 mod core;
-pub use core::{RedefmtDecoder, RedefmtDecoderError};
+pub use core::RedefmtDecoder;
 
 mod frame;
 pub(crate) use frame::{DecodedSegment, RedefmtFrame};

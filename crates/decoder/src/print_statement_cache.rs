@@ -7,9 +7,11 @@ use redefmt_db::{
 
 use crate::*;
 
+type InnerMap = HashMap<PrintStatementId, PrintStatement<'static>>;
+
 #[derive(Default)]
 pub struct PrintStatementCache {
-    map: HashMap<PrintStatementId, PrintStatement<'static>>,
+    map: InnerMap,
 }
 
 impl PrintStatementCache {
@@ -17,7 +19,7 @@ impl PrintStatementCache {
         &mut self,
         id: PrintStatementId,
         (print_crate_db, print_crate_record): &CrateValue,
-    ) -> Result<&PrintStatement, RedefmtDecoderError> {
+    ) -> Result<&PrintStatement<'static>, RedefmtDecoderError> {
         if let Entry::Vacant(entry) = self.map.entry(id) {
             let Some(print_statement) = print_crate_db.find_by_id(id)? else {
                 return Err(RedefmtDecoderError::UnknownPrintStatement(
@@ -44,7 +46,7 @@ mod ext {
     use super::*;
 
     impl PrintStatementCache {
-        pub fn inner(&self) -> &HashMap<PrintStatementId, PrintStatement<'static>> {
+        pub fn inner(&self) -> &InnerMap {
             &self.map
         }
     }

@@ -8,7 +8,7 @@ pub enum FormatPrecisionParseError {
 }
 
 /// https://doc.rust-lang.org/std/fmt/index.html#precision
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatPrecision<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]

@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::FromRepr, strum::Display)]
 #[repr(u8)]
 pub enum TypeHint {
     // ** Primitives ** 0XX

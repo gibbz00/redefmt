@@ -4,7 +4,7 @@ use crate::*;
 
 statement_table!(PrintStatementId, PrintStatement<'_>, "print_register");
 
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, derive_getters::Getters)]
 pub struct PrintStatement<'a> {
     info: PrintInfo<'a>,
     #[serde(borrow)]
@@ -17,7 +17,7 @@ impl<'a> PrintStatement<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct PrintInfo<'a> {
     /// None for regular `println!()` statements
     level: Option<LogLevel>,
@@ -30,7 +30,7 @@ impl<'a> PrintInfo<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum LogLevel {
     Trace,
     Debug,
@@ -44,7 +44,7 @@ pub enum LogLevel {
 /// Constructed with the [`location!`] macro.
 ///
 /// Crate inferred could be inferred the crate database itself, or by "parsing" the module path.
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Location<'a> {
     /// Usually retrieved by `file!()`
     file: Cow<'a, str>,
