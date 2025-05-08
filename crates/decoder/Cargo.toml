@@ -23,4 +23,5 @@ thiserror = "2.0"
 tokio-util = { version = "0.7", features = ["codec"] }
 
 [dev-dependencies]
+num-traits = "0.2"
 tempfile = "3.19"
