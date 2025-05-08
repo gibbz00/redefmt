@@ -12,8 +12,7 @@ mod migrations;
 pub(crate) use migrations::{CRATE_MIGRATIONS, MAIN_MIGRATIONS};
 
 mod db;
-pub(crate) use db::*;
-pub use db::{CrateDb, MainDb};
+pub use db::{CrateDb, Db, MainDb};
 
 mod client;
 pub use client::{DbClient, DbClientError};
@@ -24,8 +23,7 @@ mod short_id;
 pub(crate) use short_id::{ShortId, short_id_newtype};
 
 mod table;
-pub(crate) use table::Record;
-pub use table::Table;
+pub use table::{Record, Table};
 
 pub mod crate_table;
 pub(crate) use crate_table::*;

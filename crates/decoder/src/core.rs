@@ -1,14 +1,11 @@
-use std::{
-    collections::{HashMap, hash_map::Entry},
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
 use redefmt_common::codec::{Header, Stamp};
 use redefmt_db::{
-    CrateDb, DbClient, DbClientError, MainDb, Table,
-    crate_table::{Crate, CrateId, CrateName},
+    DbClient, DbClientError, MainDb,
+    crate_table::{CrateId, CrateName},
     state_dir::{StateDir, StateDirError},
-    statement_table::print::{PrintStatement, PrintStatementId},
+    statement_table::print::PrintStatementId,
 };
 use tokio_util::bytes::{Buf, BytesMut};
 
@@ -34,10 +31,8 @@ pub struct RedefmtDecoder {
     state_dir: PathBuf,
     main_db: DbClient<MainDb>,
 
-    // Caches of sorts
-    // IMPROVEMENT: use a proper cache crate?
-    crate_dbs: HashMap<CrateId, (DbClient<CrateDb>, Crate<'static>)>,
-    print_staments: HashMap<PrintStatementId, PrintStatement<'static>>,
+    crate_cache: CrateCache,
+    print_statement_cache: PrintStatementCache,
 
     /// stage 1:
     header: Option<Header>,
@@ -61,50 +56,13 @@ impl RedefmtDecoder {
         Ok(Self {
             state_dir: db_dir,
             main_db,
-            crate_dbs: Default::default(),
-            print_staments: Default::default(),
+            crate_cache: Default::default(),
+            print_statement_cache: Default::default(),
             header: None,
             stamp: None,
             print_crate_id: None,
             print_statement_id: None,
         })
-    }
-
-    fn cache_crate_db(&mut self, crate_id: CrateId) -> Result<(), RedefmtDecoderError> {
-        if let Entry::Vacant(vacant_entry) = self.crate_dbs.entry(crate_id) {
-            let Some(crate_record) = self.main_db.find_by_id(crate_id)? else {
-                return Err(RedefmtDecoderError::UnknownCrate(crate_id));
-            };
-
-            let crate_db = DbClient::new_crate(&self.state_dir, crate_record.name())?;
-
-            vacant_entry.insert((crate_db, crate_record));
-        }
-
-        Ok(())
-    }
-
-    /// Panics if no crate DB is cached for the given `crate_id`
-    fn cache_print_statement(
-        &mut self,
-        crate_id: CrateId,
-        print_statement_id: PrintStatementId,
-    ) -> Result<(), RedefmtDecoderError> {
-        if let Entry::Vacant(entry) = self.print_staments.entry(print_statement_id) {
-            let (print_crate_db, print_crate_record) =
-                self.crate_dbs.get(&crate_id).expect("crate database not loaded");
-
-            let Some(print_statement) = print_crate_db.find_by_id(print_statement_id)? else {
-                return Err(RedefmtDecoderError::UnknownPrintStatement(
-                    print_statement_id,
-                    print_crate_record.name().clone(),
-                ));
-            };
-
-            entry.insert(print_statement);
-        }
-
-        Ok(())
     }
 }
 
@@ -141,8 +99,11 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
             }
         }
 
-        let crate_id = match self.print_crate_id {
-            Some(crate_id) => crate_id,
+        let (crate_id, crate_value) = match self.print_crate_id {
+            Some(crate_id) => {
+                let crate_value = self.crate_cache.get(crate_id).expect("crate not saved");
+                (crate_id, crate_value)
+            }
             None => {
                 if src.len() < std::mem::size_of::<CrateId>() {
                     return Ok(None);
@@ -152,14 +113,23 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
 
                 self.print_crate_id = Some(crate_id);
 
-                self.cache_crate_db(crate_id)?;
+                let crate_value = self
+                    .crate_cache
+                    .fetch_and_save(crate_id, &self.main_db, &self.state_dir)?;
 
-                crate_id
+                (crate_id, crate_value)
             }
         };
 
-        let print_statement_id = match self.print_statement_id {
-            Some(print_statement_id) => print_statement_id,
+        let (print_statement_id, print_statement) = match self.print_statement_id {
+            Some(print_statement_id) => {
+                let print_statement = self
+                    .print_statement_cache
+                    .get(print_statement_id)
+                    .expect("print statement not cached");
+
+                (print_statement_id, print_statement)
+            }
             None => {
                 if src.len() < std::mem::size_of::<PrintStatementId>() {
                     return Ok(None);
@@ -169,9 +139,11 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
 
                 self.print_statement_id = Some(print_statement_id);
 
-                self.cache_print_statement(crate_id, print_statement_id)?;
+                let print_statement = self
+                    .print_statement_cache
+                    .fetch_and_save(print_statement_id, crate_value)?;
 
-                print_statement_id
+                (print_statement_id, print_statement)
             }
         };
 
@@ -201,11 +173,12 @@ mod mock {
 mod tests {
     use redefmt_args::FormatOptions;
     use redefmt_db::{
+        Table,
         crate_table::{Crate, CrateName},
         location,
         statement_table::{
             Segment,
-            print::{LogLevel, PrintInfo},
+            print::{LogLevel, PrintInfo, PrintStatement},
         },
     };
     use tokio_util::{bytes::BufMut, codec::Decoder};
@@ -284,12 +257,12 @@ mod tests {
         let crate_id = mock_crate(&mut decoder);
 
         assert!(decoder.print_crate_id.is_none());
-        assert!(decoder.crate_dbs.is_empty());
+        assert!(decoder.crate_cache.inner().is_empty());
 
         decode_print_crate_id(&mut decoder, crate_id);
 
         assert!(decoder.print_crate_id.is_some_and(|id| id == crate_id));
-        assert!(decoder.crate_dbs.contains_key(&crate_id));
+        assert!(decoder.crate_cache.inner().contains_key(&crate_id));
     }
 
     #[test]
@@ -329,13 +302,13 @@ mod tests {
 
         let print_statement_id = mock_print_statement(&mut decoder);
 
-        assert!(decoder.print_statement_id.is_none());
-        assert!(decoder.print_staments.is_empty());
+        assert!(decoder.print_statement_id.as_ref().is_none());
+        assert!(decoder.print_statement_cache.inner().is_empty());
 
         decode_print_statement_id(&mut decoder, print_statement_id);
 
         assert!(decoder.print_statement_id.is_some_and(|id| id == print_statement_id));
-        assert!(decoder.print_staments.contains_key(&print_statement_id));
+        assert!(decoder.print_statement_cache.inner().contains_key(&print_statement_id));
     }
 
     #[test]
@@ -364,7 +337,7 @@ mod tests {
 
     fn mock_print_statement(decoder: &mut RedefmtDecoder) -> PrintStatementId {
         let crate_id = decoder.print_crate_id.unwrap();
-        let (crate_db, _) = decoder.crate_dbs.get(&crate_id).unwrap();
+        let (crate_db, _) = decoder.crate_cache.get(crate_id).unwrap();
 
         let print_info = PrintInfo::new(Some(LogLevel::Debug), location!());
         let print_statement = PrintStatement::new(
