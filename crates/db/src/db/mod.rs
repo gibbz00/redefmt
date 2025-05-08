@@ -1,5 +1,5 @@
 mod core;
-pub(crate) use core::Db;
+pub use core::Db;
 
 mod main;
 pub use main::MainDb;
