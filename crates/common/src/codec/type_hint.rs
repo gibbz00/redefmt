@@ -24,14 +24,27 @@ pub enum TypeHint {
 
     // ** Collections ** 2XX
 
-    // requires a length hint
-    StringSlice = 210,
-    // requires a length + type hint
-    Slice = 200,
+    // length hint
+    StringSlice = 200,
+
+    // length + type hint for each value
+    // (effectively a dyn slice)
     Tuple = 201,
-    Set = 202,
-    // requires an extra type hint
-    Map = 203,
+
+    // length + leading type hint
+    Slice = 202,
+    // length + type hint for each element
+    DynSlice = 203,
+
+    // length + leading type hint
+    // (no DynSet since Hash is not dyn compatible)
+    Set = 204,
+
+    // length + two leading type hints
+    Map = 206,
+    // length + leading type hint + type hint for each element
+    // (no need for DynDynMap since Hash is not dyn compatible)
+    DynMap = 207,
 }
 
 #[cfg(test)]
