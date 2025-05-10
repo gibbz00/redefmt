@@ -1,15 +1,14 @@
 use std::path::PathBuf;
 
 use redefmt_args::FormatOptions;
-use redefmt_common::codec::{Header, PointerWidth, Stamp, TypeHint};
+use redefmt_common::{
+    codec::{Header, PointerWidth, Stamp, TypeHint},
+    identifiers::{CrateId, PrintStatementId},
+};
 use redefmt_db::{
     DbClient, MainDb,
-    crate_table::CrateId,
     state_dir::StateDir,
-    statement_table::{
-        Segment,
-        print::{PrintInfo, PrintStatementId},
-    },
+    statement_table::{Segment, print::PrintInfo},
 };
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 

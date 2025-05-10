@@ -1,3 +1,5 @@
+use redefmt_common::identifiers::WriteStatementId;
+
 use crate::*;
 
 statement_table!(WriteStatementId, WriteStatement<'_>, "write_register");

@@ -12,11 +12,15 @@ version.workspace = true
 [lints]
 workspace = true
 
+[features]
+db = ["dep:rusqlite"]
+
 [dependencies]
 # Internal
 redefmt-args.workspace = true
 
 # External
 bitflags = "2.9.0"
-derive_more = { version = "2.0", features = ["as_ref"] }
+derive_more = { version = "2.0", features = ["as_ref", "display"] }
+rusqlite = { version = "0.35", features = ["bundled"], optional = true }
 strum = { version = "0.27", default-features = false, features = ["derive"] }
