@@ -3,24 +3,26 @@
 pub enum TypeHint {
     // ** Primitives ** 0XX
     Boolean = 0,
-    U8 = 10,
-    U16 = 11,
-    U32 = 12,
-    U64 = 13,
-    U128 = 14,
-    I8 = 20,
-    I16 = 21,
-    I32 = 22,
-    I64 = 23,
-    // Gives space for mini (F8) and half (F16) floating
+    Usize = 10,
+    U8 = 11,
+    U16 = 12,
+    U32 = 13,
+    U64 = 14,
+    U128 = 15,
+    Isize = 20,
+    I8 = 21,
+    I16 = 22,
+    I32 = 23,
+    I64 = 24,
+    // Gives space for fsize, mini (F8), and half (F16) floating
     // precision types, if introduced later on.
-    F32 = 32,
-    F64 = 33,
+    F32 = 33,
+    F64 = 34,
 
     // * Write Content ID * 1XX
     //
-    // (Current XX = 12 repr implies u32 write content ID)
-    WriteContentId = 112,
+    // (Current XX = 13 repr implies u32 write_id, (u16 crate_id + u16 write_statement_id))
+    WriteId = 113,
 
     // ** Collections ** 2XX
 
@@ -54,12 +56,9 @@ mod tests {
     #[test]
     fn write_content_id_type_hint() {
         let write_content_section = 100;
-        let write_content_id_type_hint_repr = TypeHint::WriteContentId as u8;
+        let write_id_type_hint_repr = TypeHint::WriteId as u8;
         let u32_type_hint_repr = TypeHint::U32 as u8;
 
-        assert_eq!(
-            u32_type_hint_repr,
-            write_content_id_type_hint_repr - write_content_section
-        )
+        assert_eq!(u32_type_hint_repr, write_id_type_hint_repr - write_content_section)
     }
 }
