@@ -4,8 +4,8 @@
 // TEMP:
 #![allow(missing_docs)]
 
-mod write_primitive;
-pub(crate) use write_primitive::WritePrimitive;
+mod write_value;
+pub(crate) use write_value::WriteValue;
 
 mod dispatcher;
 pub(crate) use dispatcher::Dispatcher;
