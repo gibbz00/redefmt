@@ -23,8 +23,6 @@ mod private {
 
 macro_rules! statement_table {
     ($id:ident, $statement:ty, $table_name:literal) => {
-        $crate::short_id_newtype!($id);
-
         impl $crate::StatementTable for $statement {
             type Id = $id;
 

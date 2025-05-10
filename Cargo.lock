@@ -475,6 +475,7 @@ dependencies = [
  "bitflags",
  "derive_more",
  "redefmt-args",
+ "rusqlite",
  "strum",
 ]
 

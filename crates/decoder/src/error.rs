@@ -1,12 +1,10 @@
 use std::string::FromUtf8Error;
 
-use redefmt_common::codec::TypeHint;
-use redefmt_db::{
-    DbClientError,
-    crate_table::{CrateId, CrateName},
-    state_dir::StateDirError,
-    statement_table::print::PrintStatementId,
+use redefmt_common::{
+    codec::TypeHint,
+    identifiers::{CrateId, PrintStatementId},
 };
+use redefmt_db::{DbClientError, crate_table::CrateName, state_dir::StateDirError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RedefmtDecoderError {
