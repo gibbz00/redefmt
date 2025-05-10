@@ -239,6 +239,9 @@ fn decode_value(
         TypeHint::I64 => Ok((src.len() >= std::mem::size_of::<i64>()).then(|| Value::I64(src.get_i64()))),
         TypeHint::F32 => Ok((src.len() >= std::mem::size_of::<f32>()).then(|| Value::F32(src.get_f32()))),
         TypeHint::F64 => Ok((src.len() >= std::mem::size_of::<f64>()).then(|| Value::F64(src.get_f64()))),
+        // TODO: these use pointer_width to infer decoding
+        TypeHint::Usize => todo!(),
+        TypeHint::Isize => todo!(),
         TypeHint::StringSlice => {
             let length = match value_context.length {
                 Some(length) => length,
@@ -272,7 +275,7 @@ fn decode_value(
 
             Ok(Some(Value::String(string)))
         }
-        TypeHint::WriteContentId => todo!(),
+        TypeHint::WriteId => todo!(),
         TypeHint::Slice => todo!(),
         TypeHint::Tuple => todo!(),
         TypeHint::Set => todo!(),
