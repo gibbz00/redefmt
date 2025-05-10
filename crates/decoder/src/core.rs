@@ -278,6 +278,8 @@ fn decode_value(
         TypeHint::Tuple => todo!(),
         TypeHint::Set => todo!(),
         TypeHint::Map => todo!(),
+        TypeHint::DynSlice => todo!(),
+        TypeHint::DynMap => todo!(),
     }
 }
 
