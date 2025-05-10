@@ -19,9 +19,6 @@ pub use client::{DbClient, DbClientError};
 
 // table management modules
 
-mod short_id;
-pub(crate) use short_id::{ShortId, short_id_newtype};
-
 mod table;
 pub use table::{Record, Table};
 

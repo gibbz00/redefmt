@@ -1,8 +1,7 @@
+use redefmt_common::identifiers::CrateId;
 use rusqlite::OptionalExtension;
 
 use crate::*;
-
-short_id_newtype!(CrateId);
 
 #[derive(Debug, PartialEq, derive_getters::Getters)]
 pub struct Crate<'a> {

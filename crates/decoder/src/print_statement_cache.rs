@@ -1,9 +1,7 @@
 use std::collections::{HashMap, hash_map::Entry};
 
-use redefmt_db::{
-    Table,
-    statement_table::print::{PrintStatement, PrintStatementId},
-};
+use redefmt_common::identifiers::PrintStatementId;
+use redefmt_db::{Table, statement_table::print::PrintStatement};
 
 use crate::*;
 
@@ -34,10 +32,6 @@ impl PrintStatementCache {
         let print_statement = self.map.get(&id).expect("print entry not cached");
 
         Ok(print_statement)
-    }
-
-    pub fn get(&self, id: PrintStatementId) -> Option<&PrintStatement<'static>> {
-        self.map.get(&id)
     }
 }
 

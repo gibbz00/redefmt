@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use redefmt_common::identifiers::PrintStatementId;
+
 use crate::*;
 
 statement_table!(PrintStatementId, PrintStatement<'_>, "print_register");
