@@ -8,10 +8,10 @@ use crate::*;
 pub struct GlobalLogger;
 
 impl GlobalLogger {
-    fn write_start(&self, print_id: (CrateId, PrintStatementId)) -> DispatcherHandle {
-        let mut dispatcher = GlobalRegistry::dispatcher();
+    fn write_start(&self, print_id: (CrateId, PrintStatementId)) -> GlobalDispatcherHandle {
+        let mut dispatcher = GlobalDispatcher::dispatcher();
 
-        let stamper = GlobalRegistry::stamper();
+        let stamper = GlobalStamper::stamper();
 
         let header = Header::new(stamper.is_some());
         dispatcher.write(&[header.bits()]);
