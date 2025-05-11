@@ -4,6 +4,7 @@
 // TEMP:
 #![allow(missing_docs)]
 
+#[cfg(feature = "alloc")]
 extern crate alloc;
 
 mod write_value;
