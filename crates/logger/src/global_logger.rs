@@ -8,10 +8,8 @@ use crate::*;
 pub struct GlobalLogger;
 
 impl GlobalLogger {
-    fn write_start(&self, print_id: (CrateId, PrintStatementId)) -> LoggerHandle {
-        let dispatcher = GlobalRegistry::dispatcher();
-
-        dispatcher.acquire();
+    fn write_start(&self, print_id: (CrateId, PrintStatementId)) -> DispatcherHandle {
+        let mut dispatcher = GlobalRegistry::dispatcher();
 
         let stamper = GlobalRegistry::stamper();
 
@@ -27,22 +25,6 @@ impl GlobalLogger {
         dispatcher.write(&crate_id.as_ref().to_be_bytes());
         dispatcher.write(&print_statement_id.as_ref().to_be_bytes());
 
-        LoggerHandle { dispatcher }
-    }
-}
-
-pub struct LoggerHandle {
-    dispatcher: &'static dyn Dispatcher,
-}
-
-impl LoggerHandle {
-    fn write_value(&self, value: impl WriteValue) {
-        value.write_value(self.dispatcher);
-    }
-}
-
-impl Drop for LoggerHandle {
-    fn drop(&mut self) {
-        self.dispatcher.release();
+        dispatcher
     }
 }

@@ -4,14 +4,14 @@ use crate::*;
 
 // TODO: seal
 pub trait WriteValue {
-    fn write_value(&self, dispatcher: &dyn Dispatcher);
+    fn write_value(&self, dispatcher: &mut dyn Dispatcher);
 }
 
 macro_rules! num_impl {
     ($(($type:ty, $hint:expr),)*) => {
         $(
             impl WriteValue for $type {
-                fn write_value(&self, dispatcher: &dyn Dispatcher) {
+                fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
                     dispatcher.write(&($hint as u8).to_be_bytes());
                     dispatcher.write(&self.to_be_bytes());
                 }
@@ -37,7 +37,7 @@ num_impl!(
 );
 
 impl WriteValue for bool {
-    fn write_value(&self, dispatcher: &dyn Dispatcher) {
+    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
         dispatcher.write(&(TypeHint::Boolean as u8).to_be_bytes());
         dispatcher.write(&(*self as u8).to_be_bytes());
     }
@@ -46,22 +46,42 @@ impl WriteValue for bool {
 // FIXME: impls must write type hint
 
 impl WriteValue for &[u8] {
-    fn write_value(&self, dispatcher: &dyn Dispatcher) {
+    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
         self.len().write_value(dispatcher);
         dispatcher.write(self);
     }
 }
 
 impl WriteValue for &str {
-    fn write_value(&self, dispatcher: &dyn Dispatcher) {
+    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
         self.len().write_value(dispatcher);
         dispatcher.write(self.as_bytes());
     }
 }
 
 impl<const N: usize> WriteValue for [u8; N] {
-    fn write_value(&self, dispatcher: &dyn Dispatcher) {
+    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
         // No need to send length, should have been registered in write!/log! statement
         dispatcher.write(self);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bytes::{BufMut, BytesMut};
+
+    use super::*;
+
+    #[test]
+    fn bool() {
+        let mut dispatcher = SimpleTestDispatcher::default();
+
+        true.write_value(&mut dispatcher);
+
+        let mut expected_bytes = BytesMut::new();
+        expected_bytes.put_u8(TypeHint::Boolean as u8);
+        expected_bytes.put_u8(true as u8);
+
+        assert_eq!(expected_bytes, dispatcher.bytes)
     }
 }
