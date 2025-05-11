@@ -81,7 +81,6 @@ mod tests {
     use std::fmt::Debug;
 
     use rusqlite::types::FromSql;
-    use tempfile::TempDir;
 
     use super::*;
 
@@ -116,8 +115,8 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let crate_name = CrateName::new("x").unwrap();
 
-        let result = DbClient::new_crate(temp_dir.path(), &crate_name).unwrap();
+        let result = DbClient::new_crate(temp_dir.path(), &crate_name);
 
-        // assert!(result.is_ok())
+        assert!(result.is_ok())
     }
 }
