@@ -6,11 +6,11 @@
 
 pub const APPLICATION_NAME: &str = "redefmt";
 
-pub mod identifiers;
-pub(crate) use identifiers::*;
-
 pub mod codec;
 pub(crate) use codec::*;
+
+pub mod identifiers;
+pub(crate) use identifiers::*;
 
 #[cfg(feature = "db")]
 mod sql_utils;
