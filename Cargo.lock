@@ -525,6 +525,7 @@ dependencies = [
  "bytes",
  "critical-section",
  "redefmt-common",
+ "redefmt-logger",
 ]
 
 [[package]]
