@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use core::sync::atomic::{AtomicU8, Ordering};
 
 use crate::*;
@@ -24,6 +23,8 @@ impl GlobalStamper {
             .compare_exchange(UNINITIALIZED, INITIALIZING, Ordering::SeqCst, Ordering::SeqCst)
             .map_err(|_| GlobalStamperError::AlreadyInitialized)?;
 
+        // SAFETY: static not yet initialized, check and initializing flag is
+        // atomic and sequentially consistent
         unsafe { GLOBAL_STAMPER = Some(stamper) };
 
         GLOBAL_STAMPER_STATE.store(INITIALIZED, Ordering::SeqCst);
