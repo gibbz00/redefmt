@@ -7,9 +7,9 @@ use crate::*;
 
 static mut GLOBAL_DISPATCHER: Option<critical_section::Mutex<RefCell<Box<dyn Dispatcher + Sync + Send>>>> = None;
 
-pub struct GlobalRegistry;
+pub struct GlobalDispatcher;
 
-impl GlobalRegistry {
+impl GlobalDispatcher {
     pub fn init(dispatcher: impl Dispatcher + Send + Sync + 'static) {
         // TODO: panic if called twice
         critical_section::with(|_cs| {
@@ -20,26 +20,22 @@ impl GlobalRegistry {
 
     // TODO: document how this function is locking
     // TODO: panic rather than dead lock if called again before dispatcher handle is released?
-    pub(crate) fn dispatcher() -> DispatcherHandle {
+    pub(crate) fn dispatcher() -> GlobalDispatcherHandle {
         let restore_state = unsafe { critical_section::acquire() };
 
         // SAFETY: cs_token created after a `critical_section::acquire` call
         let cs_token = unsafe { critical_section::CriticalSection::new() };
 
-        DispatcherHandle { restore_state, cs_token }
-    }
-
-    pub(crate) fn stamper() -> Option<&'static dyn Stamper> {
-        todo!()
+        GlobalDispatcherHandle { restore_state, cs_token }
     }
 }
 
-pub struct DispatcherHandle {
+pub struct GlobalDispatcherHandle {
     restore_state: critical_section::RestoreState,
     cs_token: CriticalSection<'static>,
 }
 
-impl DispatcherHandle {
+impl GlobalDispatcherHandle {
     pub fn write(&mut self, bytes: &[u8]) {
         // SAFETY: called within a critical section
         #[allow(static_mut_refs)]
@@ -50,7 +46,7 @@ impl DispatcherHandle {
     }
 }
 
-impl Drop for DispatcherHandle {
+impl Drop for GlobalDispatcherHandle {
     fn drop(&mut self) {
         // SAFETY: restore state received the corresponding call to `critical_sectino::acquire`
         unsafe { critical_section::release(self.restore_state) }
@@ -66,11 +62,11 @@ mod tests {
         let bytes = [1, 2, 3];
         let shared_dispatcher = SharedTestDispatcher::new();
 
-        GlobalRegistry::init(shared_dispatcher.clone());
+        GlobalDispatcher::init(shared_dispatcher.clone());
 
         shared_dispatcher.assert_bytes(&[]);
 
-        GlobalRegistry::dispatcher().write(&bytes);
+        GlobalDispatcher::dispatcher().write(&bytes);
 
         shared_dispatcher.assert_bytes(&bytes);
     }
