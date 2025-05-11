@@ -25,4 +25,4 @@ mod global_dispatcher;
 pub use global_dispatcher::{GlobalDispatcher, GlobalDispatcherHandle};
 
 mod global_logger;
-pub(crate) use global_logger::GlobalLogger;
+pub use global_logger::GlobalLogger;

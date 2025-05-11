@@ -6,6 +6,8 @@ mod core {
 pub(crate) use core::Dispatcher;
 
 #[cfg(test)]
+pub(crate) use test_dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};
+#[cfg(test)]
 mod test_dispatcher {
     use alloc::sync::Arc;
     use core::cell::RefCell;
@@ -53,5 +55,3 @@ mod test_dispatcher {
         }
     }
 }
-#[cfg(test)]
-pub(crate) use test_dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};
