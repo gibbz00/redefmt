@@ -14,3 +14,9 @@ workspace = true
 
 [dependencies]
 redefmt-common.workspace = true
+
+critical-section = "1.2"
+
+[dev-dependencies]
+bytes = { version = "1.10", default-features = false }
+critical-section = { version = "1.2", features = ["std"] }
