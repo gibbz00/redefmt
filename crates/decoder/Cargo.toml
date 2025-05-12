@@ -23,5 +23,7 @@ thiserror = "2.0"
 tokio-util = { version = "0.7", features = ["codec"] }
 
 [dev-dependencies]
+redefmt-common = { workspace = true, features = ["testing"] }
+
 num-traits = "0.2"
 tempfile = "3.19"

@@ -305,6 +305,7 @@ mod mock {
 #[cfg(test)]
 mod tests {
     use redefmt_args::FormatOptions;
+    use redefmt_common::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
@@ -323,25 +324,8 @@ mod tests {
 
         #[test]
         fn boolean_false() {
-            test_decode_boolean(true);
-            test_decode_boolean(false);
-
-            fn test_decode_boolean(value: bool) {
-                let mut bytes = BytesMut::from_iter([value as u8]);
-
-                let actual_value = decode_value(
-                    TypeHint::Boolean,
-                    &mut bytes,
-                    PointerWidth::U64,
-                    &mut Default::default(),
-                )
-                .unwrap()
-                .unwrap();
-
-                let expected_value = Value::Boolean(value);
-
-                assert_eq!(expected_value, actual_value);
-            }
+            assert_value(TypeHint::Boolean, true, Value::Boolean);
+            assert_value(TypeHint::Boolean, false, Value::Boolean);
         }
 
         #[test]
@@ -350,7 +334,7 @@ mod tests {
             let error = decode_value(
                 TypeHint::Boolean,
                 &mut bytes,
-                PointerWidth::U64,
+                PointerWidth::of_target(),
                 &mut Default::default(),
             )
             .unwrap_err();
@@ -372,49 +356,15 @@ mod tests {
             test_decode_int::<f32>(TypeHint::F32, Value::F32);
             test_decode_int::<f64>(TypeHint::F64, Value::F64);
 
-            fn test_decode_int<T: num_traits::ToBytes + num_traits::One>(
-                type_hint: TypeHint,
-                from_inner: fn(T) -> Value,
-            ) {
-                let inner = T::one();
-
-                let mut bytes = BytesMut::from_iter(inner.to_be_bytes().as_ref());
-
-                let actual_value = decode_value(type_hint, &mut bytes, PointerWidth::U64, &mut Default::default())
-                    .unwrap()
-                    .unwrap();
-
-                let expected_value = from_inner(inner);
-
-                assert_eq!(expected_value, actual_value);
-
-                assert!(bytes.is_empty());
+            fn test_decode_int<T: WriteValue + num_traits::One>(type_hint: TypeHint, from_inner: fn(T) -> Value) {
+                assert_value(type_hint, T::one(), from_inner);
             }
         }
 
         #[test]
         fn string() {
-            test_decode_string("abc");
-            test_decode_string("🦀");
-
-            fn test_decode_string(str: &str) {
-                let mut bytes = BytesMut::new();
-                bytes.put_slice(&str.len().to_be_bytes());
-                bytes.put_slice(str.as_bytes());
-
-                let actual_value = decode_value(
-                    TypeHint::StringSlice,
-                    &mut bytes,
-                    PointerWidth::of_target(),
-                    &mut Default::default(),
-                )
-                .unwrap()
-                .unwrap();
-
-                let expected_value = Value::String(str.to_string());
-
-                assert_eq!(expected_value, actual_value);
-            }
+            assert_value(TypeHint::StringSlice, "abc", |str| Value::String(str.to_string()));
+            assert_value(TypeHint::StringSlice, "🦀", |str| Value::String(str.to_string()));
         }
 
         #[test]
@@ -434,6 +384,30 @@ mod tests {
 
             assert!(matches!(error, RedefmtDecoderError::InvalidStringBytes(_)))
         }
+    }
+
+    fn assert_value<T: WriteValue>(type_hint: TypeHint, encoded_value: T, from_inner: fn(T) -> Value) {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        encoded_value.write_value(&mut dispatcher);
+
+        let mut dispatched_bytes = dispatcher.bytes;
+
+        let dispatched_type_hint = TypeHint::from_repr(dispatched_bytes.get_u8()).unwrap();
+
+        assert_eq!(dispatched_type_hint, type_hint);
+
+        let actual_value = decode_value(
+            type_hint,
+            &mut dispatched_bytes,
+            PointerWidth::of_target(),
+            &mut Default::default(),
+        )
+        .unwrap()
+        .unwrap();
+
+        let expected_value = from_inner(encoded_value);
+
+        assert_eq!(expected_value, actual_value);
     }
 
     #[test]
@@ -660,9 +634,8 @@ mod tests {
     }
 
     fn put_and_decode_bool_arg(decoder: &mut RedefmtDecoder, value: bool) -> Option<RedefmtFrame> {
-        let mut bytes = BytesMut::new();
-        bytes.put_u8(TypeHint::Boolean as u8);
-        bytes.put_u8(value as u8);
-        decoder.decode(&mut bytes).unwrap()
+        let mut dispatcher = SimpleTestDispatcher::default();
+        value.write_value(&mut dispatcher);
+        decoder.decode(&mut dispatcher.bytes).unwrap()
     }
 }
