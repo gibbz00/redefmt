@@ -13,7 +13,9 @@ version.workspace = true
 workspace = true
 
 [features]
+alloc = []
 db = ["dep:rusqlite"]
+testing = ["alloc", "dep:bytes", "dep:critical-section"]
 
 [dependencies]
 # Internal
@@ -22,5 +24,11 @@ redefmt-args.workspace = true
 # External
 bitflags = "2.9.0"
 derive_more = { version = "2.0", features = ["as_ref", "display"] }
-rusqlite = { version = "0.35", features = ["bundled"], optional = true }
 strum = { version = "0.27", default-features = false, features = ["derive"] }
+
+# feature: db
+rusqlite = { version = "0.35", features = ["bundled"], optional = true }
+
+# feature: testing
+bytes = { version = "1.10", default-features = false, optional = true }
+critical-section = { version = "1.2", features = ["std"], optional = true }

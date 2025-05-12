@@ -1,13 +1,8 @@
-mod core {
-    pub trait Dispatcher {
-        fn write(&mut self, bytes: &[u8]);
-    }
+pub trait Dispatcher {
+    fn write(&mut self, bytes: &[u8]);
 }
-pub(crate) use core::Dispatcher;
 
-#[cfg(test)]
-pub(crate) use test_dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};
-#[cfg(test)]
+#[cfg(feature = "testing")]
 mod test_dispatcher {
     use alloc::sync::Arc;
     use core::cell::RefCell;
@@ -34,6 +29,7 @@ mod test_dispatcher {
     }
 
     impl SharedTestDispatcher {
+        #[allow(clippy::new_without_default)]
         pub fn new() -> Self {
             Self { bytes: Arc::new(Mutex::new(RefCell::new(BytesMut::new()))) }
         }
@@ -55,3 +51,5 @@ mod test_dispatcher {
         }
     }
 }
+#[cfg(feature = "testing")]
+pub use test_dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};

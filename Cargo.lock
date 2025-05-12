@@ -479,6 +479,8 @@ name = "redefmt-common"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "bytes",
+ "critical-section",
  "derive_more",
  "redefmt-args",
  "rusqlite",

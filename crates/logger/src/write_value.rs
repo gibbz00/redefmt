@@ -1,4 +1,4 @@
-use redefmt_common::codec::frame::TypeHint;
+use redefmt_common::codec::{encoding::Dispatcher, frame::TypeHint};
 
 use crate::*;
 
@@ -69,6 +69,7 @@ impl<const N: usize> WriteValue for [u8; N] {
 #[cfg(test)]
 mod tests {
     use bytes::{BufMut, BytesMut};
+    use redefmt_common::codec::encoding::SimpleTestDispatcher;
 
     use super::*;
 

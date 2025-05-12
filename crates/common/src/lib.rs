@@ -4,6 +4,9 @@
 // TEMP:
 #![allow(missing_docs)]
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 pub const APPLICATION_NAME: &str = "redefmt";
 
 pub mod codec;
