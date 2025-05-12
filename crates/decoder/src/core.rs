@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use redefmt_args::FormatOptions;
 use redefmt_common::{
-    codec::{Header, PointerWidth, Stamp, TypeHint},
+    codec::frame::{Header, PointerWidth, Stamp, TypeHint},
     identifiers::{CrateId, PrintStatementId},
 };
 use redefmt_db::{
