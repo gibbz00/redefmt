@@ -275,8 +275,8 @@ fn decode_value(
 
             Ok(Some(Value::String(string)))
         }
-        TypeHint::Slice => todo!(),
-        TypeHint::DynSlice => todo!(),
+        TypeHint::List => todo!(),
+        TypeHint::DynList => todo!(),
         TypeHint::WriteId => todo!(),
         TypeHint::Tuple => todo!(),
         TypeHint::Set => todo!(),

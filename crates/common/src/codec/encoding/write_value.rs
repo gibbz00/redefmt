@@ -24,6 +24,10 @@ impl<T: WriteValue> WriteValue for &T {
     }
 }
 
+fn write_type_hint(type_hint: TypeHint, dispatcher: &mut dyn Dispatcher) {
+    dispatcher.write(&(type_hint as u8).to_be_bytes());
+}
+
 macro_rules! num_impl {
     ($(($type:ty, $hint:expr),)*) => {
         $(
@@ -79,7 +83,7 @@ impl WriteValue for &str {
 
 impl<T: WriteValue> WriteValue for &[T] {
     fn hint(&self) -> TypeHint {
-        TypeHint::Slice
+        TypeHint::List
     }
 
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
@@ -100,7 +104,7 @@ impl<T: WriteValue> WriteValue for &[T] {
 
 impl<T: WriteValue, const N: usize> WriteValue for [T; N] {
     fn hint(&self) -> TypeHint {
-        TypeHint::Slice
+        TypeHint::List
     }
 
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
@@ -110,7 +114,7 @@ impl<T: WriteValue, const N: usize> WriteValue for [T; N] {
 
 impl WriteValue for &[&dyn WriteValue] {
     fn hint(&self) -> TypeHint {
-        TypeHint::DynSlice
+        TypeHint::DynList
     }
 
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
@@ -125,7 +129,7 @@ impl WriteValue for &[&dyn WriteValue] {
 
 impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
     fn hint(&self) -> TypeHint {
-        TypeHint::DynSlice
+        TypeHint::DynList
     }
 
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
@@ -133,12 +137,32 @@ impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
     }
 }
 
-fn write_type_hint(type_hint: TypeHint, dispatcher: &mut dyn Dispatcher) {
-    dispatcher.write(&(type_hint as u8).to_be_bytes());
+#[cfg(feature = "alloc")]
+impl<T: WriteValue> WriteValue for alloc::vec::Vec<T> {
+    fn hint(&self) -> TypeHint {
+        TypeHint::List
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        self.as_slice().write_raw(dispatcher);
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl WriteValue for alloc::vec::Vec<&dyn WriteValue> {
+    fn hint(&self) -> TypeHint {
+        TypeHint::DynList
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        self.as_slice().write_raw(dispatcher);
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+
     use bytes::{BufMut, BytesMut};
 
     use super::*;
@@ -232,6 +256,13 @@ mod tests {
     }
 
     #[test]
+    fn vec() {
+        assert_vec::<u8>(alloc::vec![]);
+        assert_vec(alloc::vec![0, 1]);
+        assert_vec(alloc::vec![["y"], ["y"]]);
+    }
+
+    #[test]
     fn dyn_slice() {
         assert_dyn_slice(&[]);
         assert_dyn_slice(&[&"str" as &dyn WriteValue, &1 as &dyn WriteValue]);
@@ -241,6 +272,12 @@ mod tests {
     fn dyn_array() {
         assert_dyn_array([]);
         assert_dyn_array([&"str" as &dyn WriteValue, &1 as &dyn WriteValue]);
+    }
+
+    #[test]
+    fn dyn_vec() {
+        assert_dyn_vec(alloc::vec![]);
+        assert_dyn_vec(alloc::vec![&"str" as &dyn WriteValue, &1 as &dyn WriteValue]);
     }
 
     fn assert_array<T: WriteValue + core::fmt::Debug, const N: usize>(array: [T; N]) {
@@ -259,9 +296,16 @@ mod tests {
         assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {slice:?}")
     }
 
+    fn assert_vec<T: WriteValue + core::fmt::Debug>(vec: Vec<T>) {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        vec.write_value(&mut dispatcher);
+        let expected_bytes = expected_slice_bytes(&vec);
+        assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {vec:?}")
+    }
+
     fn expected_slice_bytes<T: WriteValue>(slice: &[T]) -> BytesMut {
         let mut expected_bytes = BytesMut::new();
-        expected_bytes.put_u8(TypeHint::Slice as u8);
+        expected_bytes.put_u8(TypeHint::List as u8);
         expected_bytes.put_slice(&slice.len().to_be_bytes());
 
         for (index, element) in slice.iter().enumerate() {
@@ -293,9 +337,17 @@ mod tests {
         assert_eq!(expected_bytes, dispatcher.bytes)
     }
 
+    fn assert_dyn_vec(dyn_vec: Vec<&dyn WriteValue>) {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        dyn_vec.write_value(&mut dispatcher);
+
+        let expected_bytes = expected_dyn_bytes(&dyn_vec);
+        assert_eq!(expected_bytes, dispatcher.bytes)
+    }
+
     fn expected_dyn_bytes(slice: &[&dyn WriteValue]) -> BytesMut {
         let mut expected_bytes = BytesMut::new();
-        expected_bytes.put_u8(TypeHint::DynSlice as u8);
+        expected_bytes.put_u8(TypeHint::DynList as u8);
         expected_bytes.put_slice(&slice.len().to_be_bytes());
 
         for element in slice {
