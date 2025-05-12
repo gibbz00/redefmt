@@ -1,5 +1,5 @@
 use redefmt_common::{
-    codec::Header,
+    codec::frame::Header,
     identifiers::{CrateId, PrintStatementId},
 };
 

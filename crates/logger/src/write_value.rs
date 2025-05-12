@@ -1,4 +1,4 @@
-use redefmt_common::codec::TypeHint;
+use redefmt_common::codec::frame::TypeHint;
 
 use crate::*;
 
@@ -73,24 +73,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bool() {
-        assert_bool(true);
-        assert_bool(false);
-
-        fn assert_bool(boolean: bool) {
-            let mut dispatcher = SimpleTestDispatcher::default();
-
-            boolean.write_value(&mut dispatcher);
-
-            let mut expected_bytes = BytesMut::new();
-            expected_bytes.put_u8(TypeHint::Boolean as u8);
-            expected_bytes.put_u8(boolean as u8);
-
-            assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {boolean}")
-        }
-    }
-
-    #[test]
     fn num() {
         assert_num::<isize>(TypeHint::Isize);
         assert_num::<i8>(TypeHint::I8);
@@ -118,6 +100,24 @@ mod tests {
             expected_bytes.put_slice(num.to_be_bytes().as_ref());
 
             assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {type_hint}")
+        }
+    }
+
+    #[test]
+    fn bool() {
+        assert_bool(true);
+        assert_bool(false);
+
+        fn assert_bool(boolean: bool) {
+            let mut dispatcher = SimpleTestDispatcher::default();
+
+            boolean.write_value(&mut dispatcher);
+
+            let mut expected_bytes = BytesMut::new();
+            expected_bytes.put_u8(TypeHint::Boolean as u8);
+            expected_bytes.put_u8(boolean as u8);
+
+            assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {boolean}")
         }
     }
 }
