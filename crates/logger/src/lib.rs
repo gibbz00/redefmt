@@ -7,9 +7,6 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-mod write_value;
-pub(crate) use write_value::WriteValue;
-
 mod stamper;
 pub(crate) use stamper::Stamper;
 #[cfg(test)]
