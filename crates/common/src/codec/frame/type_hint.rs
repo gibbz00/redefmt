@@ -33,7 +33,9 @@ pub enum TypeHint {
     // (effectively a dyn slice)
     Tuple = 201,
 
-    // length + leading type hint
+    // Arrays reuse the corresponding slice types.
+    //
+    // length + leading type hint if length > 0
     Slice = 202,
     // length + type hint for each element
     DynSlice = 203,

@@ -275,12 +275,12 @@ fn decode_value(
 
             Ok(Some(Value::String(string)))
         }
-        TypeHint::WriteId => todo!(),
         TypeHint::Slice => todo!(),
+        TypeHint::DynSlice => todo!(),
+        TypeHint::WriteId => todo!(),
         TypeHint::Tuple => todo!(),
         TypeHint::Set => todo!(),
         TypeHint::Map => todo!(),
-        TypeHint::DynSlice => todo!(),
         TypeHint::DynMap => todo!(),
     }
 }

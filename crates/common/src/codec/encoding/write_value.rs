@@ -2,20 +2,42 @@ use crate::*;
 
 // TODO: seal
 pub trait WriteValue {
-    fn write_value(&self, dispatcher: &mut dyn Dispatcher);
+    // Can't make associated const as `WriteValue` needs to be dyn compatible,
+    // and const fn in traits does not yet exist.
+    fn hint(&self) -> TypeHint;
+
+    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
+        write_type_hint(self.hint(), dispatcher);
+        self.write_raw(dispatcher);
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher);
+}
+
+impl<T: WriteValue> WriteValue for &T {
+    fn hint(&self) -> TypeHint {
+        T::hint(self)
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        T::write_raw(self, dispatcher)
+    }
 }
 
 macro_rules! num_impl {
-($(($type:ty, $hint:expr),)*) => {
-    $(
-        impl WriteValue for $type {
-            fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
-                dispatcher.write(&($hint as u8).to_be_bytes());
-                dispatcher.write(&self.to_be_bytes());
+    ($(($type:ty, $hint:expr),)*) => {
+        $(
+            impl WriteValue for $type {
+                fn hint(&self) -> TypeHint {
+                    $hint
+                }
+
+                fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+                    dispatcher.write(&self.to_be_bytes());
+                }
             }
-        }
-    )*
-};
+        )*
+    };
 }
 
 num_impl!(
@@ -35,34 +57,84 @@ num_impl!(
 );
 
 impl WriteValue for bool {
-    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
-        dispatcher.write(&(TypeHint::Boolean as u8).to_be_bytes());
+    fn hint(&self) -> TypeHint {
+        TypeHint::Boolean
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
         dispatcher.write(&(*self as u8).to_be_bytes());
     }
 }
 
-// FIXME: impls must write type hint
-
-impl WriteValue for &[u8] {
-    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
-        self.len().write_value(dispatcher);
-        dispatcher.write(self);
-    }
-}
-
 impl WriteValue for &str {
-    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
-        dispatcher.write(&(TypeHint::StringSlice as u8).to_be_bytes());
+    fn hint(&self) -> TypeHint {
+        TypeHint::StringSlice
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
         dispatcher.write(&self.len().to_be_bytes());
         dispatcher.write(self.as_bytes());
     }
 }
 
-impl<const N: usize> WriteValue for [u8; N] {
-    fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
-        // No need to send length, should have been registered in write!/log! statement
-        dispatcher.write(self);
+impl<T: WriteValue> WriteValue for &[T] {
+    fn hint(&self) -> TypeHint {
+        TypeHint::Slice
     }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        dispatcher.write(&self.len().to_be_bytes());
+
+        // NOTE:
+        // Type hint need not be repeated for each element,
+        // and none is written if length is zero.
+        for (index, element) in self.iter().enumerate() {
+            if index == 0 {
+                write_type_hint(element.hint(), dispatcher);
+            }
+
+            element.write_raw(dispatcher);
+        }
+    }
+}
+
+impl<T: WriteValue, const N: usize> WriteValue for [T; N] {
+    fn hint(&self) -> TypeHint {
+        TypeHint::Slice
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        self.as_slice().write_raw(dispatcher);
+    }
+}
+
+impl WriteValue for &[&dyn WriteValue] {
+    fn hint(&self) -> TypeHint {
+        TypeHint::DynSlice
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        dispatcher.write(&self.len().to_be_bytes());
+
+        for element in *self {
+            // type hint needs to be written for each element
+            element.write_value(dispatcher);
+        }
+    }
+}
+
+impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
+    fn hint(&self) -> TypeHint {
+        TypeHint::DynSlice
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        self.as_slice().write_raw(dispatcher);
+    }
+}
+
+fn write_type_hint(type_hint: TypeHint, dispatcher: &mut dyn Dispatcher) {
+    dispatcher.write(&(type_hint as u8).to_be_bytes());
 }
 
 #[cfg(test)]
@@ -137,5 +209,103 @@ mod tests {
 
             assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {str}")
         }
+    }
+
+    #[test]
+    fn slice() {
+        assert_slice::<u8>(&[]);
+        let array = [0];
+        assert_slice(&array);
+        assert_slice(array.as_ref());
+        assert_slice(&[0, 1]);
+        assert_slice(&["a", "b", "c"]);
+        assert_slice(&[&[0], &[1]]);
+        assert_slice(&[[1].as_slice(), &[2, 3], &[4, 5, 6]]);
+    }
+
+    #[test]
+    fn array() {
+        assert_array::<u8, 0>([]);
+        assert_array([0, 1]);
+        assert_array([[0], [1]]);
+        assert_array([&[0], &[1]]);
+    }
+
+    #[test]
+    fn dyn_slice() {
+        assert_dyn_slice(&[]);
+        assert_dyn_slice(&[&"str" as &dyn WriteValue, &1 as &dyn WriteValue]);
+    }
+
+    #[test]
+    fn dyn_array() {
+        assert_dyn_array([]);
+        assert_dyn_array([&"str" as &dyn WriteValue, &1 as &dyn WriteValue]);
+    }
+
+    fn assert_array<T: WriteValue + core::fmt::Debug, const N: usize>(array: [T; N]) {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        array.write_value(&mut dispatcher);
+
+        let expected_bytes = expected_slice_bytes(&array);
+        assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {array:?}")
+    }
+
+    fn assert_slice<T: WriteValue + core::fmt::Debug>(slice: &[T]) {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        slice.write_value(&mut dispatcher);
+
+        let expected_bytes = expected_slice_bytes(slice);
+        assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {slice:?}")
+    }
+
+    fn expected_slice_bytes<T: WriteValue>(slice: &[T]) -> BytesMut {
+        let mut expected_bytes = BytesMut::new();
+        expected_bytes.put_u8(TypeHint::Slice as u8);
+        expected_bytes.put_slice(&slice.len().to_be_bytes());
+
+        for (index, element) in slice.iter().enumerate() {
+            if index == 0 {
+                expected_bytes.put_u8(element.hint() as u8);
+            }
+
+            let mut expected_dispatcher = SimpleTestDispatcher::default();
+            element.write_raw(&mut expected_dispatcher);
+            expected_bytes.put_slice(&expected_dispatcher.bytes);
+        }
+
+        expected_bytes
+    }
+
+    fn assert_dyn_slice(dyn_slice: &[&dyn WriteValue]) {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        dyn_slice.write_value(&mut dispatcher);
+
+        let expected_bytes = expected_dyn_bytes(dyn_slice);
+        assert_eq!(expected_bytes, dispatcher.bytes)
+    }
+
+    fn assert_dyn_array<const N: usize>(dyn_array: [&dyn WriteValue; N]) {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        dyn_array.write_value(&mut dispatcher);
+
+        let expected_bytes = expected_dyn_bytes(&dyn_array);
+        assert_eq!(expected_bytes, dispatcher.bytes)
+    }
+
+    fn expected_dyn_bytes(slice: &[&dyn WriteValue]) -> BytesMut {
+        let mut expected_bytes = BytesMut::new();
+        expected_bytes.put_u8(TypeHint::DynSlice as u8);
+        expected_bytes.put_slice(&slice.len().to_be_bytes());
+
+        for element in slice {
+            expected_bytes.put_u8(element.hint() as u8);
+
+            let mut expected_dispatcher = SimpleTestDispatcher::default();
+            element.write_raw(&mut expected_dispatcher);
+            expected_bytes.put_slice(&expected_dispatcher.bytes);
+        }
+
+        expected_bytes
     }
 }
