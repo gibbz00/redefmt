@@ -2,3 +2,6 @@
 
 pub mod frame;
 pub(crate) use frame::*;
+
+pub mod encoding;
+pub(crate) use encoding::*;

@@ -10,9 +10,6 @@ extern crate alloc;
 mod write_value;
 pub(crate) use write_value::WriteValue;
 
-mod dispatcher;
-pub(crate) use dispatcher::*;
-
 mod stamper;
 pub(crate) use stamper::Stamper;
 #[cfg(test)]
