@@ -52,7 +52,8 @@ impl WriteValue for &[u8] {
 
 impl WriteValue for &str {
     fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
-        self.len().write_value(dispatcher);
+        dispatcher.write(&(TypeHint::StringSlice as u8).to_be_bytes());
+        dispatcher.write(&self.len().to_be_bytes());
         dispatcher.write(self.as_bytes());
     }
 }
