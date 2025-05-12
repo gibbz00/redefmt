@@ -161,11 +161,18 @@ impl WriteValue for alloc::vec::Vec<&dyn WriteValue> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec::Vec;
+    use alloc::{boxed::Box, vec::Vec};
 
     use bytes::{BufMut, BytesMut};
 
     use super::*;
+
+    // NOTE: Most of these tests don't necessarily verify that the resulting
+    // bytes have an "intended value", but act more assertions that different
+    // type compinations still compile for situations where `format_args!` would.
+    //
+    // True tests that the encoded bytes are correct is instead done in the
+    // decoder tests.
 
     #[test]
     fn num() {
@@ -233,6 +240,37 @@ mod tests {
 
             assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {str}")
         }
+    }
+
+    #[test]
+    fn boxed() {
+        assert_boxed("");
+        assert_boxed(123);
+
+        fn assert_boxed(value: impl WriteValue) {
+            let mut boxed_dispatcher = SimpleTestDispatcher::default();
+            let boxed = Box::new(&value);
+            boxed.write_value(&mut boxed_dispatcher);
+
+            let mut unboxed_dispatcher = SimpleTestDispatcher::default();
+            value.write_value(&mut unboxed_dispatcher);
+
+            assert_eq!(unboxed_dispatcher.bytes, boxed_dispatcher.bytes)
+        }
+    }
+
+    #[test]
+    fn boxed_dyn() {
+        let value = "123";
+
+        let mut boxed_dispatcher = SimpleTestDispatcher::default();
+        let boxed_value: Box<dyn WriteValue> = Box::new(value);
+        boxed_value.write_value(&mut boxed_dispatcher);
+
+        let mut unboxed_dispatcher = SimpleTestDispatcher::default();
+        value.write_value(&mut unboxed_dispatcher);
+
+        assert_eq!(unboxed_dispatcher.bytes, boxed_dispatcher.bytes)
     }
 
     #[test]
