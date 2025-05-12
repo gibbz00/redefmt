@@ -482,7 +482,9 @@ dependencies = [
  "bytes",
  "critical-section",
  "derive_more",
+ "num-traits",
  "redefmt-args",
+ "redefmt-common",
  "rusqlite",
  "strum",
 ]
@@ -524,9 +526,7 @@ dependencies = [
 name = "redefmt-logger"
 version = "0.1.0"
 dependencies = [
- "bytes",
  "critical-section",
- "num-traits",
  "redefmt-common",
  "redefmt-logger",
 ]

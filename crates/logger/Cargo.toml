@@ -23,6 +23,3 @@ critical-section = "1.2"
 [dev-dependencies]
 redefmt-common = { workspace = true, features = ["testing"] }
 redefmt-logger = { path = ".", features = ["alloc"] }
-
-bytes = { version = "1.10", default-features = false }
-num-traits = "0.2"

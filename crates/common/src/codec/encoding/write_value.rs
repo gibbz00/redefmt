@@ -1,5 +1,3 @@
-use redefmt_common::codec::{encoding::Dispatcher, frame::TypeHint};
-
 use crate::*;
 
 // TODO: seal
@@ -8,16 +6,16 @@ pub trait WriteValue {
 }
 
 macro_rules! num_impl {
-    ($(($type:ty, $hint:expr),)*) => {
-        $(
-            impl WriteValue for $type {
-                fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
-                    dispatcher.write(&($hint as u8).to_be_bytes());
-                    dispatcher.write(&self.to_be_bytes());
-                }
+($(($type:ty, $hint:expr),)*) => {
+    $(
+        impl WriteValue for $type {
+            fn write_value(&self, dispatcher: &mut dyn Dispatcher) {
+                dispatcher.write(&($hint as u8).to_be_bytes());
+                dispatcher.write(&self.to_be_bytes());
             }
-        )*
-    };
+        }
+    )*
+};
 }
 
 num_impl!(
@@ -69,7 +67,6 @@ impl<const N: usize> WriteValue for [u8; N] {
 #[cfg(test)]
 mod tests {
     use bytes::{BufMut, BytesMut};
-    use redefmt_common::codec::encoding::SimpleTestDispatcher;
 
     use super::*;
 
