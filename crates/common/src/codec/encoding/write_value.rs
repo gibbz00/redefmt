@@ -119,4 +119,23 @@ mod tests {
             assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {boolean}")
         }
     }
+
+    #[test]
+    fn str() {
+        assert_str("x");
+        assert_str("🦀");
+
+        fn assert_str(str: &str) {
+            let mut dispatcher = SimpleTestDispatcher::default();
+
+            str.write_value(&mut dispatcher);
+
+            let mut expected_bytes = BytesMut::new();
+            expected_bytes.put_u8(TypeHint::StringSlice as u8);
+            expected_bytes.put_slice(&str.len().to_be_bytes());
+            expected_bytes.put_slice(str.as_bytes());
+
+            assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {str}")
+        }
+    }
 }
