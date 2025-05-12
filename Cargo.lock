@@ -524,6 +524,7 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "critical-section",
+ "num-traits",
  "redefmt-common",
  "redefmt-logger",
 ]
