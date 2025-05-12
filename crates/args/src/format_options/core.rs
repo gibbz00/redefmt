@@ -15,7 +15,7 @@ pub struct FormatOptions<'a> {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
     #[cfg_attr(feature = "builder", builder(default))]
     use_alternate_form: bool,
-    /// https://doc.rust-lang.org/std/fmt/index.html#sign0
+    /// <https://doc.rust-lang.org/std/fmt/index.html#sign0>
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
     #[cfg_attr(feature = "builder", builder(default))]
     use_zero_padding: bool,
