@@ -74,14 +74,50 @@ mod tests {
 
     #[test]
     fn bool() {
-        let mut dispatcher = SimpleTestDispatcher::default();
+        assert_bool(true);
+        assert_bool(false);
 
-        true.write_value(&mut dispatcher);
+        fn assert_bool(boolean: bool) {
+            let mut dispatcher = SimpleTestDispatcher::default();
 
-        let mut expected_bytes = BytesMut::new();
-        expected_bytes.put_u8(TypeHint::Boolean as u8);
-        expected_bytes.put_u8(true as u8);
+            boolean.write_value(&mut dispatcher);
 
-        assert_eq!(expected_bytes, dispatcher.bytes)
+            let mut expected_bytes = BytesMut::new();
+            expected_bytes.put_u8(TypeHint::Boolean as u8);
+            expected_bytes.put_u8(boolean as u8);
+
+            assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {boolean}")
+        }
+    }
+
+    #[test]
+    fn num() {
+        assert_num::<isize>(TypeHint::Isize);
+        assert_num::<i8>(TypeHint::I8);
+        assert_num::<i16>(TypeHint::I16);
+        assert_num::<i32>(TypeHint::I32);
+        assert_num::<i64>(TypeHint::I64);
+        assert_num::<usize>(TypeHint::Usize);
+        assert_num::<u8>(TypeHint::U8);
+        assert_num::<u16>(TypeHint::U16);
+        assert_num::<u32>(TypeHint::U32);
+        assert_num::<u64>(TypeHint::U64);
+        assert_num::<u128>(TypeHint::U128);
+        assert_num::<f32>(TypeHint::F32);
+        assert_num::<f64>(TypeHint::F64);
+
+        fn assert_num<T: WriteValue + num_traits::ToBytes + num_traits::One>(type_hint: TypeHint) {
+            let mut dispatcher = SimpleTestDispatcher::default();
+
+            let num = T::one();
+
+            num.write_value(&mut dispatcher);
+
+            let mut expected_bytes = BytesMut::new();
+            expected_bytes.put_u8(type_hint as u8);
+            expected_bytes.put_slice(num.to_be_bytes().as_ref());
+
+            assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {type_hint}")
+        }
     }
 }
