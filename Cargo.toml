@@ -15,6 +15,7 @@ version = "0.1.0"
 redefmt-args = { path = "crates/args" }
 redefmt-common = { path = "crates/common" }
 redefmt-db = { path = "crates/db" }
+redefmt-internal-macros = { path = "crates/internal_macros" }
 
 [workspace.lints.rust]
 missing_docs = "warn"

@@ -33,7 +33,7 @@ pub enum TypeHint {
     // (effectively a dyn slice)
     Tuple = 201,
 
-    // used for array, vec and slice
+    // List and DynList reused between array, vec and slice
 
     // length + leading type hint if length > 0
     List = 202,
