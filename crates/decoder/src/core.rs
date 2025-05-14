@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use encode_unicode::CharExt;
 use redefmt_args::FormatOptions;
 use redefmt_common::{
     codec::frame::{Header, PointerWidth, Stamp, TypeHint},
@@ -239,19 +240,9 @@ fn decode_value(
         TypeHint::I64 => Ok((src.len() >= std::mem::size_of::<i64>()).then(|| Value::I64(src.get_i64()))),
         TypeHint::F32 => Ok((src.len() >= std::mem::size_of::<f32>()).then(|| Value::F32(src.get_f32()))),
         TypeHint::F64 => Ok((src.len() >= std::mem::size_of::<f64>()).then(|| Value::F64(src.get_f64()))),
-        TypeHint::Usize => {
-            if src.len() < pointer_width.size() {
-                return Ok(None);
-            }
-
-            let num = match pointer_width {
-                PointerWidth::U16 => src.get_u16() as u64,
-                PointerWidth::U32 => src.get_u32() as u64,
-                PointerWidth::U64 => src.get_u64(),
-            };
-
-            Ok(Some(Value::Usize(num)))
-        }
+        TypeHint::Usize => get_pointer_width_num(src, pointer_width)
+            .map(|num| Ok(Value::Usize(num)))
+            .transpose(),
         TypeHint::Isize => {
             if src.len() < pointer_width.size() {
                 return Ok(None);
@@ -265,19 +256,35 @@ fn decode_value(
 
             Ok(Some(Value::Isize(num)))
         }
-        TypeHint::Char => todo!(),
+        TypeHint::Char => {
+            if src.len() < std::mem::size_of::<u8>() {
+                return Ok(None);
+            }
+
+            let char_length = src.get_u8();
+
+            if src.len() < char_length as usize {
+                return Ok(None);
+            }
+
+            let utf8_bytes = match char_length {
+                1 => [src.get_u8(), 0, 0, 0],
+                2 => [src.get_u8(), src.get_u8(), 0, 0],
+                3 => [src.get_u8(), src.get_u8(), src.get_u8(), 0],
+                4 => [src.get_u8(), src.get_u8(), src.get_u8(), src.get_u8()],
+                n => return Err(RedefmtDecoderError::InvalidCharLength(n)),
+            };
+
+            let char = char::from_utf8_array(utf8_bytes)?;
+
+            Ok(Some(Value::Char(char)))
+        }
         TypeHint::StringSlice => {
             let length = match value_context.length {
                 Some(length) => length,
                 None => {
-                    if src.len() < pointer_width.size() {
+                    let Some(length) = get_pointer_width_num(src, pointer_width) else {
                         return Ok(None);
-                    }
-
-                    let length = match pointer_width {
-                        PointerWidth::U16 => src.get_u16() as u64,
-                        PointerWidth::U32 => src.get_u32() as u64,
-                        PointerWidth::U64 => src.get_u64(),
                     };
 
                     value_context.length = Some(length);
@@ -308,6 +315,20 @@ fn decode_value(
         // TypeHint::Map => todo!(),
         // TypeHint::DynMap => todo!(),
     }
+}
+
+fn get_pointer_width_num(src: &mut BytesMut, pointer_width: PointerWidth) -> Option<u64> {
+    if src.len() < pointer_width.size() {
+        return None;
+    }
+
+    let num = match pointer_width {
+        PointerWidth::U16 => src.get_u16() as u64,
+        PointerWidth::U32 => src.get_u32() as u64,
+        PointerWidth::U64 => src.get_u64(),
+    };
+
+    Some(num)
 }
 
 #[cfg(test)]
@@ -386,6 +407,14 @@ mod tests {
             fn test_decode_int<T: WriteValue + num_traits::One>(type_hint: TypeHint, from_inner: fn(T) -> Value) {
                 assert_value(type_hint, T::one(), from_inner);
             }
+        }
+
+        #[test]
+        fn char() {
+            assert_value(TypeHint::Char, 'x', Value::Char);
+            assert_value(TypeHint::Char, 'ß', Value::Char);
+            assert_value(TypeHint::Char, 'ᴪ', Value::Char);
+            assert_value(TypeHint::Char, '🦀', Value::Char);
         }
 
         #[test]

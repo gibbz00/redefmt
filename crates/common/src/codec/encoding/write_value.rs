@@ -289,6 +289,7 @@ mod tests {
     fn char() {
         assert_char('x', 1);
         assert_char('ß', 2);
+        assert_char('ᴪ', 3);
         assert_char('🦀', 4);
 
         fn assert_char(char: char, expected_length: u8) {
@@ -308,7 +309,7 @@ mod tests {
             let expected_bytes_length = 2 + expected_length;
             assert_eq!(expected_bytes_length, dispatcher.bytes.len() as u8);
 
-            assert_eq!(expected_bytes, dispatcher.bytes)
+            assert_eq!(expected_bytes, dispatcher.bytes);
         }
     }
 
