@@ -84,6 +84,7 @@ fn generate_permutations(trait_name: &Ident, tuple_length: u8, trait_impl_buffer
         let tuple_indexes = (0..tuple_length as usize).map(syn::Index::from);
 
         let trait_impl = quote! {
+            #[::sealed::sealed]
             impl<#(#generic_params: WriteValue),*> WriteValue for (#(#tuple_type_indexes),*) {
                 fn hint(&self) -> TypeHint {
                     TypeHint::Tuple

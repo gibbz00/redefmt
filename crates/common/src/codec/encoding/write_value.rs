@@ -1,6 +1,6 @@
 use crate::*;
 
-// TODO: seal
+#[sealed::sealed]
 pub trait WriteValue {
     // Can't make associated const as `WriteValue` needs to be dyn compatible,
     // and const fn in traits does not yet exist.
@@ -14,6 +14,7 @@ pub trait WriteValue {
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher);
 }
 
+#[sealed::sealed]
 impl<T: WriteValue> WriteValue for &T {
     fn hint(&self) -> TypeHint {
         T::hint(self)
@@ -28,6 +29,7 @@ fn write_type_hint(type_hint: TypeHint, dispatcher: &mut dyn Dispatcher) {
     dispatcher.write(&(type_hint as u8).to_be_bytes());
 }
 
+#[sealed::sealed]
 impl WriteValue for (CrateId, WriteStatementId) {
     fn hint(&self) -> TypeHint {
         TypeHint::WriteId
@@ -52,6 +54,7 @@ redefmt_internal_macros::impl_tuple_write_value!(7);
 macro_rules! num_impl {
     ($(($type:ty, $hint:expr),)*) => {
         $(
+            #[::sealed::sealed]
             impl WriteValue for $type {
                 fn hint(&self) -> TypeHint {
                     $hint
@@ -81,6 +84,7 @@ num_impl!(
     (f64, TypeHint::F64),
 );
 
+#[sealed::sealed]
 impl WriteValue for bool {
     fn hint(&self) -> TypeHint {
         TypeHint::Boolean
@@ -91,6 +95,7 @@ impl WriteValue for bool {
     }
 }
 
+#[sealed::sealed]
 impl WriteValue for char {
     fn hint(&self) -> TypeHint {
         TypeHint::Char
@@ -105,6 +110,7 @@ impl WriteValue for char {
     }
 }
 
+#[sealed::sealed]
 impl WriteValue for &str {
     fn hint(&self) -> TypeHint {
         TypeHint::StringSlice
@@ -116,6 +122,7 @@ impl WriteValue for &str {
     }
 }
 
+#[sealed::sealed]
 impl<T: WriteValue> WriteValue for &[T] {
     fn hint(&self) -> TypeHint {
         TypeHint::List
@@ -137,6 +144,7 @@ impl<T: WriteValue> WriteValue for &[T] {
     }
 }
 
+#[sealed::sealed]
 impl<T: WriteValue, const N: usize> WriteValue for [T; N] {
     fn hint(&self) -> TypeHint {
         TypeHint::List
@@ -147,6 +155,7 @@ impl<T: WriteValue, const N: usize> WriteValue for [T; N] {
     }
 }
 
+#[sealed::sealed]
 impl WriteValue for &[&dyn WriteValue] {
     fn hint(&self) -> TypeHint {
         TypeHint::DynList
@@ -162,6 +171,7 @@ impl WriteValue for &[&dyn WriteValue] {
     }
 }
 
+#[sealed::sealed]
 impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
     fn hint(&self) -> TypeHint {
         TypeHint::DynList
@@ -173,6 +183,7 @@ impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
 }
 
 #[cfg(feature = "alloc")]
+#[sealed::sealed]
 impl<T: WriteValue> WriteValue for alloc::vec::Vec<T> {
     fn hint(&self) -> TypeHint {
         TypeHint::List
@@ -184,6 +195,7 @@ impl<T: WriteValue> WriteValue for alloc::vec::Vec<T> {
 }
 
 #[cfg(feature = "alloc")]
+#[sealed::sealed]
 impl WriteValue for alloc::vec::Vec<&dyn WriteValue> {
     fn hint(&self) -> TypeHint {
         TypeHint::DynList
