@@ -241,6 +241,7 @@ fn decode_value(
         TypeHint::F64 => Ok((src.len() >= std::mem::size_of::<f64>()).then(|| Value::F64(src.get_f64()))),
         TypeHint::Usize => todo!(),
         TypeHint::Isize => todo!(),
+        TypeHint::Char => todo!(),
         TypeHint::StringSlice => {
             let length = match value_context.length {
                 Some(length) => length,

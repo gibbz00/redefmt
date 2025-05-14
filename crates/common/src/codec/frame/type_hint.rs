@@ -19,31 +19,33 @@ pub enum TypeHint {
     F32 = 33,
     F64 = 34,
 
-    // ** Collections ** 2XX
-
-    // length hint
-    StringSlice = 100,
+    // ** Collections ** 1XX
 
     // length + type hint for each value
     // (effectively a dyn slice)
-    Tuple = 101,
+    Tuple = 100,
+
+    // length hint (effectively a string slice)
+    Char = 101,
+    // length hint
+    StringSlice = 102,
 
     // List and DynList reused between array, vec and slice
 
     // length + leading type hint if length > 0
-    List = 102,
+    List = 103,
     // length + type hint for each element
-    DynList = 103,
+    DynList = 104,
 
     // length + leading type hint
     // (no DynSet since Hash is not dyn compatible)
-    Set = 104,
+    Set = 105,
 
     // length + two leading type hints
-    Map = 106,
+    Map = 107,
     // length + leading type hint + type hint for each element
     // (no need for DynDynMap since Hash is not dyn compatible)
-    DynMap = 107,
+    DynMap = 108,
 
     // * Write Content ID * 2XX
     //
