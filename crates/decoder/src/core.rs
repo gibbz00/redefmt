@@ -73,11 +73,9 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
         let header = match self.header {
             Some(header) => header,
             None => {
-                if src.is_empty() {
+                let Ok(header_byte) = src.try_get_u8() else {
                     return Ok(None);
-                }
-
-                let header_byte = src.get_u8();
+                };
 
                 let header = Header::from_bits(header_byte).ok_or(RedefmtDecoderError::UnknownHeader(header_byte))?;
 
@@ -90,11 +88,11 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
         // stamp
         {
             if header.contains(Header::STAMP) && self.stamp.is_none() {
-                if src.len() < std::mem::size_of::<u64>() {
+                let Ok(stamp) = src.try_get_u64().map(Stamp::new) else {
                     return Ok(None);
-                }
+                };
 
-                self.stamp = Some(Stamp::new(src.get_u64()));
+                self.stamp = Some(stamp);
             }
         }
 
@@ -104,11 +102,9 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
                 self.crate_cache.get(crate_id).expect("crate not saved")
             }
             None => {
-                if src.len() < std::mem::size_of::<CrateId>() {
+                let Ok(crate_id) = src.try_get_u16().map(CrateId::new) else {
                     return Ok(None);
-                }
-
-                let crate_id = CrateId::new(src.get_u16());
+                };
 
                 self.print_crate_id = Some(crate_id);
 
@@ -121,11 +117,9 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
             // IMPROVEMENT: remove clone
             Some(info) => info.clone(),
             None => {
-                if src.len() < std::mem::size_of::<PrintStatementId>() {
+                let Ok(print_statement_id) = src.try_get_u16().map(PrintStatementId::new) else {
                     return Ok(None);
-                }
-
-                let print_statement_id = PrintStatementId::new(src.get_u16());
+                };
 
                 let print_statement = self
                     .print_statement_cache
@@ -163,12 +157,10 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
                     self.decoded_segments.push(DecodedSegment::Str(cow.to_string()));
                 }
                 Segment::Arg(format_options) => {
-                    if src.len() < std::mem::size_of::<TypeHint>() {
+                    let Ok(type_hint_repr) = src.try_get_u8() else {
                         self.print_statement_segments.push(Segment::Arg(format_options));
                         return Ok(None);
-                    }
-
-                    let type_hint_repr = src.get_u8();
+                    };
 
                     let type_hint = TypeHint::from_repr(type_hint_repr)
                         .ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
@@ -213,11 +205,9 @@ fn decode_value(
 ) -> Result<Option<Value>, RedefmtDecoderError> {
     match type_hint {
         TypeHint::Boolean => {
-            if src.len() < std::mem::size_of::<bool>() {
+            let Ok(bool_byte) = src.try_get_u8() else {
                 return Ok(None);
-            }
-
-            let bool_byte = src.get_u8();
+            };
 
             let boolean = match bool_byte {
                 val if val == true as u8 => true,
@@ -229,17 +219,17 @@ fn decode_value(
 
             Ok(Some(Value::Boolean(boolean)))
         }
-        TypeHint::U8 => Ok((src.len() >= std::mem::size_of::<u8>()).then(|| Value::U8(src.get_u8()))),
-        TypeHint::U16 => Ok((src.len() >= std::mem::size_of::<u16>()).then(|| Value::U16(src.get_u16()))),
-        TypeHint::U32 => Ok((src.len() >= std::mem::size_of::<u32>()).then(|| Value::U32(src.get_u32()))),
-        TypeHint::U64 => Ok((src.len() >= std::mem::size_of::<u64>()).then(|| Value::U64(src.get_u64()))),
-        TypeHint::U128 => Ok((src.len() >= std::mem::size_of::<u128>()).then(|| Value::U128(src.get_u128()))),
-        TypeHint::I8 => Ok((src.len() >= std::mem::size_of::<i8>()).then(|| Value::I8(src.get_i8()))),
-        TypeHint::I16 => Ok((src.len() >= std::mem::size_of::<i16>()).then(|| Value::I16(src.get_i16()))),
-        TypeHint::I32 => Ok((src.len() >= std::mem::size_of::<i32>()).then(|| Value::I32(src.get_i32()))),
-        TypeHint::I64 => Ok((src.len() >= std::mem::size_of::<i64>()).then(|| Value::I64(src.get_i64()))),
-        TypeHint::F32 => Ok((src.len() >= std::mem::size_of::<f32>()).then(|| Value::F32(src.get_f32()))),
-        TypeHint::F64 => Ok((src.len() >= std::mem::size_of::<f64>()).then(|| Value::F64(src.get_f64()))),
+        TypeHint::U8 => Ok(src.try_get_u8().ok().map(Value::U8)),
+        TypeHint::U16 => Ok(src.try_get_u16().ok().map(Value::U16)),
+        TypeHint::U32 => Ok(src.try_get_u32().ok().map(Value::U32)),
+        TypeHint::U64 => Ok(src.try_get_u64().ok().map(Value::U64)),
+        TypeHint::U128 => Ok(src.try_get_u128().ok().map(Value::U128)),
+        TypeHint::I8 => Ok(src.try_get_i8().ok().map(Value::I8)),
+        TypeHint::I16 => Ok(src.try_get_i16().ok().map(Value::I16)),
+        TypeHint::I32 => Ok(src.try_get_i32().ok().map(Value::I32)),
+        TypeHint::I64 => Ok(src.try_get_i64().ok().map(Value::I64)),
+        TypeHint::F32 => Ok(src.try_get_f32().ok().map(Value::F32)),
+        TypeHint::F64 => Ok(src.try_get_f64().ok().map(Value::F64)),
         TypeHint::Usize => get_pointer_width_num(src, pointer_width)
             .map(|num| Ok(Value::Usize(num)))
             .transpose(),
@@ -257,11 +247,9 @@ fn decode_value(
             Ok(Some(Value::Isize(num)))
         }
         TypeHint::Char => {
-            if src.len() < std::mem::size_of::<u8>() {
+            let Ok(char_length) = src.try_get_u8() else {
                 return Ok(None);
-            }
-
-            let char_length = src.get_u8();
+            };
 
             if src.len() < char_length as usize {
                 return Ok(None);
