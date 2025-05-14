@@ -56,7 +56,7 @@ impl GlobalDispatcher {
 
     // TODO: document how this function is locking to ensure that statement writes don't get
     // intertwined, and how write no ops is done if not set
-    pub(crate) fn dispatcher() -> GlobalDispatcherHandle {
+    pub(crate) fn global_dispatcher() -> GlobalDispatcherHandle {
         match GLOBAL_DISPATCHER_STATE.load(Ordering::Acquire) == INITIALIZED {
             true => {
                 let restore_state = unsafe { critical_section::acquire() };
@@ -83,7 +83,7 @@ pub struct GlobalDispatcherHandleInner {
 }
 
 impl GlobalDispatcherHandle {
-    pub fn write(&mut self, bytes: &[u8]) {
+    pub fn get(&mut self, f: impl FnOnce(&mut dyn Dispatcher)) {
         let Some(handle) = &self.inner else {
             return;
         };
@@ -99,13 +99,13 @@ impl GlobalDispatcherHandle {
 
         match dispatcher_ref {
             GlobalDispatcherKind::Static(dispatcher) => {
-                dispatcher.write(bytes);
+                f(*dispatcher);
             }
             #[cfg(feature = "alloc")]
             GlobalDispatcherKind::Boxed(dispatcher_mutex) => {
                 // - called within a critical section for the boxed variant
                 let mut dispatcher_handle = dispatcher_mutex.borrow(handle.cs_token).borrow_mut();
-                dispatcher_handle.write(bytes);
+                f(dispatcher_handle.as_mut());
             }
         }
     }
@@ -135,7 +135,7 @@ mod tests {
 
         shared_dispatcher.assert_bytes(&[]);
 
-        GlobalDispatcher::dispatcher().write(&bytes);
+        GlobalDispatcher::global_dispatcher().get(|dispatcher| dispatcher.write(&bytes));
 
         shared_dispatcher.assert_bytes(&bytes);
 
