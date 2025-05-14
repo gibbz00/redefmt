@@ -25,7 +25,7 @@ pub enum TypeHint {
     // (effectively a dyn slice)
     Tuple = 100,
 
-    // length hint (effectively a string slice)
+    // length hint
     Char = 101,
     // length hint
     StringSlice = 102,

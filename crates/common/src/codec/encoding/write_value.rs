@@ -70,6 +70,20 @@ impl WriteValue for bool {
     }
 }
 
+impl WriteValue for char {
+    fn hint(&self) -> TypeHint {
+        TypeHint::Char
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        let mut byte_buf = [0; 4];
+        let char_str = self.encode_utf8(&mut byte_buf);
+
+        dispatcher.write(&[char_str.len() as u8]);
+        dispatcher.write(char_str.as_bytes());
+    }
+}
+
 impl WriteValue for &str {
     fn hint(&self) -> TypeHint {
         TypeHint::StringSlice
@@ -222,6 +236,33 @@ mod tests {
             expected_bytes.put_u8(boolean as u8);
 
             assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {boolean}")
+        }
+    }
+
+    #[test]
+    fn char() {
+        assert_char('x', 1);
+        assert_char('ß', 2);
+        assert_char('🦀', 4);
+
+        fn assert_char(char: char, expected_length: u8) {
+            let mut dispatcher = SimpleTestDispatcher::default();
+            char.write_value(&mut dispatcher);
+
+            let mut expected_bytes = alloc::vec![TypeHint::Char as u8, expected_length];
+
+            {
+                let mut str_buf: [u8; 4] = [0; 4];
+                let str: &str = char.encode_utf8(&mut str_buf);
+                assert_eq!(expected_length, str.len() as u8);
+
+                expected_bytes.extend_from_slice(str.as_bytes());
+            }
+
+            let expected_bytes_length = 2 + expected_length;
+            assert_eq!(expected_bytes_length, dispatcher.bytes.len() as u8);
+
+            assert_eq!(expected_bytes, dispatcher.bytes)
         }
     }
 
