@@ -28,6 +28,27 @@ fn write_type_hint(type_hint: TypeHint, dispatcher: &mut dyn Dispatcher) {
     dispatcher.write(&(type_hint as u8).to_be_bytes());
 }
 
+impl WriteValue for (CrateId, WriteStatementId) {
+    fn hint(&self) -> TypeHint {
+        TypeHint::WriteId
+    }
+
+    fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
+        let (crate_id, statement_id) = self;
+        crate_id.as_ref().write_raw(dispatcher);
+        statement_id.as_ref().write_raw(dispatcher);
+    }
+}
+
+// NOTE:
+// Increasing this from 7 to 10 increases crate build time by almost three fold.
+// From ~2.4s to ~7.1s on the authors computer. Codegen duration remains the
+// same at about 0.1s. Not pulling in this proc macro at all removes about 0.2s
+// from cold compile times. Simply moving this to a build script is therefore a
+// slightly premature optimization given that it is generated code itself which
+// takes the longest to compile.
+redefmt_internal_macros::impl_tuple_write_value!(7);
+
 macro_rules! num_impl {
     ($(($type:ty, $hint:expr),)*) => {
         $(
@@ -173,8 +194,6 @@ impl WriteValue for alloc::vec::Vec<&dyn WriteValue> {
     }
 }
 
-redefmt_internal_macros::impl_tuple_write_value!(7);
-
 #[cfg(test)]
 mod tests {
     use alloc::{boxed::Box, vec::Vec};
@@ -189,6 +208,21 @@ mod tests {
     //
     // True tests that the encoded bytes are indeed correct is instead done in
     // the decoder tests.
+
+    #[test]
+    fn write_value() {
+        let crate_id = CrateId::new(1);
+        let statement_id = WriteStatementId::new(2);
+
+        let mut dispatcher = SimpleTestDispatcher::default();
+        (crate_id, statement_id).write_value(&mut dispatcher);
+
+        let mut expected_bytes = alloc::vec![TypeHint::WriteId as u8];
+        expected_bytes.extend_from_slice(&crate_id.as_ref().to_be_bytes());
+        expected_bytes.extend_from_slice(&statement_id.as_ref().to_be_bytes());
+
+        assert_eq!(expected_bytes.as_slice(), dispatcher.bytes,);
+    }
 
     #[test]
     fn num() {
