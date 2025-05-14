@@ -279,9 +279,10 @@ fn decode_value(
         TypeHint::DynList => todo!(),
         TypeHint::WriteId => todo!(),
         TypeHint::Tuple => todo!(),
-        TypeHint::Set => todo!(),
-        TypeHint::Map => todo!(),
-        TypeHint::DynMap => todo!(),
+        // TODO:
+        // TypeHint::Set => todo!(),
+        // TypeHint::Map => todo!(),
+        // TypeHint::DynMap => todo!(),
     }
 }
 
