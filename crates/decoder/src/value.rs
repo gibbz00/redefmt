@@ -17,6 +17,7 @@ pub enum Value {
     F64(f64),
 
     // Collections
+    Char(char),
     String(String),
     Slice(Vec<Value>),
     Tuple(Vec<Value>),

@@ -1,5 +1,6 @@
 use std::string::FromUtf8Error;
 
+use encode_unicode::error::Utf8Error;
 use redefmt_common::{
     codec::frame::TypeHint,
     identifiers::{CrateId, PrintStatementId},
@@ -28,4 +29,8 @@ pub enum RedefmtDecoderError {
     LengthOverflow(u64),
     #[error("invalid UTF-8 bytes received for string type hint")]
     InvalidStringBytes(#[from] FromUtf8Error),
+    #[error("invalid character byte length received, max should be 4")]
+    InvalidCharLength(u8),
+    #[error("invalid UTF-8 character bytes")]
+    InvalidUtf8Char(#[from] Utf8Error),
 }
