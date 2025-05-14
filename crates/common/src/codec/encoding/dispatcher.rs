@@ -12,6 +12,12 @@ mod test_dispatcher {
 
     use crate::*;
 
+    pub struct NoopTestDispatcher;
+
+    impl Dispatcher for NoopTestDispatcher {
+        fn write(&mut self, _bytes: &[u8]) {}
+    }
+
     #[derive(Default)]
     pub struct SimpleTestDispatcher {
         pub bytes: BytesMut,
@@ -52,4 +58,4 @@ mod test_dispatcher {
     }
 }
 #[cfg(feature = "testing")]
-pub use test_dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};
+pub use test_dispatcher::{NoopTestDispatcher, SharedTestDispatcher, SimpleTestDispatcher};

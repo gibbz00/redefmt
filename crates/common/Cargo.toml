@@ -20,6 +20,7 @@ testing = ["alloc", "dep:bytes", "dep:critical-section"]
 [dependencies]
 # Internal
 redefmt-args.workspace = true
+redefmt-internal-macros.workspace = true
 
 # External
 bitflags = "2.9.0"
