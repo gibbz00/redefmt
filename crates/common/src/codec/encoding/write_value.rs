@@ -159,6 +159,8 @@ impl WriteValue for alloc::vec::Vec<&dyn WriteValue> {
     }
 }
 
+redefmt_internal_macros::impl_tuple_write_value!(7);
+
 #[cfg(test)]
 mod tests {
     use alloc::{boxed::Box, vec::Vec};
@@ -171,8 +173,8 @@ mod tests {
     // bytes have an "intended value", but act more assertions that different
     // type compinations still compile for situations where `format_args!` would.
     //
-    // True tests that the encoded bytes are correct is instead done in the
-    // decoder tests.
+    // True tests that the encoded bytes are indeed correct is instead done in
+    // the decoder tests.
 
     #[test]
     fn num() {
@@ -271,6 +273,36 @@ mod tests {
         value.write_value(&mut unboxed_dispatcher);
 
         assert_eq!(unboxed_dispatcher.bytes, boxed_dispatcher.bytes)
+    }
+
+    #[test]
+    fn tuple() {
+        let mut dispatcher = SimpleTestDispatcher::default();
+        ("a", 1).write_value(&mut dispatcher);
+
+        let mut expected_dispatcher = SimpleTestDispatcher::default();
+        expected_dispatcher.bytes.extend_from_slice(&[TypeHint::Tuple as u8, 2]);
+        "a".write_value(&mut expected_dispatcher);
+        1.write_value(&mut expected_dispatcher);
+
+        assert_eq!(expected_dispatcher.bytes, dispatcher.bytes,)
+    }
+
+    #[test]
+    fn compiles_tuple_permutations() {
+        let mut dispatcher = NoopTestDispatcher;
+
+        // All permutations for length = 2
+        ("str", 10).write_value(&mut dispatcher);
+        (&"str" as &dyn WriteValue, 10).write_value(&mut dispatcher);
+        ("str", &10 as &dyn WriteValue).write_value(&mut dispatcher);
+        (&"str" as &dyn WriteValue, &10 as &dyn WriteValue).write_value(&mut dispatcher);
+
+        // Some permutation for length > 2
+        (&"str" as &dyn WriteValue, &10 as &dyn WriteValue, 5, false).write_value(&mut dispatcher);
+
+        // Write value for max length = 7
+        (0, 1, 2, 3, 4, 5, 6).write_value(&mut dispatcher);
     }
 
     #[test]
