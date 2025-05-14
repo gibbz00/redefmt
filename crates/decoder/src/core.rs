@@ -239,8 +239,32 @@ fn decode_value(
         TypeHint::I64 => Ok((src.len() >= std::mem::size_of::<i64>()).then(|| Value::I64(src.get_i64()))),
         TypeHint::F32 => Ok((src.len() >= std::mem::size_of::<f32>()).then(|| Value::F32(src.get_f32()))),
         TypeHint::F64 => Ok((src.len() >= std::mem::size_of::<f64>()).then(|| Value::F64(src.get_f64()))),
-        TypeHint::Usize => todo!(),
-        TypeHint::Isize => todo!(),
+        TypeHint::Usize => {
+            if src.len() < pointer_width.size() {
+                return Ok(None);
+            }
+
+            let num = match pointer_width {
+                PointerWidth::U16 => src.get_u16() as u64,
+                PointerWidth::U32 => src.get_u32() as u64,
+                PointerWidth::U64 => src.get_u64(),
+            };
+
+            Ok(Some(Value::Usize(num)))
+        }
+        TypeHint::Isize => {
+            if src.len() < pointer_width.size() {
+                return Ok(None);
+            }
+
+            let num = match pointer_width {
+                PointerWidth::U16 => src.get_i16() as i64,
+                PointerWidth::U32 => src.get_i32() as i64,
+                PointerWidth::U64 => src.get_i64(),
+            };
+
+            Ok(Some(Value::Isize(num)))
+        }
         TypeHint::Char => todo!(),
         TypeHint::StringSlice => {
             let length = match value_context.length {
@@ -277,8 +301,8 @@ fn decode_value(
         }
         TypeHint::List => todo!(),
         TypeHint::DynList => todo!(),
-        TypeHint::WriteId => todo!(),
         TypeHint::Tuple => todo!(),
+        TypeHint::WriteId => todo!(),
         // TODO:
         // TypeHint::Set => todo!(),
         // TypeHint::Map => todo!(),
@@ -344,12 +368,14 @@ mod tests {
         }
 
         #[test]
-        fn decode_int() {
+        fn num() {
+            test_decode_int::<usize>(TypeHint::Usize, |inner| Value::Usize(inner as u64));
             test_decode_int::<u8>(TypeHint::U8, Value::U8);
             test_decode_int::<u16>(TypeHint::U16, Value::U16);
             test_decode_int::<u32>(TypeHint::U32, Value::U32);
             test_decode_int::<u64>(TypeHint::U64, Value::U64);
             test_decode_int::<u128>(TypeHint::U128, Value::U128);
+            test_decode_int::<isize>(TypeHint::Isize, |inner| Value::Isize(inner as i64));
             test_decode_int::<i8>(TypeHint::I8, Value::I8);
             test_decode_int::<i16>(TypeHint::I16, Value::I16);
             test_decode_int::<i32>(TypeHint::I32, Value::I32);
