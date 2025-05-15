@@ -22,9 +22,10 @@ pub enum Value {
     // Reused for array, vec and slice containing both single and dyn values.
     List(Vec<Value>),
     Tuple(Vec<Value>),
-    Set(Vec<Value>),
-    Map(Vec<(Value, Value)>),
     Type(Type),
+    // TODO:
+    // Set(Vec<Value>),
+    // Map(Vec<(Value, Value)>),
 }
 
 #[derive(Debug, PartialEq)]

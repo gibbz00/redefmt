@@ -5,7 +5,7 @@ use redefmt_common::{
     codec::frame::TypeHint,
     identifiers::{CrateId, PrintStatementId},
 };
-use redefmt_db::{DbClientError, crate_table::CrateName, state_dir::StateDirError};
+use redefmt_db::{DbClientError, StateDirError, crate_table::CrateName};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RedefmtDecoderError {

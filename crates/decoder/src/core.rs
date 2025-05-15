@@ -4,11 +4,10 @@ use encode_unicode::CharExt;
 use redefmt_args::FormatOptions;
 use redefmt_common::{
     codec::frame::{Header, PointerWidth, Stamp, TypeHint},
-    identifiers::{CrateId, PrintStatementId},
+    identifiers::{CrateId, PrintStatementId, WriteStatementId},
 };
 use redefmt_db::{
-    DbClient, MainDb,
-    state_dir::StateDir,
+    DbClient, MainDb, StateDir,
     statement_table::{Segment, print::PrintInfo},
 };
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
@@ -306,11 +305,17 @@ fn decode_value(
             Ok(Some(Value::List(values)))
         }
         TypeHint::List => decode_list(src, pointer_width, value_context).map(|maybe_list| maybe_list.map(Value::List)),
-        TypeHint::WriteId => todo!(),
-        // TODO:
-        // TypeHint::Set => todo!(),
-        // TypeHint::Map => todo!(),
-        // TypeHint::DynMap => todo!(),
+        TypeHint::WriteId => {
+            // decode write id (crate_id + write_statement_id)
+            if src.len() < std::mem::size_of::<CrateId>() + std::mem::size_of::<WriteStatementId>() {
+                return Ok(None);
+            }
+            todo!();
+        } /* TODO:
+           * TypeHint::Set => todo!(),
+           * TypeHint::Map => todo!(),
+           * TypeHint::DynMap => todo!(),
+           */
     }
 }
 
@@ -379,6 +384,18 @@ fn get_or_store_type_hint(
     *current_type_hint = Some(type_hint);
 
     Ok(Some(type_hint))
+}
+
+fn get_or_store_crate_id(src: &mut BytesMut, value_context: &mut ValueContext) -> Option<CrateId> {
+    if let Some(crate_id) = value_context.crate_id {
+        return Some(crate_id);
+    }
+
+    let crate_id = src.try_get_u16().ok().map(CrateId::new)?;
+
+    value_context.crate_id = Some(crate_id);
+
+    Some(crate_id)
 }
 
 fn decode_dyn_list(
