@@ -5,8 +5,8 @@
 
 // foundational client modules
 
-pub mod state_dir;
-pub(crate) use state_dir::{StateDir, StateDirError};
+mod state_dir;
+pub use state_dir::{StateDir, StateDirError};
 
 mod migrations;
 pub(crate) use migrations::{CRATE_MIGRATIONS, MAIN_MIGRATIONS};
