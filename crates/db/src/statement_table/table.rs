@@ -21,17 +21,6 @@ mod private {
     impl Sealed for PrintStatement<'_> {}
 }
 
-macro_rules! statement_table {
-    ($id:ident, $statement:ty, $table_name:literal) => {
-        impl $crate::StatementTable for $statement {
-            type Id = $id;
-
-            const NAME: &'static str = $table_name;
-        }
-    };
-}
-pub(crate) use statement_table;
-
 impl<T: StatementTable> Table<T> for DbClient<CrateDb> {
     fn find_by_id(&self, id: <T as Record>::Id) -> Result<Option<T>, DbClientError> {
         let mut prepared_statement = self
