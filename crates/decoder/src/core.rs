@@ -305,7 +305,7 @@ fn decode_value(
 
             Ok(Some(Value::List(values)))
         }
-        TypeHint::List => todo!(),
+        TypeHint::List => decode_list(src, pointer_width, value_context).map(|maybe_list| maybe_list.map(Value::List)),
         TypeHint::WriteId => todo!(),
         // TODO:
         // TypeHint::Set => todo!(),
@@ -362,7 +362,7 @@ fn get_or_store_u8_length(src: &mut BytesMut, value_context: &mut ValueContext) 
     Some(length)
 }
 
-fn get_or_read_type_hint(
+fn get_or_store_type_hint(
     src: &mut BytesMut,
     current_type_hint: &mut Option<TypeHint>,
 ) -> Result<Option<TypeHint>, RedefmtDecoderError> {
@@ -390,18 +390,21 @@ fn decode_dyn_list(
     let value_buffer = value_context.buffer.get_or_init(length);
 
     while value_buffer.len() < length {
-        let Some(inner_type_hint) = get_or_read_type_hint(src, &mut value_context.inner_type_hint)? else {
+        let Some(inner_type_hint) = get_or_store_type_hint(src, &mut value_context.inner_type_hint)? else {
             return Ok(None);
         };
 
         let inner_context = value_context.inner_value_context.get_or_init();
 
-        if let Some(value) = decode_value(inner_type_hint, src, pointer_width, inner_context)? {
-            value_buffer.push(value);
+        match decode_value(inner_type_hint, src, pointer_width, inner_context)? {
+            Some(value) => {
+                value_buffer.push(value);
 
-            // Clear inner context
-            value_context.inner_value_context = Default::default();
-            value_context.inner_type_hint = Default::default();
+                // Clear inner context
+                value_context.inner_value_context = Default::default();
+                value_context.inner_type_hint = Default::default();
+            }
+            None => return Ok(None),
         }
     }
 
@@ -410,6 +413,37 @@ fn decode_dyn_list(
     Ok(Some(values))
 }
 
+fn decode_list(
+    src: &mut BytesMut,
+    pointer_width: PointerWidth,
+    value_context: &mut ValueContext,
+) -> Result<Option<Vec<Value>>, RedefmtDecoderError> {
+    let Some(length) = get_or_store_usize_length(src, pointer_width, value_context)? else {
+        return Ok(None);
+    };
+
+    let Some(list_type_hint) = get_or_store_type_hint(src, &mut value_context.inner_type_hint)? else {
+        return Ok(None);
+    };
+
+    let value_buffer = value_context.buffer.get_or_init(length);
+
+    while value_buffer.len() < length {
+        let inner_context = value_context.inner_value_context.get_or_init();
+
+        match decode_value(list_type_hint, src, pointer_width, inner_context)? {
+            Some(value) => {
+                value_buffer.push(value);
+                value_context.inner_value_context = Default::default();
+            }
+            None => return Ok(None),
+        }
+    }
+
+    let values = value_context.buffer.clear();
+
+    Ok(Some(values))
+}
 #[cfg(test)]
 mod mock {
     use tempfile::TempDir;
@@ -553,6 +587,16 @@ mod tests {
         fn dyn_list() {
             assert_value(TypeHint::DynList, [&10u8 as &dyn WriteValue, &"x"], |_| {
                 Value::List(vec![Value::U8(10), Value::String("x".to_string())])
+            });
+        }
+
+        #[test]
+        fn list() {
+            assert_value(TypeHint::List, [[0u8, 1], [2, 3]], |_| {
+                Value::List(vec![
+                    Value::List(vec![Value::U8(0), Value::U8(1)]),
+                    Value::List(vec![Value::U8(2), Value::U8(3)]),
+                ])
             });
         }
     }
