@@ -1,48 +1,41 @@
-use std::{
-    collections::{HashMap, hash_map::Entry},
-    hash::Hash,
-};
+use std::hash::Hash;
 
+use elsa::sync::FrozenMap;
 use redefmt_db::{Table, statement_table::StatementTable};
 
 use crate::*;
 
-type InnerMap<T> = HashMap<<T as StatementTable>::Id, T>;
+type InnerMap<T> = FrozenMap<<T as StatementTable>::Id, Box<T>>;
 
 pub struct StatementCache<T: StatementTable> {
     map: InnerMap<T>,
 }
 
-// Deriving Default sets default bounds on T. Pulling in impl_tools::auto_impl
-// is overkill for only one derive.
-impl<T: StatementTable> Default for StatementCache<T> {
-    fn default() -> Self {
+impl<T: StatementTable> StatementCache<T> {
+    // TEMP:
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
         Self { map: Default::default() }
     }
-}
 
-impl<T: StatementTable> StatementCache<T> {
-    pub fn fetch_and_save(
-        &mut self,
-        id: T::Id,
-        (crate_db, crate_record): &CrateValue,
-    ) -> Result<&T, RedefmtDecoderError>
+    pub fn get_or_insert(&self, id: T::Id, (crate_db, crate_record): &CrateValue) -> Result<&T, RedefmtDecoderError>
     where
         T::Id: Copy + AsRef<u16> + Hash + Eq,
     {
-        if let Entry::Vacant(entry) = self.map.entry(id) {
-            let Some(statement) = crate_db.find_by_id(id)? else {
-                return Err(RedefmtDecoderError::UnknownStatement(
-                    *id.as_ref(),
-                    T::NAME,
-                    crate_record.name().clone(),
-                ));
-            };
+        let statement = match self.map.get(&id) {
+            Some(statement) => statement,
+            None => {
+                let Some(statement) = crate_db.find_by_id(id)? else {
+                    return Err(RedefmtDecoderError::UnknownStatement(
+                        *id.as_ref(),
+                        T::NAME,
+                        crate_record.name().clone(),
+                    ));
+                };
 
-            entry.insert(statement);
-        }
-
-        let statement = self.map.get(&id).expect("statement not cached");
+                self.map.insert(id, Box::new(statement))
+            }
+        };
 
         Ok(statement)
     }
