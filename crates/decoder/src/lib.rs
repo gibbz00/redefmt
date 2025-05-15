@@ -21,6 +21,9 @@ pub(crate) use crate_cache::{CrateCache, CrateValue};
 mod statement_cache;
 pub(crate) use statement_cache::StatementCache;
 
+mod segment_context;
+pub(crate) use segment_context::{SegmentContext, SegmentValueContext};
+
 mod value_context;
 pub(crate) use value_context::{ListValueContext, ValueContext};
 
