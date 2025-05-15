@@ -17,4 +17,18 @@ impl DecoderUtils {
 
         Some(num)
     }
+
+    pub fn get_target_isize(src: &mut BytesMut, pointer_width: PointerWidth) -> Option<i64> {
+        if src.len() < pointer_width.size() {
+            return None;
+        }
+
+        let num = match pointer_width {
+            PointerWidth::U16 => src.get_i16() as i64,
+            PointerWidth::U32 => src.get_i32() as i64,
+            PointerWidth::U64 => src.get_i64(),
+        };
+
+        Some(num)
+    }
 }

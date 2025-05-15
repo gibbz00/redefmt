@@ -202,7 +202,7 @@ fn decode_value(
     pointer_width: PointerWidth,
     value_context: &mut ValueContext,
 ) -> Result<Option<Value>, RedefmtDecoderError> {
-    match type_hint {
+    let maybe_value = match type_hint {
         TypeHint::Boolean => {
             let Ok(bool_byte) = src.try_get_u8() else {
                 return Ok(None);
@@ -216,35 +216,21 @@ fn decode_value(
                 }
             };
 
-            Ok(Some(Value::Boolean(boolean)))
+            Some(Value::Boolean(boolean))
         }
-        TypeHint::U8 => Ok(src.try_get_u8().ok().map(Value::U8)),
-        TypeHint::U16 => Ok(src.try_get_u16().ok().map(Value::U16)),
-        TypeHint::U32 => Ok(src.try_get_u32().ok().map(Value::U32)),
-        TypeHint::U64 => Ok(src.try_get_u64().ok().map(Value::U64)),
-        TypeHint::U128 => Ok(src.try_get_u128().ok().map(Value::U128)),
-        TypeHint::I8 => Ok(src.try_get_i8().ok().map(Value::I8)),
-        TypeHint::I16 => Ok(src.try_get_i16().ok().map(Value::I16)),
-        TypeHint::I32 => Ok(src.try_get_i32().ok().map(Value::I32)),
-        TypeHint::I64 => Ok(src.try_get_i64().ok().map(Value::I64)),
-        TypeHint::F32 => Ok(src.try_get_f32().ok().map(Value::F32)),
-        TypeHint::F64 => Ok(src.try_get_f64().ok().map(Value::F64)),
-        TypeHint::Usize => DecoderUtils::get_target_usize(src, pointer_width)
-            .map(|num| Ok(Value::Usize(num)))
-            .transpose(),
-        TypeHint::Isize => {
-            if src.len() < pointer_width.size() {
-                return Ok(None);
-            }
-
-            let num = match pointer_width {
-                PointerWidth::U16 => src.get_i16() as i64,
-                PointerWidth::U32 => src.get_i32() as i64,
-                PointerWidth::U64 => src.get_i64(),
-            };
-
-            Ok(Some(Value::Isize(num)))
-        }
+        TypeHint::U8 => src.try_get_u8().ok().map(Value::U8),
+        TypeHint::U16 => src.try_get_u16().ok().map(Value::U16),
+        TypeHint::U32 => src.try_get_u32().ok().map(Value::U32),
+        TypeHint::U64 => src.try_get_u64().ok().map(Value::U64),
+        TypeHint::U128 => src.try_get_u128().ok().map(Value::U128),
+        TypeHint::I8 => src.try_get_i8().ok().map(Value::I8),
+        TypeHint::I16 => src.try_get_i16().ok().map(Value::I16),
+        TypeHint::I32 => src.try_get_i32().ok().map(Value::I32),
+        TypeHint::I64 => src.try_get_i64().ok().map(Value::I64),
+        TypeHint::F32 => src.try_get_f32().ok().map(Value::F32),
+        TypeHint::F64 => src.try_get_f64().ok().map(Value::F64),
+        TypeHint::Usize => DecoderUtils::get_target_usize(src, pointer_width).map(Value::Usize),
+        TypeHint::Isize => DecoderUtils::get_target_isize(src, pointer_width).map(Value::Isize),
         TypeHint::Char => {
             let Some(length) = value_context.get_or_store_u8_length(src) else {
                 return Ok(None);
@@ -264,7 +250,7 @@ fn decode_value(
 
             let char = char::from_utf8_array(utf8_bytes)?;
 
-            Ok(Some(Value::Char(char)))
+            Some(Value::Char(char))
         }
         TypeHint::StringSlice => {
             let Some(length) = value_context.get_or_store_usize_length(src, pointer_width)? else {
@@ -280,7 +266,7 @@ fn decode_value(
 
             let string = String::from_utf8(vec)?;
 
-            Ok(Some(Value::String(string)))
+            Some(Value::String(string))
         }
         TypeHint::Tuple => {
             let Some(length) = value_context.get_or_store_u8_length(src) else {
@@ -291,7 +277,7 @@ fn decode_value(
                 return Ok(None);
             };
 
-            Ok(Some(Value::Tuple(values)))
+            Some(Value::Tuple(values))
         }
         TypeHint::DynList => {
             let Some(length) = value_context.get_or_store_usize_length(src, pointer_width)? else {
@@ -302,9 +288,9 @@ fn decode_value(
                 return Ok(None);
             };
 
-            Ok(Some(Value::List(values)))
+            Some(Value::List(values))
         }
-        TypeHint::List => decode_list(src, pointer_width, value_context).map(|maybe_list| maybe_list.map(Value::List)),
+        TypeHint::List => decode_list(src, pointer_width, value_context)?.map(Value::List),
         TypeHint::WriteId => {
             // decode write id (crate_id + write_statement_id)
             if src.len() < std::mem::size_of::<CrateId>() + std::mem::size_of::<WriteStatementId>() {
@@ -314,9 +300,10 @@ fn decode_value(
         } /* TODO:
            * TypeHint::Set => todo!(),
            * TypeHint::Map => todo!(),
-           * TypeHint::DynMap => todo!(),
-           */
-    }
+           * TypeHint::DynMap => todo!(), */
+    };
+
+    Ok(maybe_value)
 }
 
 fn decode_dyn_list(
