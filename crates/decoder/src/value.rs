@@ -19,7 +19,8 @@ pub enum Value {
     // Collections
     Char(char),
     String(String),
-    Slice(Vec<Value>),
+    // Reused for array, vec and slice containing both single and dyn values.
+    List(Vec<Value>),
     Tuple(Vec<Value>),
     Set(Vec<Value>),
     Map(Vec<(Value, Value)>),
