@@ -2,7 +2,11 @@ use redefmt_common::identifiers::WriteStatementId;
 
 use crate::*;
 
-statement_table!(WriteStatementId, WriteStatement<'_>, "write_register");
+impl StatementTable for WriteStatement<'_> {
+    type Id = WriteStatementId;
+
+    const NAME: &'static str = "write_register";
+}
 
 // Created when implementing Format
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]

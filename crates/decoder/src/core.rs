@@ -8,7 +8,10 @@ use redefmt_common::{
 };
 use redefmt_db::{
     DbClient, MainDb, StateDir,
-    statement_table::{Segment, print::PrintInfo},
+    statement_table::{
+        Segment,
+        print::{PrintInfo, PrintStatement},
+    },
 };
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
@@ -18,7 +21,7 @@ pub struct RedefmtDecoder {
     state_dir: PathBuf,
     main_db: DbClient<MainDb>,
     crate_cache: CrateCache,
-    print_statement_cache: PrintStatementCache,
+    print_statement_cache: StatementCache<PrintStatement<'static>>,
 
     // Per frame state:
     /// stage 1:
@@ -203,6 +206,19 @@ fn decode_value(
     value_context: &mut ValueContext,
 ) -> Result<Option<Value>, RedefmtDecoderError> {
     let maybe_value = match type_hint {
+        TypeHint::U8 => src.try_get_u8().ok().map(Value::U8),
+        TypeHint::U16 => src.try_get_u16().ok().map(Value::U16),
+        TypeHint::U32 => src.try_get_u32().ok().map(Value::U32),
+        TypeHint::U64 => src.try_get_u64().ok().map(Value::U64),
+        TypeHint::U128 => src.try_get_u128().ok().map(Value::U128),
+        TypeHint::I8 => src.try_get_i8().ok().map(Value::I8),
+        TypeHint::I16 => src.try_get_i16().ok().map(Value::I16),
+        TypeHint::I32 => src.try_get_i32().ok().map(Value::I32),
+        TypeHint::I64 => src.try_get_i64().ok().map(Value::I64),
+        TypeHint::F32 => src.try_get_f32().ok().map(Value::F32),
+        TypeHint::F64 => src.try_get_f64().ok().map(Value::F64),
+        TypeHint::Usize => DecoderUtils::get_target_usize(src, pointer_width).map(Value::Usize),
+        TypeHint::Isize => DecoderUtils::get_target_isize(src, pointer_width).map(Value::Isize),
         TypeHint::Boolean => {
             let Ok(bool_byte) = src.try_get_u8() else {
                 return Ok(None);
@@ -218,19 +234,6 @@ fn decode_value(
 
             Some(Value::Boolean(boolean))
         }
-        TypeHint::U8 => src.try_get_u8().ok().map(Value::U8),
-        TypeHint::U16 => src.try_get_u16().ok().map(Value::U16),
-        TypeHint::U32 => src.try_get_u32().ok().map(Value::U32),
-        TypeHint::U64 => src.try_get_u64().ok().map(Value::U64),
-        TypeHint::U128 => src.try_get_u128().ok().map(Value::U128),
-        TypeHint::I8 => src.try_get_i8().ok().map(Value::I8),
-        TypeHint::I16 => src.try_get_i16().ok().map(Value::I16),
-        TypeHint::I32 => src.try_get_i32().ok().map(Value::I32),
-        TypeHint::I64 => src.try_get_i64().ok().map(Value::I64),
-        TypeHint::F32 => src.try_get_f32().ok().map(Value::F32),
-        TypeHint::F64 => src.try_get_f64().ok().map(Value::F64),
-        TypeHint::Usize => DecoderUtils::get_target_usize(src, pointer_width).map(Value::Usize),
-        TypeHint::Isize => DecoderUtils::get_target_isize(src, pointer_width).map(Value::Isize),
         TypeHint::Char => {
             let Some(length) = value_context.get_or_store_u8_length(src) else {
                 return Ok(None);
@@ -707,7 +710,7 @@ mod tests {
         bytes.put_u16(*print_statement_id.as_ref());
 
         let error = decoder.decode(&mut bytes).unwrap_err();
-        assert!(matches!(error, RedefmtDecoderError::UnknownPrintStatement(_, _)));
+        assert!(matches!(error, RedefmtDecoderError::UnknownStatement(_, _, _)));
     }
 
     #[test]
