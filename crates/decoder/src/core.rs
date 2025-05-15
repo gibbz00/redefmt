@@ -229,7 +229,7 @@ fn decode_value(
         TypeHint::I64 => Ok(src.try_get_i64().ok().map(Value::I64)),
         TypeHint::F32 => Ok(src.try_get_f32().ok().map(Value::F32)),
         TypeHint::F64 => Ok(src.try_get_f64().ok().map(Value::F64)),
-        TypeHint::Usize => get_pointer_width_num(src, pointer_width)
+        TypeHint::Usize => DecoderUtils::get_target_usize(src, pointer_width)
             .map(|num| Ok(Value::Usize(num)))
             .transpose(),
         TypeHint::Isize => {
@@ -246,7 +246,7 @@ fn decode_value(
             Ok(Some(Value::Isize(num)))
         }
         TypeHint::Char => {
-            let Some(length) = get_or_store_u8_length(src, value_context) else {
+            let Some(length) = value_context.get_or_store_u8_length(src) else {
                 return Ok(None);
             };
 
@@ -267,7 +267,7 @@ fn decode_value(
             Ok(Some(Value::Char(char)))
         }
         TypeHint::StringSlice => {
-            let Some(length) = get_or_store_usize_length(src, pointer_width, value_context)? else {
+            let Some(length) = value_context.get_or_store_usize_length(src, pointer_width)? else {
                 return Ok(None);
             };
 
@@ -283,7 +283,7 @@ fn decode_value(
             Ok(Some(Value::String(string)))
         }
         TypeHint::Tuple => {
-            let Some(length) = get_or_store_u8_length(src, value_context) else {
+            let Some(length) = value_context.get_or_store_u8_length(src) else {
                 return Ok(None);
             };
 
@@ -294,7 +294,7 @@ fn decode_value(
             Ok(Some(Value::Tuple(values)))
         }
         TypeHint::DynList => {
-            let Some(length) = get_or_store_usize_length(src, pointer_width, value_context)? else {
+            let Some(length) = value_context.get_or_store_usize_length(src, pointer_width)? else {
                 return Ok(None);
             };
 
@@ -319,113 +319,38 @@ fn decode_value(
     }
 }
 
-fn get_pointer_width_num(src: &mut BytesMut, pointer_width: PointerWidth) -> Option<u64> {
-    if src.len() < pointer_width.size() {
-        return None;
-    }
-
-    let num = match pointer_width {
-        PointerWidth::U16 => src.get_u16() as u64,
-        PointerWidth::U32 => src.get_u32() as u64,
-        PointerWidth::U64 => src.get_u64(),
-    };
-
-    Some(num)
-}
-
-fn get_or_store_usize_length(
-    src: &mut BytesMut,
-    pointer_width: PointerWidth,
-    value_context: &mut ValueContext,
-) -> Result<Option<usize>, RedefmtDecoderError> {
-    if let Some(length) = value_context.length {
-        return Ok(Some(length));
-    };
-
-    let Some(length) = get_pointer_width_num(src, pointer_width) else {
-        return Ok(None);
-    };
-
-    let length = usize::try_from(length).map_err(|_| RedefmtDecoderError::LengthOverflow(length))?;
-
-    value_context.length = Some(length);
-
-    Ok(Some(length))
-}
-
-fn get_or_store_u8_length(src: &mut BytesMut, value_context: &mut ValueContext) -> Option<usize> {
-    if let Some(length) = value_context.length {
-        return Some(length);
-    };
-
-    let Ok(length) = src.try_get_u8().map(Into::into) else {
-        return None;
-    };
-
-    value_context.length = Some(length);
-
-    Some(length)
-}
-
-fn get_or_store_type_hint(
-    src: &mut BytesMut,
-    current_type_hint: &mut Option<TypeHint>,
-) -> Result<Option<TypeHint>, RedefmtDecoderError> {
-    if let Some(type_hint) = current_type_hint {
-        return Ok(Some(*type_hint));
-    }
-
-    let Ok(type_hint_repr) = src.try_get_u8() else {
-        return Ok(None);
-    };
-
-    let type_hint = TypeHint::from_repr(type_hint_repr).ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
-
-    *current_type_hint = Some(type_hint);
-
-    Ok(Some(type_hint))
-}
-
-fn get_or_store_crate_id(src: &mut BytesMut, value_context: &mut ValueContext) -> Option<CrateId> {
-    if let Some(crate_id) = value_context.crate_id {
-        return Some(crate_id);
-    }
-
-    let crate_id = src.try_get_u16().ok().map(CrateId::new)?;
-
-    value_context.crate_id = Some(crate_id);
-
-    Some(crate_id)
-}
-
 fn decode_dyn_list(
     src: &mut BytesMut,
     pointer_width: PointerWidth,
     value_context: &mut ValueContext,
     length: usize,
 ) -> Result<Option<Vec<Value>>, RedefmtDecoderError> {
-    let value_buffer = value_context.buffer.get_or_init(length);
+    let list_context = value_context
+        .list_context
+        .get_or_insert_with(|| ListValueContext::new(length));
 
-    while value_buffer.len() < length {
-        let Some(inner_type_hint) = get_or_store_type_hint(src, &mut value_context.inner_type_hint)? else {
+    while list_context.buffer.len() < length {
+        let Some(element_type_hint) = list_context.get_or_insert_element_type_hint(src)? else {
             return Ok(None);
         };
 
-        let inner_context = value_context.inner_value_context.get_or_init();
+        let element_context = list_context.element_context.get_or_insert_default();
 
-        match decode_value(inner_type_hint, src, pointer_width, inner_context)? {
+        match decode_value(element_type_hint, src, pointer_width, element_context)? {
             Some(value) => {
-                value_buffer.push(value);
+                list_context.buffer.push(value);
 
-                // Clear inner context
-                value_context.inner_value_context = Default::default();
-                value_context.inner_type_hint = Default::default();
+                // Clear element context
+                list_context.element_type_hint = None;
+                list_context.element_context = None;
             }
             None => return Ok(None),
         }
     }
 
-    let values = value_context.buffer.clear();
+    let values = std::mem::take(&mut list_context.buffer);
+
+    // No need to clear value_context.list_value_context, decode value should be done here
 
     Ok(Some(values))
 }
@@ -435,32 +360,37 @@ fn decode_list(
     pointer_width: PointerWidth,
     value_context: &mut ValueContext,
 ) -> Result<Option<Vec<Value>>, RedefmtDecoderError> {
-    let Some(length) = get_or_store_usize_length(src, pointer_width, value_context)? else {
+    let Some(length) = value_context.get_or_store_usize_length(src, pointer_width)? else {
         return Ok(None);
     };
 
-    let Some(list_type_hint) = get_or_store_type_hint(src, &mut value_context.inner_type_hint)? else {
+    let list_context = value_context
+        .list_context
+        .get_or_insert_with(|| ListValueContext::new(length));
+
+    let Some(element_type_hint) = list_context.get_or_insert_element_type_hint(src)? else {
         return Ok(None);
     };
 
-    let value_buffer = value_context.buffer.get_or_init(length);
+    while list_context.buffer.len() < length {
+        let element_context = list_context.element_context.get_or_insert_default();
 
-    while value_buffer.len() < length {
-        let inner_context = value_context.inner_value_context.get_or_init();
-
-        match decode_value(list_type_hint, src, pointer_width, inner_context)? {
+        match decode_value(element_type_hint, src, pointer_width, element_context)? {
             Some(value) => {
-                value_buffer.push(value);
-                value_context.inner_value_context = Default::default();
+                list_context.buffer.push(value);
+                list_context.element_context = None;
             }
             None => return Ok(None),
         }
     }
 
-    let values = value_context.buffer.clear();
+    let values = std::mem::take(&mut list_context.buffer);
+
+    // No need to clear value_context.list_value_context, decode value should be done here
 
     Ok(Some(values))
 }
+
 #[cfg(test)]
 mod mock {
     use tempfile::TempDir;
