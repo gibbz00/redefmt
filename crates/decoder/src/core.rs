@@ -406,6 +406,24 @@ mod tests {
         }
 
         #[test]
+        fn char_invalid_utf8_error() {
+            let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
+            let mut bytes = BytesMut::new();
+            bytes.put_u8(invalid_utf8_bytes.len() as u8);
+            bytes.put_slice(&invalid_utf8_bytes);
+
+            let error = decode_value(
+                TypeHint::Char,
+                &mut bytes,
+                PointerWidth::of_target(),
+                &mut Default::default(),
+            )
+            .unwrap_err();
+
+            assert!(matches!(error, RedefmtDecoderError::InvalidUtf8Char(_)))
+        }
+
+        #[test]
         fn string() {
             assert_value(TypeHint::StringSlice, "abc", |str| Value::String(str.to_string()));
             assert_value(TypeHint::StringSlice, "🦀", |str| Value::String(str.to_string()));
