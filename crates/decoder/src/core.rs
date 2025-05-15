@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use encode_unicode::CharExt;
-use redefmt_args::FormatOptions;
 use redefmt_common::{
     codec::frame::{Header, PointerWidth, Stamp, TypeHint},
     identifiers::{CrateId, PrintStatementId, WriteStatementId},
@@ -24,6 +23,7 @@ pub struct RedefmtDecoder {
     print_statement_cache: StatementCache<PrintStatement<'static>>,
 
     // Per frame state:
+    decoded_segments: Vec<DecodedSegment>,
     /// stage 1:
     header: Option<Header>,
     /// stage 2:
@@ -32,13 +32,7 @@ pub struct RedefmtDecoder {
     print_crate_id: Option<CrateId>,
     /// stage 4:
     // IMPROVEMENT: use Arc
-    print_statement_info: Option<PrintInfo<'static>>,
-    /// In reverse order to make taking next cheap
-    print_statement_segments: Vec<Segment<'static>>,
-    decoded_segments: Vec<DecodedSegment>,
-    /// stage 5:
-    next_value: Option<(TypeHint, FormatOptions<'static>)>,
-    value_context: ValueContext,
+    print_statement: Option<(PrintInfo<'static>, SegmentContext)>,
 }
 
 impl RedefmtDecoder {
@@ -58,11 +52,8 @@ impl RedefmtDecoder {
             header: None,
             stamp: None,
             print_crate_id: None,
-            print_statement_info: None,
-            print_statement_segments: Default::default(),
+            print_statement: None,
             decoded_segments: Default::default(),
-            next_value: None,
-            value_context: Default::default(),
         })
     }
 }
@@ -115,9 +106,9 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
             }
         };
 
-        let print_statement_info = match &self.print_statement_info {
+        let (print_info, print_segment_context) = match &mut self.print_statement {
             // IMPROVEMENT: remove clone
-            Some(info) => info.clone(),
+            Some(print_statement) => print_statement,
             None => {
                 let Ok(print_statement_id) = src.try_get_u16().map(PrintStatementId::new) else {
                     return Ok(None);
@@ -129,72 +120,95 @@ impl tokio_util::codec::Decoder for RedefmtDecoder {
 
                 // IMPROVEMENT: remove clones
                 let info = print_statement.info().clone();
-                self.print_statement_info = Some(info.clone());
 
                 // IMPROVEMENT: remove clone
-                self.print_statement_segments = print_statement.segments().iter().rev().map(Clone::clone).collect();
+                let segment_context = SegmentContext::new(print_statement.segments().clone());
 
-                info
+                self.print_statement = Some((info, segment_context));
+                self.print_statement.as_mut().expect("print statement not set")
             }
         };
 
-        // Always skipped until self.print_statement_segments.pop() returns an Arg which remains to be read.
-        if let Some((type_hint, format_options)) = self.next_value.take() {
-            match decode_value(type_hint, src, header.pointer_width(), &mut self.value_context)? {
-                Some(value) => {
-                    self.decoded_segments.push(DecodedSegment::Value(value, format_options));
-                    self.value_context = Default::default();
-                }
-                None => {
-                    self.next_value = Some((type_hint, format_options));
-                    return Ok(None);
-                }
-            }
-        }
-
-        while let Some(next_segment) = self.print_statement_segments.pop() {
-            match next_segment {
-                Segment::Str(cow) => {
-                    // IMPROVEMENT: use Arc in print_statement_segments and simply clone the reference count here
-                    self.decoded_segments.push(DecodedSegment::Str(cow.to_string()));
-                }
-                Segment::Arg(format_options) => {
-                    let Ok(type_hint_repr) = src.try_get_u8() else {
-                        self.print_statement_segments.push(Segment::Arg(format_options));
-                        return Ok(None);
-                    };
-
-                    let type_hint = TypeHint::from_repr(type_hint_repr)
-                        .ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
-
-                    match decode_value(type_hint, src, header.pointer_width(), &mut self.value_context)? {
-                        Some(value) => {
-                            self.decoded_segments.push(DecodedSegment::Value(value, format_options));
-                            self.value_context = Default::default();
-                        }
-                        None => {
-                            self.next_value = Some((type_hint, format_options));
-                            return Ok(None);
-                        }
-                    }
-                }
-            }
+        if decode_segments(
+            print_segment_context,
+            &mut self.decoded_segments,
+            src,
+            header.pointer_width(),
+        )?
+        .is_none()
+        {
+            return Ok(None);
         }
 
         let item = RedefmtFrame {
             stamp: self.stamp.take(),
-            print_info: print_statement_info,
+            // IMPROVEMENT: remove clone
+            print_info: print_info.clone(),
             segments: std::mem::take(&mut self.decoded_segments),
         };
 
         // Clear remaining frame value
         self.header = None;
         self.print_crate_id = None;
-        self.print_statement_info = None;
-        self.value_context = Default::default();
+        self.print_statement = None;
 
         Ok(Some(item))
     }
+}
+
+fn decode_segments(
+    segment_context: &mut SegmentContext,
+    decoded_segments: &mut Vec<DecodedSegment>,
+    src: &mut BytesMut,
+    pointer_width: PointerWidth,
+) -> Result<Option<()>, RedefmtDecoderError> {
+    if let Some(current_value_context) = segment_context.current_value.take() {
+        let SegmentValueContext { type_hint, format_options, mut value_context } = current_value_context;
+
+        match decode_value(type_hint, src, pointer_width, &mut value_context)? {
+            Some(value) => {
+                decoded_segments.push(DecodedSegment::Value(value, format_options));
+                segment_context.current_value = None;
+            }
+            None => {
+                segment_context.current_value = Some(SegmentValueContext { type_hint, format_options, value_context });
+                return Ok(None);
+            }
+        }
+    }
+
+    while let Some(next_segment) = segment_context.segments.pop() {
+        match next_segment {
+            Segment::Str(cow) => {
+                // IMPROVEMENT: use Arc in print_statement_segments and simply clone the reference count here
+                decoded_segments.push(DecodedSegment::Str(cow.to_string()));
+            }
+            Segment::Arg(format_options) => {
+                let Ok(type_hint_repr) = src.try_get_u8() else {
+                    segment_context.segments.push(Segment::Arg(format_options));
+                    return Ok(None);
+                };
+
+                let type_hint =
+                    TypeHint::from_repr(type_hint_repr).ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
+
+                let mut value_context = ValueContext::default();
+
+                match decode_value(type_hint, src, pointer_width, &mut value_context)? {
+                    Some(value) => {
+                        decoded_segments.push(DecodedSegment::Value(value, format_options));
+                    }
+                    None => {
+                        segment_context.current_value =
+                            Some(SegmentValueContext { type_hint, format_options, value_context });
+                        return Ok(None);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(Some(()))
 }
 
 /// Returns no if `src` does not yet contain enough bytes for the given type hint.
@@ -681,13 +695,13 @@ mod tests {
 
         let (print_statement_id, print_statement) = seed_print_statement(&mut decoder);
 
-        assert!(decoder.print_statement_segments.is_empty());
+        assert!(decoder.print_statement.is_none());
         assert!(decoder.print_statement_cache.inner().is_empty());
 
         put_and_decode_print_statement_id(&mut decoder, print_statement_id);
 
         let expected_segments = print_statement.segments();
-        let mut actual_segments = decoder.print_statement_segments;
+        let mut actual_segments = decoder.print_statement.unwrap().1.segments;
         actual_segments.reverse();
 
         assert_eq!(expected_segments, &actual_segments);
@@ -743,10 +757,8 @@ mod tests {
         assert!(decoder.header.is_none());
         assert!(decoder.stamp.is_none());
         assert!(decoder.print_crate_id.is_none());
-        assert!(decoder.print_statement_info.is_none());
-        assert!(decoder.print_statement_segments.is_empty());
+        assert!(decoder.print_statement.is_none());
         assert!(decoder.decoded_segments.is_empty());
-        assert!(decoder.next_value.is_none());
     }
 
     fn seed_crate(decoder: &mut RedefmtDecoder) -> CrateId {
