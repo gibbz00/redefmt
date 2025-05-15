@@ -268,20 +268,9 @@ fn decode_value(
             Ok(Some(Value::Char(char)))
         }
         TypeHint::StringSlice => {
-            let length = match value_context.length {
-                Some(length) => length,
-                None => {
-                    let Some(length) = get_pointer_width_num(src, pointer_width) else {
-                        return Ok(None);
-                    };
-
-                    value_context.length = Some(length);
-
-                    length
-                }
+            let Some(length) = get_or_store_length(src, pointer_width, value_context)? else {
+                return Ok(None);
             };
-
-            let length = usize::try_from(length).map_err(|_| RedefmtDecoderError::LengthOverflow(length))?;
 
             if src.len() < length {
                 return Ok(None);
@@ -294,9 +283,46 @@ fn decode_value(
 
             Ok(Some(Value::String(string)))
         }
+        TypeHint::Tuple => {
+            let length = match value_context.length {
+                Some(length) => length,
+                None => {
+                    let Ok(tuple_length) = src.try_get_u8() else {
+                        return Ok(None);
+                    };
+
+                    let length = tuple_length as usize;
+
+                    value_context.length = Some(length);
+
+                    length
+                }
+            };
+
+            let value_buffer = value_context.buffer.get_or_init(length);
+
+            while value_buffer.len() < length {
+                let Some(inner_type_hint) = get_or_read_type_hint(src, &mut value_context.inner_type_hint)? else {
+                    return Ok(None);
+                };
+
+                let inner_context = value_context.inner_value_context.get_or_init();
+
+                if let Some(value) = decode_value(inner_type_hint, src, pointer_width, inner_context)? {
+                    value_buffer.push(value);
+
+                    // Clear inner context
+                    value_context.inner_value_context = Default::default();
+                    value_context.inner_type_hint = Default::default();
+                }
+            }
+
+            let values = value_context.buffer.clear();
+
+            Ok(Some(Value::Tuple(values)))
+        }
         TypeHint::List => todo!(),
         TypeHint::DynList => todo!(),
-        TypeHint::Tuple => todo!(),
         TypeHint::WriteId => todo!(),
         // TODO:
         // TypeHint::Set => todo!(),
@@ -317,6 +343,45 @@ fn get_pointer_width_num(src: &mut BytesMut, pointer_width: PointerWidth) -> Opt
     };
 
     Some(num)
+}
+
+fn get_or_store_length(
+    src: &mut BytesMut,
+    pointer_width: PointerWidth,
+    value_context: &mut ValueContext,
+) -> Result<Option<usize>, RedefmtDecoderError> {
+    if let Some(length) = value_context.length {
+        return Ok(Some(length));
+    };
+
+    let Some(length) = get_pointer_width_num(src, pointer_width) else {
+        return Ok(None);
+    };
+
+    let length = usize::try_from(length).map_err(|_| RedefmtDecoderError::LengthOverflow(length))?;
+
+    value_context.length = Some(length);
+
+    Ok(Some(length))
+}
+
+fn get_or_read_type_hint(
+    src: &mut BytesMut,
+    current_type_hint: &mut Option<TypeHint>,
+) -> Result<Option<TypeHint>, RedefmtDecoderError> {
+    if let Some(type_hint) = current_type_hint {
+        return Ok(Some(*type_hint));
+    }
+
+    let Ok(type_hint_repr) = src.try_get_u8() else {
+        return Ok(None);
+    };
+
+    let type_hint = TypeHint::from_repr(type_hint_repr).ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
+
+    *current_type_hint = Some(type_hint);
+
+    Ok(Some(type_hint))
 }
 
 #[cfg(test)]
@@ -445,6 +510,17 @@ mod tests {
             .unwrap_err();
 
             assert!(matches!(error, RedefmtDecoderError::InvalidStringBytes(_)))
+        }
+
+        #[test]
+        fn tuple() {
+            assert_value(TypeHint::Tuple, (10, "x"), |(num, str)| {
+                Value::Tuple(vec![Value::U8(num), Value::String(str.to_string())])
+            });
+            assert_value(TypeHint::Tuple, ((10, "x"), false), |((num, str), bool)| {
+                let inner = Value::Tuple(vec![Value::U8(num), Value::String(str.to_string())]);
+                Value::Tuple(vec![inner, Value::Boolean(bool)])
+            });
         }
     }
 
