@@ -247,20 +247,20 @@ fn decode_value(
             Ok(Some(Value::Isize(num)))
         }
         TypeHint::Char => {
-            let Ok(char_length) = src.try_get_u8() else {
+            let Some(length) = get_or_store_u8_length(src, value_context) else {
                 return Ok(None);
             };
 
-            if src.len() < char_length as usize {
+            if src.len() < length {
                 return Ok(None);
             }
 
-            let utf8_bytes = match char_length {
+            let utf8_bytes = match length {
                 1 => [src.get_u8(), 0, 0, 0],
                 2 => [src.get_u8(), src.get_u8(), 0, 0],
                 3 => [src.get_u8(), src.get_u8(), src.get_u8(), 0],
                 4 => [src.get_u8(), src.get_u8(), src.get_u8(), src.get_u8()],
-                n => return Err(RedefmtDecoderError::InvalidCharLength(n)),
+                n => return Err(RedefmtDecoderError::InvalidCharLength(n as u8)),
             };
 
             let char = char::from_utf8_array(utf8_bytes)?;
@@ -268,7 +268,7 @@ fn decode_value(
             Ok(Some(Value::Char(char)))
         }
         TypeHint::StringSlice => {
-            let Some(length) = get_or_store_length(src, pointer_width, value_context)? else {
+            let Some(length) = get_or_store_usize_length(src, pointer_width, value_context)? else {
                 return Ok(None);
             };
 
@@ -284,45 +284,28 @@ fn decode_value(
             Ok(Some(Value::String(string)))
         }
         TypeHint::Tuple => {
-            let length = match value_context.length {
-                Some(length) => length,
-                None => {
-                    let Ok(tuple_length) = src.try_get_u8() else {
-                        return Ok(None);
-                    };
-
-                    let length = tuple_length as usize;
-
-                    value_context.length = Some(length);
-
-                    length
-                }
+            let Some(length) = get_or_store_u8_length(src, value_context) else {
+                return Ok(None);
             };
 
-            let value_buffer = value_context.buffer.get_or_init(length);
-
-            while value_buffer.len() < length {
-                let Some(inner_type_hint) = get_or_read_type_hint(src, &mut value_context.inner_type_hint)? else {
-                    return Ok(None);
-                };
-
-                let inner_context = value_context.inner_value_context.get_or_init();
-
-                if let Some(value) = decode_value(inner_type_hint, src, pointer_width, inner_context)? {
-                    value_buffer.push(value);
-
-                    // Clear inner context
-                    value_context.inner_value_context = Default::default();
-                    value_context.inner_type_hint = Default::default();
-                }
-            }
-
-            let values = value_context.buffer.clear();
+            let Some(values) = decode_dyn_list(src, pointer_width, value_context, length)? else {
+                return Ok(None);
+            };
 
             Ok(Some(Value::Tuple(values)))
         }
+        TypeHint::DynList => {
+            let Some(length) = get_or_store_usize_length(src, pointer_width, value_context)? else {
+                return Ok(None);
+            };
+
+            let Some(values) = decode_dyn_list(src, pointer_width, value_context, length)? else {
+                return Ok(None);
+            };
+
+            Ok(Some(Value::List(values)))
+        }
         TypeHint::List => todo!(),
-        TypeHint::DynList => todo!(),
         TypeHint::WriteId => todo!(),
         // TODO:
         // TypeHint::Set => todo!(),
@@ -345,7 +328,7 @@ fn get_pointer_width_num(src: &mut BytesMut, pointer_width: PointerWidth) -> Opt
     Some(num)
 }
 
-fn get_or_store_length(
+fn get_or_store_usize_length(
     src: &mut BytesMut,
     pointer_width: PointerWidth,
     value_context: &mut ValueContext,
@@ -365,6 +348,20 @@ fn get_or_store_length(
     Ok(Some(length))
 }
 
+fn get_or_store_u8_length(src: &mut BytesMut, value_context: &mut ValueContext) -> Option<usize> {
+    if let Some(length) = value_context.length {
+        return Some(length);
+    };
+
+    let Ok(length) = src.try_get_u8().map(Into::into) else {
+        return None;
+    };
+
+    value_context.length = Some(length);
+
+    Some(length)
+}
+
 fn get_or_read_type_hint(
     src: &mut BytesMut,
     current_type_hint: &mut Option<TypeHint>,
@@ -382,6 +379,35 @@ fn get_or_read_type_hint(
     *current_type_hint = Some(type_hint);
 
     Ok(Some(type_hint))
+}
+
+fn decode_dyn_list(
+    src: &mut BytesMut,
+    pointer_width: PointerWidth,
+    value_context: &mut ValueContext,
+    length: usize,
+) -> Result<Option<Vec<Value>>, RedefmtDecoderError> {
+    let value_buffer = value_context.buffer.get_or_init(length);
+
+    while value_buffer.len() < length {
+        let Some(inner_type_hint) = get_or_read_type_hint(src, &mut value_context.inner_type_hint)? else {
+            return Ok(None);
+        };
+
+        let inner_context = value_context.inner_value_context.get_or_init();
+
+        if let Some(value) = decode_value(inner_type_hint, src, pointer_width, inner_context)? {
+            value_buffer.push(value);
+
+            // Clear inner context
+            value_context.inner_value_context = Default::default();
+            value_context.inner_type_hint = Default::default();
+        }
+    }
+
+    let values = value_context.buffer.clear();
+
+    Ok(Some(values))
 }
 
 #[cfg(test)]
@@ -520,6 +546,13 @@ mod tests {
             assert_value(TypeHint::Tuple, ((10, "x"), false), |((num, str), bool)| {
                 let inner = Value::Tuple(vec![Value::U8(num), Value::String(str.to_string())]);
                 Value::Tuple(vec![inner, Value::Boolean(bool)])
+            });
+        }
+
+        #[test]
+        fn dyn_list() {
+            assert_value(TypeHint::DynList, [&10u8 as &dyn WriteValue, &"x"], |_| {
+                Value::List(vec![Value::U8(10), Value::String("x".to_string())])
             });
         }
     }
