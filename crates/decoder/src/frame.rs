@@ -19,17 +19,14 @@ use crate::*;
 /// The map collection sends an extra type hint.
 /// Write_id will in turn tell if if is a write_statement or type_structure.
 #[derive(Debug, PartialEq)]
-pub struct RedefmtFrame {
+pub struct RedefmtFrame<'caches> {
     pub(crate) stamp: Option<Stamp>,
-    // IMPROVEMENT: use Arc
-    pub(crate) print_info: PrintInfo<'static>,
-    pub(crate) segments: Vec<DecodedSegment>,
+    pub(crate) print_info: &'caches PrintInfo<'static>,
+    pub(crate) segments: Vec<DecodedSegment<'caches>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum DecodedSegment {
-    // IMPROVEMENT: use Arc<str>
-    Str(String),
-    // IMPROVEMENT: use Arc for FormatOptions
-    Value(Value, FormatOptions<'static>),
+pub enum DecodedSegment<'caches> {
+    Str(&'caches str),
+    Value(Value, &'caches FormatOptions<'static>),
 }

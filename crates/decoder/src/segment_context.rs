@@ -1,24 +1,25 @@
+use std::{iter::Peekable, slice::Iter as SliceIter};
+
 use redefmt_args::FormatOptions;
 use redefmt_common::codec::frame::TypeHint;
 use redefmt_db::statement_table::Segment;
 
 use crate::ValueContext;
 
-pub struct SegmentContext {
-    /// In reverse order to make taking next cheap
-    pub segments: Vec<Segment<'static>>,
-    pub current_value: Option<SegmentValueContext>,
+pub struct SegmentContext<'caches> {
+    pub segments: Peekable<SliceIter<'caches, Segment<'static>>>,
+    pub current_value: Option<SegmentValueContext<'caches>>,
 }
 
-impl SegmentContext {
-    pub fn new(segments: Vec<Segment<'static>>) -> Self {
-        let reversed = segments.into_iter().rev().collect();
-        Self { segments: reversed, current_value: None }
+impl<'caches> SegmentContext<'caches> {
+    pub fn new(segments: &'caches [Segment<'static>]) -> Self {
+        let segments_iter = segments.iter().peekable();
+        Self { segments: segments_iter, current_value: None }
     }
 }
 
-pub struct SegmentValueContext {
+pub struct SegmentValueContext<'caches> {
     pub type_hint: TypeHint,
-    pub format_options: FormatOptions<'static>,
+    pub format_options: &'caches FormatOptions<'static>,
     pub value_context: ValueContext,
 }

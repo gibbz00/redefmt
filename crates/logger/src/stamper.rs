@@ -5,6 +5,8 @@ pub trait Stamper {
 }
 
 #[cfg(test)]
+pub(crate) use test_stamper::TestStamper;
+#[cfg(test)]
 mod test_stamper {
     use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -25,5 +27,3 @@ mod test_stamper {
         }
     }
 }
-#[cfg(test)]
-pub(crate) use test_stamper::TestStamper;

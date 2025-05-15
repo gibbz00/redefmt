@@ -14,7 +14,14 @@ impl StatementTable for PrintStatement<'_> {
 pub struct PrintStatement<'a> {
     info: PrintInfo<'a>,
     #[serde(borrow)]
+    #[getter(skip)]
     segments: Vec<Segment<'a>>,
+}
+
+impl<'a> PrintStatement<'a> {
+    pub fn segments(&self) -> &[Segment<'a>] {
+        &self.segments
+    }
 }
 
 impl<'a> PrintStatement<'a> {
