@@ -4,7 +4,11 @@ use redefmt_common::identifiers::PrintStatementId;
 
 use crate::*;
 
-statement_table!(PrintStatementId, PrintStatement<'_>, "print_register");
+impl StatementTable for PrintStatement<'_> {
+    type Id = PrintStatementId;
+
+    const NAME: &'static str = "print_register";
+}
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, derive_getters::Getters)]
 pub struct PrintStatement<'a> {

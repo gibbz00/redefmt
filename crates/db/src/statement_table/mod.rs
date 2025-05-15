@@ -6,7 +6,6 @@ pub use segment::Segment;
 
 mod table;
 pub use table::StatementTable;
-pub(crate) use table::statement_table;
 #[cfg(test)]
 pub(crate) use table::{StatementDbClientInner, insert_unchecked};
 

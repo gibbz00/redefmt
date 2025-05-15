@@ -3,7 +3,7 @@ use std::string::FromUtf8Error;
 use encode_unicode::error::Utf8Error;
 use redefmt_common::{
     codec::frame::TypeHint,
-    identifiers::{CrateId, PrintStatementId},
+    identifiers::{CrateId, PrintStatementId, WriteStatementId},
 };
 use redefmt_db::{DbClientError, StateDirError, crate_table::CrateName};
 
@@ -19,8 +19,8 @@ pub enum RedefmtDecoderError {
     UnknownHeader(u8),
     #[error("no crate with ID '{0}' registered")]
     UnknownCrate(CrateId),
-    #[error("no print statement with ID '{0}' registered for '{1}'")]
-    UnknownPrintStatement(PrintStatementId, CrateName<'static>),
+    #[error("no statement with ID '{0}' in '{1}' registered for '{1}'")]
+    UnknownStatement(u16, &'static str, CrateName<'static>),
     #[error("type hint '{0}' not recognized")]
     UnknownTypeHint(u8),
     #[error("invalid bytes received for the given type hint '{0}', bytes: '{1:?}'")]

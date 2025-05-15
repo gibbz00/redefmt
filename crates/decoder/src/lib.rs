@@ -18,8 +18,8 @@ pub(crate) use value::Value;
 mod crate_cache;
 pub(crate) use crate_cache::{CrateCache, CrateValue};
 
-mod print_statement_cache;
-pub(crate) use print_statement_cache::PrintStatementCache;
+mod statement_cache;
+pub(crate) use statement_cache::StatementCache;
 
 mod value_context;
 pub(crate) use value_context::{ListValueContext, ValueContext};
