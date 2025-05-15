@@ -19,6 +19,7 @@ redefmt-common.workspace = true
 redefmt-db.workspace = true
 
 # External
+elsa = "1.11"
 encode_unicode = "1.0"
 thiserror = "2.0"
 tokio-util = { version = "0.7", features = ["codec"] }

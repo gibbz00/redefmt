@@ -1,10 +1,7 @@
 use std::string::FromUtf8Error;
 
 use encode_unicode::error::Utf8Error;
-use redefmt_common::{
-    codec::frame::TypeHint,
-    identifiers::{CrateId, PrintStatementId, WriteStatementId},
-};
+use redefmt_common::{codec::frame::TypeHint, identifiers::CrateId};
 use redefmt_db::{DbClientError, StateDirError, crate_table::CrateName};
 
 #[derive(Debug, thiserror::Error)]
