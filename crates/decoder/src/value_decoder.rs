@@ -243,9 +243,8 @@ mod tests {
 
     #[test]
     fn boolean_err() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, stores) = DecoderStores::mock(&cache);
 
         let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), TypeHint::Boolean);
         let mut bytes = BytesMut::from_iter([2]);
@@ -286,9 +285,8 @@ mod tests {
 
     #[test]
     fn char_invalid_utf8_error() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, stores) = DecoderStores::mock(&cache);
 
         let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
         let mut bytes = BytesMut::new();
@@ -310,9 +308,8 @@ mod tests {
 
     #[test]
     fn string_invalid_utf8_error() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, stores) = DecoderStores::mock(&cache);
 
         let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
         let mut bytes = BytesMut::new();
@@ -355,9 +352,8 @@ mod tests {
     }
 
     fn assert_value<T: WriteValue>(type_hint: TypeHint, encoded_value: T, from_inner: fn(T) -> Value) {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, stores) = DecoderStores::mock(&cache);
 
         let mut dispatcher = SimpleTestDispatcher::default();
         encoded_value.write_value(&mut dispatcher);

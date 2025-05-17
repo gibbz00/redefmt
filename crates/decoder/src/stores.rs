@@ -1,38 +1,30 @@
 use std::path::PathBuf;
 
 use redefmt_common::identifiers::CrateId;
-use redefmt_db::{DbClient, MainDb, StateDir, statement_table::print::PrintStatement};
+use redefmt_db::{DbClient, MainDb, StateDir};
 
 use crate::*;
 
 pub struct DecoderStores<'caches> {
     state_dir: PathBuf,
     pub(crate) main_db: DbClient<MainDb>,
-    pub(crate) crate_cache: &'caches CrateCache,
-    pub(crate) print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
+    pub(crate) cache: &'caches DecoderCache,
 }
 
 impl<'caches> DecoderStores<'caches> {
-    pub fn new(
-        crate_cache: &'caches CrateCache,
-        print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
-    ) -> Result<Self, RedefmtDecoderError> {
+    pub fn new(cache: &'caches DecoderCache) -> Result<Self, RedefmtDecoderError> {
         let dir = StateDir::resolve()?;
-        Self::new_impl(crate_cache, print_statement_cache, dir)
+        Self::new_impl(cache, dir)
     }
 
-    pub fn new_impl(
-        crate_cache: &'caches CrateCache,
-        print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
-        state_dir: PathBuf,
-    ) -> Result<Self, RedefmtDecoderError> {
+    pub fn new_impl(cache: &'caches DecoderCache, state_dir: PathBuf) -> Result<Self, RedefmtDecoderError> {
         let main_db = DbClient::new_main(&state_dir)?;
 
-        Ok(Self { state_dir, main_db, crate_cache, print_statement_cache })
+        Ok(Self { state_dir, main_db, cache })
     }
 
     pub fn get_or_insert_crate(&self, crate_id: CrateId) -> Result<CrateContext<'caches>, RedefmtDecoderError> {
-        self.crate_cache.get_or_insert(crate_id, &self.main_db, &self.state_dir)
+        self.cache.krate.get_or_insert(crate_id, &self.main_db, &self.state_dir)
     }
 }
 
@@ -43,15 +35,12 @@ mod tests {
     use super::*;
 
     impl<'caches> DecoderStores<'caches> {
-        pub fn mock(
-            crate_cache: &'caches CrateCache,
-            print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
-        ) -> (TempDir, Self) {
+        pub fn mock(cache: &'caches DecoderCache) -> (TempDir, Self) {
             let temp_dir = tempfile::tempdir().unwrap();
 
             let state_dir = temp_dir.path().to_path_buf();
 
-            let stores = DecoderStores::new_impl(crate_cache, print_statement_cache, state_dir).unwrap();
+            let stores = DecoderStores::new_impl(cache, state_dir).unwrap();
 
             (temp_dir, stores)
         }

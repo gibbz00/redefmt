@@ -15,17 +15,12 @@ pub struct CrateContext<'caches> {
     pub db: &'caches DbClient<CrateDb>,
 }
 
+#[derive(Default)]
 pub struct CrateCache {
     map: FrozenMap<CrateId, Box<CrateValue>>,
 }
 
 impl CrateCache {
-    // TEMP:
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self { map: FrozenMap::new() }
-    }
-
     pub fn get_or_insert(
         &self,
         id: CrateId,
