@@ -5,13 +5,13 @@ use crate::*;
 
 // Can't use generic state parameter on tokio_util::codec::Decoder
 #[derive(Default)]
-pub enum DecoderWants<'caches> {
+pub enum DecoderWants<'cache> {
     #[default]
     Header,
     Stamp(WantsStampStage),
     PrintCrateId(WantsPrintCrateIdStage),
-    PrintStatementId(WantsPrintStatementIdStage<'caches>),
-    PrintStatement(WantsPrintStatementStage<'caches>),
+    PrintStatementId(WantsPrintStatementIdStage<'cache>),
+    PrintStatement(WantsPrintStatementStage<'cache>),
 }
 
 pub struct WantsStampStage {
@@ -24,20 +24,20 @@ pub struct WantsPrintCrateIdStage {
 }
 
 impl WantsPrintCrateIdStage {
-    pub fn next<'caches>(self, print_crate: CrateContext<'caches>) -> DecoderWants<'caches> {
+    pub fn next<'cache>(self, print_crate: CrateContext<'cache>) -> DecoderWants<'cache> {
         let Self { header, stamp } = self;
         DecoderWants::PrintStatementId(WantsPrintStatementIdStage { header, stamp, print_crate })
     }
 }
 
-pub struct WantsPrintStatementIdStage<'caches> {
+pub struct WantsPrintStatementIdStage<'cache> {
     pub header: Header,
     pub stamp: Option<Stamp>,
-    pub print_crate: CrateContext<'caches>,
+    pub print_crate: CrateContext<'cache>,
 }
 
-impl<'caches> WantsPrintStatementIdStage<'caches> {
-    pub fn next(self, print_statement: &'caches PrintStatement<'static>) -> DecoderWants<'caches> {
+impl<'cache> WantsPrintStatementIdStage<'cache> {
+    pub fn next(self, print_statement: &'cache PrintStatement<'static>) -> DecoderWants<'cache> {
         let Self { header, stamp, .. } = self;
 
         let print_info = print_statement.info();
@@ -47,8 +47,8 @@ impl<'caches> WantsPrintStatementIdStage<'caches> {
     }
 }
 
-pub struct WantsPrintStatementStage<'caches> {
+pub struct WantsPrintStatementStage<'cache> {
     pub stamp: Option<Stamp>,
-    pub print_info: &'caches PrintInfo<'static>,
-    pub segment_decoder: SegmentsDecoder<'caches>,
+    pub print_info: &'cache PrintInfo<'static>,
+    pub segment_decoder: SegmentsDecoder<'cache>,
 }

@@ -7,21 +7,21 @@ use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 
-struct SegmentValueContext<'caches> {
+struct SegmentValueContext<'cache> {
     type_hint: TypeHint,
-    format_options: &'caches FormatOptions<'static>,
-    value_decoder: ValueDecoder<'caches>,
+    format_options: &'cache FormatOptions<'static>,
+    value_decoder: ValueDecoder<'cache>,
 }
 
-pub struct SegmentsDecoder<'caches> {
+pub struct SegmentsDecoder<'cache> {
     pointer_width: PointerWidth,
-    current_value: Option<SegmentValueContext<'caches>>,
-    pub(crate) segments: Peekable<SliceIter<'caches, Segment<'static>>>,
-    pub(crate) decoded_segments: Vec<DecodedSegment<'caches>>,
+    current_value: Option<SegmentValueContext<'cache>>,
+    pub(crate) segments: Peekable<SliceIter<'cache, Segment<'static>>>,
+    pub(crate) decoded_segments: Vec<DecodedSegment<'cache>>,
 }
 
-impl<'caches> SegmentsDecoder<'caches> {
-    pub fn new(pointer_width: PointerWidth, segments: &'caches [Segment<'static>]) -> Self {
+impl<'cache> SegmentsDecoder<'cache> {
+    pub fn new(pointer_width: PointerWidth, segments: &'cache [Segment<'static>]) -> Self {
         let segments_iter = segments.iter().peekable();
 
         // IMPROVEMENT: count args in segments?
@@ -37,7 +37,7 @@ impl<'caches> SegmentsDecoder<'caches> {
 
     pub fn decode(
         &mut self,
-        stores: &DecoderStores<'caches>,
+        stores: &DecoderStores<'cache>,
         src: &mut BytesMut,
     ) -> Result<Option<()>, RedefmtDecoderError> {
         if let Some(current_value_context) = self.current_value.take() {
