@@ -31,7 +31,7 @@ impl<'caches> ValueDecoder<'caches> {
         stores: &DecoderStores<'caches>,
         src: &mut BytesMut,
     ) -> Result<Option<ComplexValue<'caches>>, RedefmtDecoderError> {
-        let maybe_value = match self.type_hint {
+        let maybe_simple_value = match self.type_hint {
             TypeHint::U8 => src.try_get_u8().ok().map(Value::U8),
             TypeHint::U16 => src.try_get_u16().ok().map(Value::U16),
             TypeHint::U32 => src.try_get_u32().ok().map(Value::U32),
@@ -102,49 +102,38 @@ impl<'caches> ValueDecoder<'caches> {
                     return Ok(None);
                 };
 
-                let Some(values) = list_decoder.decode_dyn_list(stores, src)? else {
-                    return Ok(None);
-                };
-
-                return Ok(Some(ComplexValue::Tuple(values)));
+                let maybe_tuple = list_decoder.decode_dyn_list(stores, src)?;
+                return Ok(maybe_tuple.map(ComplexValue::Tuple));
             }
             TypeHint::DynList => {
                 let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
                     return Ok(None);
                 };
 
-                let Some(values) = list_decoder.decode_dyn_list(stores, src)? else {
-                    return Ok(None);
-                };
-
-                return Ok(Some(ComplexValue::List(values)));
+                let maybe_list = list_decoder.decode_dyn_list(stores, src)?;
+                return Ok(maybe_list.map(ComplexValue::List));
             }
             TypeHint::List => {
                 let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
                     return Ok(None);
                 };
 
-                let Some(values) = list_decoder.decode_list(stores, src)? else {
-                    return Ok(None);
-                };
-
-                return Ok(Some(ComplexValue::List(values)));
+                let maybe_list = list_decoder.decode_list(stores, src)?;
+                return Ok(maybe_list.map(ComplexValue::List));
             }
             TypeHint::WriteId => {
                 let Some(write_statement_decoder) = self.get_or_store_write_decoder(stores, src)? else {
                     return Ok(None);
                 };
 
-                let x = write_statement_decoder.decode(stores, src)?;
-
-                todo!();
+                return write_statement_decoder.decode(stores, src);
             } /* TODO:
                * TypeHint::Set => todo!(),
                * TypeHint::Map => todo!(),
                * TypeHint::DynMap => todo!(), */
         };
 
-        Ok(maybe_value.map(ComplexValue::Value))
+        Ok(maybe_simple_value.map(ComplexValue::Value))
     }
 
     fn get_or_store_u8_length(&mut self, src: &mut BytesMut) -> Option<usize> {
