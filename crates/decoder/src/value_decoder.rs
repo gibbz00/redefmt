@@ -1,5 +1,5 @@
 use encode_unicode::CharExt;
-use redefmt_common::{
+use redefmt::{
     codec::frame::{PointerWidth, TypeHint},
     identifiers::CrateId,
 };
@@ -223,7 +223,7 @@ impl<'cache> ValueDecoder<'cache> {
 #[cfg(test)]
 mod tests {
     use redefmt_args::FormatOptions;
-    use redefmt_common::codec::encoding::{SimpleTestDispatcher, WriteValue};
+    use redefmt::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},

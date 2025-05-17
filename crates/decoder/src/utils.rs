@@ -1,4 +1,4 @@
-use redefmt_common::codec::frame::PointerWidth;
+use redefmt::codec::frame::PointerWidth;
 use tokio_util::bytes::{Buf, BytesMut};
 
 pub struct DecoderUtils;

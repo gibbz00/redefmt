@@ -1,4 +1,4 @@
-use redefmt_common::{codec::frame::PointerWidth, identifiers::WriteStatementId};
+use redefmt::{codec::frame::PointerWidth, identifiers::WriteStatementId};
 use redefmt_db::statement_table::write::WriteStatement;
 use tokio_util::bytes::{Buf, BytesMut};
 

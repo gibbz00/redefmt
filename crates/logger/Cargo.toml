@@ -16,10 +16,10 @@ alloc = []
 workspace = true
 
 [dependencies]
-redefmt-common.workspace = true
+redefmt.workspace = true
 
 critical-section = "1.2"
 
 [dev-dependencies]
-redefmt-common = { workspace = true, features = ["testing"] }
+redefmt = { workspace = true, features = ["testing"] }
 redefmt-logger = { path = ".", features = ["alloc"] }

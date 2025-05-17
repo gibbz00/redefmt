@@ -1,5 +1,5 @@
 use redefmt_args::FormatOptions;
-use redefmt_common::codec::frame::Stamp;
+use redefmt::codec::frame::Stamp;
 use redefmt_db::statement_table::print::PrintInfo;
 
 use crate::*;
