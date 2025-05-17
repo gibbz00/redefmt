@@ -106,7 +106,7 @@ fn decode_segments<'caches>(
     if let Some(current_value_context) = stage.segment_context.current_value.take() {
         let SegmentValueContext { type_hint, format_options, mut value_context } = current_value_context;
 
-        match decode_value(type_hint, src, stage.header.pointer_width(), &mut value_context)? {
+        match decode_value(stores, type_hint, src, stage.header.pointer_width(), &mut value_context)? {
             Some(value) => {
                 stage
                     .decoded_segments
@@ -137,7 +137,7 @@ fn decode_segments<'caches>(
 
                 let mut value_context = ValueContext::default();
 
-                match decode_value(type_hint, src, stage.header.pointer_width(), &mut value_context)? {
+                match decode_value(stores, type_hint, src, stage.header.pointer_width(), &mut value_context)? {
                     Some(value) => {
                         stage
                             .decoded_segments
@@ -159,7 +159,8 @@ fn decode_segments<'caches>(
 
 /// Returns no if `src` does not yet contain enough bytes for the given type hint.
 /// `value_context` must be cleared by callee if function returns Ok(Some(value))
-fn decode_value(
+fn decode_value<'caches>(
+    stores: &DecoderStores<'caches>,
     type_hint: TypeHint,
     src: &mut BytesMut,
     pointer_width: PointerWidth,
@@ -236,7 +237,7 @@ fn decode_value(
                 return Ok(None);
             };
 
-            let Some(values) = decode_dyn_list(src, pointer_width, value_context, length)? else {
+            let Some(values) = decode_dyn_list(stores, src, pointer_width, value_context, length)? else {
                 return Ok(None);
             };
 
@@ -247,19 +248,21 @@ fn decode_value(
                 return Ok(None);
             };
 
-            let Some(values) = decode_dyn_list(src, pointer_width, value_context, length)? else {
+            let Some(values) = decode_dyn_list(stores, src, pointer_width, value_context, length)? else {
                 return Ok(None);
             };
 
             Some(Value::List(values))
         }
-        TypeHint::List => decode_list(src, pointer_width, value_context)?.map(Value::List),
+        TypeHint::List => decode_list(stores, src, pointer_width, value_context)?.map(Value::List),
         TypeHint::WriteId => {
             let write_context = value_context.write_context.get_or_insert_default();
 
             let Some(crate_id) = write_context.get_or_store_crate_id(src) else {
                 return Ok(None);
             };
+
+            let crate_value = stores.get_or_insert_crate(crate_id)?;
 
             // TODO:
 
@@ -277,7 +280,8 @@ fn decode_value(
     Ok(maybe_value)
 }
 
-fn decode_dyn_list(
+fn decode_dyn_list<'caches>(
+    stores: &DecoderStores<'caches>,
     src: &mut BytesMut,
     pointer_width: PointerWidth,
     value_context: &mut ValueContext,
@@ -294,7 +298,7 @@ fn decode_dyn_list(
 
         let element_context = list_context.element_context.get_or_insert_default();
 
-        match decode_value(element_type_hint, src, pointer_width, element_context)? {
+        match decode_value(stores, element_type_hint, src, pointer_width, element_context)? {
             Some(value) => {
                 list_context.buffer.push(value);
 
@@ -313,7 +317,8 @@ fn decode_dyn_list(
     Ok(Some(values))
 }
 
-fn decode_list(
+fn decode_list<'caches>(
+    stores: &DecoderStores<'caches>,
     src: &mut BytesMut,
     pointer_width: PointerWidth,
     value_context: &mut ValueContext,
@@ -333,7 +338,7 @@ fn decode_list(
     while list_context.buffer.len() < length {
         let element_context = list_context.element_context.get_or_insert_default();
 
-        match decode_value(element_type_hint, src, pointer_width, element_context)? {
+        match decode_value(stores, element_type_hint, src, pointer_width, element_context)? {
             Some(value) => {
                 list_context.buffer.push(value);
                 list_context.element_context = None;
@@ -361,11 +366,7 @@ mod mock {
             crate_cache: &'caches CrateCache,
             print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
         ) -> (TempDir, Self) {
-            let temp_dir = tempfile::tempdir().unwrap();
-
-            let state_dir = temp_dir.path().to_path_buf();
-
-            let stores = DecoderStores::new_impl(crate_cache, print_statement_cache, state_dir).unwrap();
+            let (temp_dir, stores) = DecoderStores::mock(crate_cache, print_statement_cache);
 
             let decoder = RedefmtDecoder::new(stores);
 
@@ -402,8 +403,13 @@ mod tests {
 
         #[test]
         fn boolean_err() {
+            let crate_cache = CrateCache::new();
+            let print_statement_cache = StatementCache::new();
+            let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+
             let mut bytes = BytesMut::from_iter([2]);
             let error = decode_value(
+                &stores,
                 TypeHint::Boolean,
                 &mut bytes,
                 PointerWidth::of_target(),
@@ -445,12 +451,17 @@ mod tests {
 
         #[test]
         fn char_invalid_utf8_error() {
+            let crate_cache = CrateCache::new();
+            let print_statement_cache = StatementCache::new();
+            let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+
             let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
             let mut bytes = BytesMut::new();
             bytes.put_u8(invalid_utf8_bytes.len() as u8);
             bytes.put_slice(&invalid_utf8_bytes);
 
             let error = decode_value(
+                &stores,
                 TypeHint::Char,
                 &mut bytes,
                 PointerWidth::of_target(),
@@ -469,12 +480,17 @@ mod tests {
 
         #[test]
         fn string_invalid_utf8_error() {
+            let crate_cache = CrateCache::new();
+            let print_statement_cache = StatementCache::new();
+            let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+
             let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
             let mut bytes = BytesMut::new();
             bytes.put_slice(&invalid_utf8_bytes.len().to_be_bytes());
             bytes.put_slice(&invalid_utf8_bytes);
 
             let error = decode_value(
+                &stores,
                 TypeHint::StringSlice,
                 &mut bytes,
                 PointerWidth::of_target(),
@@ -515,6 +531,10 @@ mod tests {
     }
 
     fn assert_value<T: WriteValue>(type_hint: TypeHint, encoded_value: T, from_inner: fn(T) -> Value) {
+        let crate_cache = CrateCache::new();
+        let print_statement_cache = StatementCache::new();
+        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+
         let mut dispatcher = SimpleTestDispatcher::default();
         encoded_value.write_value(&mut dispatcher);
 
@@ -525,6 +545,7 @@ mod tests {
         assert_eq!(dispatched_type_hint, type_hint);
 
         let actual_value = decode_value(
+            &stores,
             type_hint,
             &mut dispatched_bytes,
             PointerWidth::of_target(),
