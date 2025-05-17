@@ -1,6 +1,6 @@
 use redefmt_common::{
     codec::frame::{PointerWidth, TypeHint},
-    identifiers::CrateId,
+    identifiers::{CrateId, WriteStatementId},
 };
 use tokio_util::bytes::{Buf, BytesMut};
 
@@ -8,24 +8,12 @@ use crate::*;
 
 #[derive(Default)]
 pub struct ValueContext {
-    pub crate_id: Option<CrateId>,
     pub length: Option<usize>,
     pub list_context: Option<ListValueContext>,
+    pub write_context: Option<WriteStatementContext>,
 }
 
 impl ValueContext {
-    pub fn get_or_store_crate_id(&mut self, src: &mut BytesMut) -> Option<CrateId> {
-        if let Some(crate_id) = self.crate_id {
-            return Some(crate_id);
-        }
-
-        let crate_id = src.try_get_u16().ok().map(CrateId::new)?;
-
-        self.crate_id = Some(crate_id);
-
-        Some(crate_id)
-    }
-
     pub fn get_or_store_usize_length(
         &mut self,
         src: &mut BytesMut,
@@ -94,5 +82,33 @@ impl ListValueContext {
         self.element_type_hint = Some(type_hint);
 
         Ok(Some(type_hint))
+    }
+}
+
+#[derive(Default)]
+pub struct WriteStatementContext {
+    pub crate_id: Option<CrateId>,
+    pub statement_id: Option<WriteStatementId>,
+}
+
+impl WriteStatementContext {
+    pub fn get_or_store_crate_id(&mut self, src: &mut BytesMut) -> Option<CrateId> {
+        if let Some(crate_id) = self.crate_id {
+            return Some(crate_id);
+        }
+
+        let crate_id = src.try_get_u16().ok().map(CrateId::new)?;
+        self.crate_id = Some(crate_id);
+        Some(crate_id)
+    }
+
+    pub fn get_or_store_statement_id(&mut self, src: &mut BytesMut) -> Option<WriteStatementId> {
+        if let Some(statement_id) = self.statement_id {
+            return Some(statement_id);
+        }
+
+        let statement_id = src.try_get_u16().ok().map(WriteStatementId::new)?;
+        self.statement_id = Some(statement_id);
+        Some(statement_id)
     }
 }
