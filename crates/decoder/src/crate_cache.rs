@@ -4,9 +4,16 @@ use elsa::sync::FrozenMap;
 use redefmt_common::identifiers::CrateId;
 use redefmt_db::{CrateDb, DbClient, MainDb, Table, crate_table::Crate};
 
-use crate::RedefmtDecoderError;
+use crate::*;
 
-pub type CrateValue = (DbClient<CrateDb>, Crate<'static>);
+type CrateValue = (DbClient<CrateDb>, Crate<'static>);
+
+#[derive(Clone, Copy)]
+pub struct CrateContext<'caches> {
+    pub id: CrateId,
+    pub record: &'caches Crate<'static>,
+    pub db: &'caches DbClient<CrateDb>,
+}
 
 pub struct CrateCache {
     map: FrozenMap<CrateId, Box<CrateValue>>,
@@ -24,8 +31,8 @@ impl CrateCache {
         id: CrateId,
         db: &DbClient<MainDb>,
         state_dir: &Path,
-    ) -> Result<&CrateValue, RedefmtDecoderError> {
-        let value = match self.map.get(&id) {
+    ) -> Result<CrateContext, RedefmtDecoderError> {
+        let (db, record) = match self.map.get(&id) {
             Some(value) => value,
             None => {
                 let Some(crate_record) = db.find_by_id(id)? else {
@@ -38,7 +45,7 @@ impl CrateCache {
             }
         };
 
-        Ok(value)
+        Ok(CrateContext { id, record, db })
     }
 }
 

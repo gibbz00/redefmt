@@ -24,16 +24,16 @@ pub struct WantsPrintCrateIdStage {
 }
 
 impl WantsPrintCrateIdStage {
-    pub fn next<'caches>(self, print_crate_value: &'caches CrateValue) -> DecoderWants<'caches> {
+    pub fn next<'caches>(self, print_crate: CrateContext<'caches>) -> DecoderWants<'caches> {
         let Self { header, stamp } = self;
-        DecoderWants::PrintStatementId(WantsPrintStatementIdStage { header, stamp, print_crate_value })
+        DecoderWants::PrintStatementId(WantsPrintStatementIdStage { header, stamp, print_crate })
     }
 }
 
 pub struct WantsPrintStatementIdStage<'caches> {
     pub header: Header,
     pub stamp: Option<Stamp>,
-    pub print_crate_value: &'caches CrateValue,
+    pub print_crate: CrateContext<'caches>,
 }
 
 impl<'caches> WantsPrintStatementIdStage<'caches> {

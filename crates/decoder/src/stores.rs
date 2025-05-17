@@ -31,7 +31,7 @@ impl<'caches> DecoderStores<'caches> {
         Ok(Self { state_dir, main_db, crate_cache, print_statement_cache })
     }
 
-    pub fn get_or_insert_crate(&self, crate_id: CrateId) -> Result<&'caches CrateValue, RedefmtDecoderError> {
+    pub fn get_or_insert_crate(&self, crate_id: CrateId) -> Result<CrateContext<'caches>, RedefmtDecoderError> {
         self.crate_cache.get_or_insert(crate_id, &self.main_db, &self.state_dir)
     }
 }
