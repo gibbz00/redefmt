@@ -1,41 +1,147 @@
-use redefmt_common::{
-    codec::frame::{PointerWidth, TypeHint},
-    identifiers::{CrateId, WriteStatementId},
-};
-use tokio_util::bytes::{Buf, BytesMut};
+use encode_unicode::CharExt;
+use redefmt_common::codec::frame::{PointerWidth, TypeHint};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::*;
 
-#[derive(Default)]
-pub struct ValueContext {
-    pub length: Option<usize>,
-    pub list_context: Option<ListValueContext>,
-    pub write_context: Option<WriteStatementContext>,
+pub struct ValueContext<'caches> {
+    pointer_width: PointerWidth,
+    type_hint: TypeHint,
+    length_context: Option<usize>,
+    list_context: Option<ListValueContext<'caches>>,
+    write_context: WriteStatementWants<'caches>,
 }
 
-impl ValueContext {
-    pub fn get_or_store_usize_length(
-        &mut self,
-        src: &mut BytesMut,
-        pointer_width: PointerWidth,
-    ) -> Result<Option<usize>, RedefmtDecoderError> {
-        if let Some(length) = self.length {
-            return Ok(Some(length));
-        };
-
-        let Some(length) = DecoderUtils::get_target_usize(src, pointer_width) else {
-            return Ok(None);
-        };
-
-        let length = usize::try_from(length).map_err(|_| RedefmtDecoderError::LengthOverflow(length))?;
-
-        self.length = Some(length);
-
-        Ok(Some(length))
+impl<'caches> ValueContext<'caches> {
+    pub fn new(pointer_width: PointerWidth, type_hint: TypeHint) -> Self {
+        Self {
+            pointer_width,
+            type_hint,
+            length_context: None,
+            list_context: None,
+            write_context: Default::default(),
+        }
     }
 
-    pub fn get_or_store_u8_length(&mut self, src: &mut BytesMut) -> Option<usize> {
-        if let Some(length) = self.length {
+    /// Returns no if `src` does not yet contain enough bytes for the given type hint.
+    /// `value_context` must be cleared by callee if function returns Ok(Some(value))
+    pub fn decode_value(
+        &mut self,
+        stores: &DecoderStores<'caches>,
+        src: &mut BytesMut,
+    ) -> Result<Option<Value>, RedefmtDecoderError> {
+        let maybe_value = match self.type_hint {
+            TypeHint::U8 => src.try_get_u8().ok().map(Value::U8),
+            TypeHint::U16 => src.try_get_u16().ok().map(Value::U16),
+            TypeHint::U32 => src.try_get_u32().ok().map(Value::U32),
+            TypeHint::U64 => src.try_get_u64().ok().map(Value::U64),
+            TypeHint::U128 => src.try_get_u128().ok().map(Value::U128),
+            TypeHint::I8 => src.try_get_i8().ok().map(Value::I8),
+            TypeHint::I16 => src.try_get_i16().ok().map(Value::I16),
+            TypeHint::I32 => src.try_get_i32().ok().map(Value::I32),
+            TypeHint::I64 => src.try_get_i64().ok().map(Value::I64),
+            TypeHint::F32 => src.try_get_f32().ok().map(Value::F32),
+            TypeHint::F64 => src.try_get_f64().ok().map(Value::F64),
+            TypeHint::Usize => DecoderUtils::get_target_usize(src, self.pointer_width).map(Value::Usize),
+            TypeHint::Isize => DecoderUtils::get_target_isize(src, self.pointer_width).map(Value::Isize),
+            TypeHint::Boolean => {
+                let Ok(bool_byte) = src.try_get_u8() else {
+                    return Ok(None);
+                };
+
+                let boolean = match bool_byte {
+                    val if val == true as u8 => true,
+                    val if val == false as u8 => false,
+                    _ => {
+                        return Err(RedefmtDecoderError::InvalidValueBytes(self.type_hint, vec![bool_byte]));
+                    }
+                };
+
+                Some(Value::Boolean(boolean))
+            }
+            TypeHint::Char => {
+                let Some(length) = self.get_or_store_u8_length(src) else {
+                    return Ok(None);
+                };
+
+                if src.len() < length {
+                    return Ok(None);
+                }
+
+                let utf8_bytes = match length {
+                    1 => [src.get_u8(), 0, 0, 0],
+                    2 => [src.get_u8(), src.get_u8(), 0, 0],
+                    3 => [src.get_u8(), src.get_u8(), src.get_u8(), 0],
+                    4 => [src.get_u8(), src.get_u8(), src.get_u8(), src.get_u8()],
+                    n => return Err(RedefmtDecoderError::InvalidCharLength(n as u8)),
+                };
+
+                let char = char::from_utf8_array(utf8_bytes)?;
+
+                Some(Value::Char(char))
+            }
+            TypeHint::StringSlice => {
+                let Some(length) = self.get_or_store_usize_length(src)? else {
+                    return Ok(None);
+                };
+
+                if src.len() < length {
+                    return Ok(None);
+                }
+
+                let mut vec = Vec::with_capacity(length);
+                vec.put(src.take(length));
+
+                let string = String::from_utf8(vec)?;
+
+                Some(Value::String(string))
+            }
+            TypeHint::Tuple => {
+                let Some(list_context) = self.get_or_store_u8_list(src) else {
+                    return Ok(None);
+                };
+
+                let Some(values) = list_context.decode_dyn_list(stores, src)? else {
+                    return Ok(None);
+                };
+
+                Some(Value::Tuple(values))
+            }
+            TypeHint::DynList => {
+                let Some(list_context) = self.get_or_store_usize_list(src)? else {
+                    return Ok(None);
+                };
+
+                let Some(values) = list_context.decode_dyn_list(stores, src)? else {
+                    return Ok(None);
+                };
+
+                Some(Value::List(values))
+            }
+            TypeHint::List => {
+                let Some(list_context) = self.get_or_store_usize_list(src)? else {
+                    return Ok(None);
+                };
+
+                let Some(values) = list_context.decode_list(stores, src)? else {
+                    return Ok(None);
+                };
+
+                Some(Value::List(values))
+            }
+            TypeHint::WriteId => {
+                todo!();
+            } /* TODO:
+               * TypeHint::Set => todo!(),
+               * TypeHint::Map => todo!(),
+               * TypeHint::DynMap => todo!(), */
+        };
+
+        Ok(maybe_value)
+    }
+
+    fn get_or_store_u8_length(&mut self, src: &mut BytesMut) -> Option<usize> {
+        if let Some(length) = self.length_context {
             return Some(length);
         };
 
@@ -43,72 +149,213 @@ impl ValueContext {
             return None;
         };
 
-        self.length = Some(length);
+        self.length_context = Some(length);
 
         Some(length)
     }
-}
 
-pub struct ListValueContext {
-    pub buffer: Vec<Value>,
-    pub element_context: Option<Box<ValueContext>>,
-    pub element_type_hint: Option<TypeHint>,
-}
+    fn get_or_store_usize_length(&mut self, src: &mut BytesMut) -> Result<Option<usize>, RedefmtDecoderError> {
+        if let Some(length) = self.length_context {
+            return Ok(Some(length));
+        };
 
-impl ListValueContext {
-    pub fn new(expected_length: usize) -> Self {
-        Self {
-            buffer: Vec::with_capacity(expected_length),
-            element_context: Default::default(),
-            element_type_hint: None,
-        }
-    }
-
-    pub fn get_or_insert_element_type_hint(
-        &mut self,
-        src: &mut BytesMut,
-    ) -> Result<Option<TypeHint>, RedefmtDecoderError> {
-        if let Some(type_hint) = self.element_type_hint {
-            return Ok(Some(type_hint));
-        }
-
-        let Ok(type_hint_repr) = src.try_get_u8() else {
+        let Some(length) = self.get_usize(src)? else {
             return Ok(None);
         };
 
-        let type_hint =
-            TypeHint::from_repr(type_hint_repr).ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
+        self.length_context = Some(length);
 
-        self.element_type_hint = Some(type_hint);
+        Ok(Some(length))
+    }
 
-        Ok(Some(type_hint))
+    fn get_or_store_u8_list(&mut self, src: &mut BytesMut) -> Option<&mut ListValueContext<'caches>> {
+        if self.list_context.is_none() {
+            let Ok(length) = src.try_get_u8().map(Into::into) else {
+                return None;
+            };
+
+            let list_context = ListValueContext::new(self.pointer_width, length);
+            self.list_context = Some(list_context);
+        }
+
+        self.list_context.as_mut()
+    }
+
+    fn get_or_store_usize_list(
+        &mut self,
+        src: &mut BytesMut,
+    ) -> Result<Option<&mut ListValueContext<'caches>>, RedefmtDecoderError> {
+        if self.list_context.is_none() {
+            let Some(length) = self.get_usize(src)? else {
+                return Ok(None);
+            };
+
+            let list_context = ListValueContext::new(self.pointer_width, length);
+            self.list_context = Some(list_context);
+        }
+
+        Ok(self.list_context.as_mut())
+    }
+
+    fn get_usize(&self, src: &mut BytesMut) -> Result<Option<usize>, RedefmtDecoderError> {
+        let Some(length) = DecoderUtils::get_target_usize(src, self.pointer_width) else {
+            return Ok(None);
+        };
+
+        usize::try_from(length)
+            .map(Some)
+            .map_err(|_| RedefmtDecoderError::LengthOverflow(length))
     }
 }
 
-#[derive(Default)]
-pub struct WriteStatementContext {
-    pub crate_id: Option<CrateId>,
-    pub statement_id: Option<WriteStatementId>,
-}
+#[cfg(test)]
+mod tests {
+    use redefmt_common::codec::encoding::{SimpleTestDispatcher, WriteValue};
 
-impl WriteStatementContext {
-    pub fn get_or_store_crate_id(&mut self, src: &mut BytesMut) -> Option<CrateId> {
-        if let Some(crate_id) = self.crate_id {
-            return Some(crate_id);
-        }
+    use super::*;
 
-        let crate_id = src.try_get_u16().ok().map(CrateId::new)?;
-        self.crate_id = Some(crate_id);
-        Some(crate_id)
+    #[test]
+    fn boolean_false() {
+        assert_value(TypeHint::Boolean, true, Value::Boolean);
+        assert_value(TypeHint::Boolean, false, Value::Boolean);
     }
 
-    pub fn get_or_store_statement_id(&mut self, src: &mut BytesMut) -> Option<WriteStatementId> {
-        if let Some(statement_id) = self.statement_id {
-            return Some(statement_id);
-        }
+    #[test]
+    fn boolean_err() {
+        let crate_cache = CrateCache::new();
+        let print_statement_cache = StatementCache::new();
+        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
 
-        let statement_id = src.try_get_u16().ok().map(WriteStatementId::new)?;
-        self.statement_id = Some(statement_id);
-        Some(statement_id)
+        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), TypeHint::Boolean);
+        let mut bytes = BytesMut::from_iter([2]);
+
+        let error = value_decoder.decode_value(&stores, &mut bytes).unwrap_err();
+
+        assert!(matches!(error, RedefmtDecoderError::InvalidValueBytes(_, _)));
+    }
+
+    #[test]
+    fn num() {
+        test_decode_int::<usize>(TypeHint::Usize, |inner| Value::Usize(inner as u64));
+        test_decode_int::<u8>(TypeHint::U8, Value::U8);
+        test_decode_int::<u16>(TypeHint::U16, Value::U16);
+        test_decode_int::<u32>(TypeHint::U32, Value::U32);
+        test_decode_int::<u64>(TypeHint::U64, Value::U64);
+        test_decode_int::<u128>(TypeHint::U128, Value::U128);
+        test_decode_int::<isize>(TypeHint::Isize, |inner| Value::Isize(inner as i64));
+        test_decode_int::<i8>(TypeHint::I8, Value::I8);
+        test_decode_int::<i16>(TypeHint::I16, Value::I16);
+        test_decode_int::<i32>(TypeHint::I32, Value::I32);
+        test_decode_int::<i64>(TypeHint::I64, Value::I64);
+        test_decode_int::<f32>(TypeHint::F32, Value::F32);
+        test_decode_int::<f64>(TypeHint::F64, Value::F64);
+
+        fn test_decode_int<T: WriteValue + num_traits::One>(type_hint: TypeHint, from_inner: fn(T) -> Value) {
+            assert_value(type_hint, T::one(), from_inner);
+        }
+    }
+
+    #[test]
+    fn char() {
+        assert_value(TypeHint::Char, 'x', Value::Char);
+        assert_value(TypeHint::Char, 'ß', Value::Char);
+        assert_value(TypeHint::Char, 'ᴪ', Value::Char);
+        assert_value(TypeHint::Char, '🦀', Value::Char);
+    }
+
+    #[test]
+    fn char_invalid_utf8_error() {
+        let crate_cache = CrateCache::new();
+        let print_statement_cache = StatementCache::new();
+        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+
+        let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
+        let mut bytes = BytesMut::new();
+        bytes.put_u8(invalid_utf8_bytes.len() as u8);
+        bytes.put_slice(&invalid_utf8_bytes);
+
+        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), TypeHint::Char);
+
+        let error = value_decoder.decode_value(&stores, &mut bytes).unwrap_err();
+
+        assert!(matches!(error, RedefmtDecoderError::InvalidUtf8Char(_)))
+    }
+
+    #[test]
+    fn string() {
+        assert_value(TypeHint::StringSlice, "abc", |str| Value::String(str.to_string()));
+        assert_value(TypeHint::StringSlice, "🦀", |str| Value::String(str.to_string()));
+    }
+
+    #[test]
+    fn string_invalid_utf8_error() {
+        let crate_cache = CrateCache::new();
+        let print_statement_cache = StatementCache::new();
+        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+
+        let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
+        let mut bytes = BytesMut::new();
+        bytes.put_slice(&invalid_utf8_bytes.len().to_be_bytes());
+        bytes.put_slice(&invalid_utf8_bytes);
+
+        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), TypeHint::StringSlice);
+
+        let error = value_decoder.decode_value(&stores, &mut bytes).unwrap_err();
+
+        assert!(matches!(error, RedefmtDecoderError::InvalidStringBytes(_)))
+    }
+
+    #[test]
+    fn tuple() {
+        assert_value(TypeHint::Tuple, (10, "x"), |(num, str)| {
+            Value::Tuple(vec![Value::U8(num), Value::String(str.to_string())])
+        });
+        assert_value(TypeHint::Tuple, ((10, "x"), false), |((num, str), bool)| {
+            let inner = Value::Tuple(vec![Value::U8(num), Value::String(str.to_string())]);
+            Value::Tuple(vec![inner, Value::Boolean(bool)])
+        });
+    }
+
+    #[test]
+    fn dyn_list() {
+        assert_value(TypeHint::DynList, [&10u8 as &dyn WriteValue, &"x"], |_| {
+            Value::List(vec![Value::U8(10), Value::String("x".to_string())])
+        });
+    }
+
+    #[test]
+    fn list() {
+        assert_value(TypeHint::List, [[0u8, 1], [2, 3]], |_| {
+            Value::List(vec![
+                Value::List(vec![Value::U8(0), Value::U8(1)]),
+                Value::List(vec![Value::U8(2), Value::U8(3)]),
+            ])
+        });
+    }
+
+    fn assert_value<T: WriteValue>(type_hint: TypeHint, encoded_value: T, from_inner: fn(T) -> Value) {
+        let crate_cache = CrateCache::new();
+        let print_statement_cache = StatementCache::new();
+        let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
+
+        let mut dispatcher = SimpleTestDispatcher::default();
+        encoded_value.write_value(&mut dispatcher);
+
+        let mut dispatched_bytes = dispatcher.bytes;
+
+        let dispatched_type_hint = TypeHint::from_repr(dispatched_bytes.get_u8()).unwrap();
+
+        assert_eq!(dispatched_type_hint, type_hint);
+
+        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), type_hint);
+
+        let actual_value = value_decoder
+            .decode_value(&stores, &mut dispatched_bytes)
+            .unwrap()
+            .unwrap();
+
+        let expected_value = from_inner(encoded_value);
+
+        assert_eq!(expected_value, actual_value);
     }
 }
