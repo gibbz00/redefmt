@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use encode_unicode::CharExt;
 use redefmt_common::{
     codec::frame::{Header, PointerWidth, Stamp, TypeHint},
-    identifiers::{CrateId, PrintStatementId, WriteStatementId},
+    identifiers::{CrateId, PrintStatementId},
 };
 use redefmt_db::{
     DbClient, MainDb, StateDir,
@@ -311,10 +311,16 @@ fn decode_value(
         }
         TypeHint::List => decode_list(src, pointer_width, value_context)?.map(Value::List),
         TypeHint::WriteId => {
-            // decode write id (crate_id + write_statement_id)
-            if src.len() < std::mem::size_of::<CrateId>() + std::mem::size_of::<WriteStatementId>() {
+            let write_context = value_context.write_context.get_or_insert_default();
+
+            let Some(crate_id) = write_context.get_or_store_crate_id(src) else {
                 return Ok(None);
-            }
+            };
+
+            let Some(statement_id) = write_context.get_or_store_statement_id(src) else {
+                return Ok(None);
+            };
+
             todo!();
         } /* TODO:
            * TypeHint::Set => todo!(),
