@@ -41,29 +41,14 @@ impl<'caches> WantsPrintStatementIdStage<'caches> {
         let Self { header, stamp, .. } = self;
 
         let print_info = print_statement.info();
-        let segment_context = SegmentContext::new(print_statement.segments());
-        // Hard to know capacity advance, (print statement args + any write
-        // statement args). One could theoretically keep track of the number
-        // of additional write args for a given print statement, store it in a
-        // map before returning a decoded frame, and then reuse that count when
-        // encountering the same print statement. Doubtful that there's anything
-        // to gain from that.
-        let decoded_segments = Vec::new();
+        let segment_context = SegmentContext::new(header.pointer_width(), print_statement.segments());
 
-        DecoderWants::PrintStatement(WantsPrintStatementStage {
-            header,
-            stamp,
-            print_info,
-            segment_context,
-            decoded_segments,
-        })
+        DecoderWants::PrintStatement(WantsPrintStatementStage { stamp, print_info, segment_context })
     }
 }
 
 pub struct WantsPrintStatementStage<'caches> {
-    pub header: Header,
     pub stamp: Option<Stamp>,
     pub print_info: &'caches PrintInfo<'static>,
     pub segment_context: SegmentContext<'caches>,
-    pub decoded_segments: Vec<DecodedSegment<'caches>>,
 }
