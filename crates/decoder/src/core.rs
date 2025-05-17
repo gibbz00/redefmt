@@ -7,31 +7,24 @@ use redefmt_common::{
 };
 use redefmt_db::{
     DbClient, MainDb, StateDir,
-    statement_table::{
-        Segment,
-        print::{PrintInfo, PrintStatement},
-    },
+    statement_table::{Segment, print::PrintStatement},
 };
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::*;
 
-pub struct RedefmtDecoder<'caches> {
+struct DecoderStores<'caches> {
     state_dir: PathBuf,
     main_db: DbClient<MainDb>,
     crate_cache: &'caches CrateCache,
     print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
+}
 
-    // Per frame state:
-    decoded_segments: Vec<DecodedSegment<'caches>>,
-    /// stage 1:
-    header: Option<Header>,
-    /// stage 2:
-    stamp: Option<Stamp>,
-    /// stage 3:
-    print_crate_id: Option<(CrateId, &'caches CrateValue)>,
-    /// stage 4:
-    print_statement: Option<(&'caches PrintInfo<'static>, SegmentContext<'caches>)>,
+pub struct RedefmtDecoder<'caches> {
+    // frame indenpendent state
+    stores: DecoderStores<'caches>,
+    // reset per frame
+    stage: DecoderWants<'caches>,
 }
 
 impl<'caches> RedefmtDecoder<'caches> {
@@ -49,18 +42,8 @@ impl<'caches> RedefmtDecoder<'caches> {
         db_dir: PathBuf,
     ) -> Result<Self, RedefmtDecoderError> {
         let main_db = DbClient::new_main(&db_dir)?;
-
-        Ok(Self {
-            state_dir: db_dir,
-            main_db,
-            crate_cache,
-            print_statement_cache,
-            header: None,
-            stamp: None,
-            print_crate_id: None,
-            print_statement: None,
-            decoded_segments: Default::default(),
-        })
+        let stores = DecoderStores { state_dir: db_dir, main_db, crate_cache, print_statement_cache };
+        Ok(Self { stores, stage: DecoderWants::Header })
     }
 }
 
@@ -69,121 +52,110 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
     type Item = RedefmtFrame<'caches>;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let header = match self.header {
-            Some(header) => header,
-            None => {
+        let current_stage = std::mem::take(&mut self.stage);
+        match current_stage {
+            DecoderWants::Header => {
                 let Ok(header_byte) = src.try_get_u8() else {
                     return Ok(None);
                 };
 
                 let header = Header::from_bits(header_byte).ok_or(RedefmtDecoderError::UnknownHeader(header_byte))?;
 
-                self.header = Some(header);
+                let next_stage = match header.contains(Header::STAMP) {
+                    true => DecoderWants::Stamp(WantsStampStage { header }),
+                    false => DecoderWants::PrintCrateId(WantsPrintCrateIdStage { header, stamp: None }),
+                };
 
-                header
+                self.stage = next_stage;
+                self.decode(src)
             }
-        };
-
-        // stamp
-        {
-            if header.contains(Header::STAMP) && self.stamp.is_none() {
+            DecoderWants::Stamp(stage) => {
                 let Ok(stamp) = src.try_get_u64().map(Stamp::new) else {
+                    self.stage = DecoderWants::Stamp(stage);
                     return Ok(None);
                 };
 
-                self.stamp = Some(stamp);
+                self.stage =
+                    DecoderWants::PrintCrateId(WantsPrintCrateIdStage { header: stage.header, stamp: Some(stamp) });
+                self.decode(src)
             }
-        }
-
-        let (_, crate_value) = match self.print_crate_id {
-            Some(crate_value) => crate_value,
-            None => {
-                let Ok(crate_id) = src.try_get_u16().map(CrateId::new) else {
+            DecoderWants::PrintCrateId(stage) => {
+                let Ok(print_crate_id) = src.try_get_u16().map(CrateId::new) else {
+                    self.stage = DecoderWants::PrintCrateId(stage);
                     return Ok(None);
                 };
 
-                let crate_value = self
-                    .crate_cache
-                    .get_or_insert(crate_id, &self.main_db, &self.state_dir)?;
+                let print_crate_value = self.stores.crate_cache.get_or_insert(
+                    print_crate_id,
+                    &self.stores.main_db,
+                    &self.stores.state_dir,
+                )?;
 
-                self.print_crate_id = Some((crate_id, crate_value));
-
-                (crate_id, crate_value)
+                self.stage = stage.next(print_crate_value);
+                self.decode(src)
             }
-        };
-
-        let (print_info, print_segment_context) = match &mut self.print_statement {
-            Some(print_statement) => print_statement,
-            None => {
+            DecoderWants::PrintStatementId(stage) => {
                 let Ok(print_statement_id) = src.try_get_u16().map(PrintStatementId::new) else {
+                    self.stage = DecoderWants::PrintStatementId(stage);
                     return Ok(None);
                 };
 
                 let print_statement = self
+                    .stores
                     .print_statement_cache
-                    .get_or_insert(print_statement_id, crate_value)?;
+                    .get_or_insert(print_statement_id, stage.print_crate_value)?;
 
-                let info = print_statement.info();
-
-                let segment_context = SegmentContext::new(print_statement.segments());
-
-                self.print_statement = Some((info, segment_context));
-                self.print_statement.as_mut().expect("print statement not set")
+                self.stage = stage.next(print_statement);
+                self.decode(src)
             }
-        };
+            DecoderWants::PrintStatement(mut stage) => {
+                if decode_segments(&self.stores, &mut stage, src)?.is_none() {
+                    self.stage = DecoderWants::PrintStatement(stage);
+                    return Ok(None);
+                }
 
-        if decode_segments(
-            print_segment_context,
-            &mut self.decoded_segments,
-            src,
-            header.pointer_width(),
-        )?
-        .is_none()
-        {
-            return Ok(None);
+                let item = RedefmtFrame {
+                    stamp: stage.stamp,
+                    print_info: stage.print_info,
+                    segments: stage.decoded_segments,
+                };
+
+                self.stage = DecoderWants::Header;
+
+                Ok(Some(item))
+            }
         }
-
-        let item = RedefmtFrame {
-            stamp: self.stamp.take(),
-            print_info,
-            segments: std::mem::take(&mut self.decoded_segments),
-        };
-
-        // Clear remaining frame value
-        self.header = None;
-        self.print_crate_id = None;
-        self.print_statement = None;
-
-        Ok(Some(item))
     }
 }
 
 fn decode_segments<'caches>(
-    segment_context: &mut SegmentContext<'caches>,
-    decoded_segments: &mut Vec<DecodedSegment<'caches>>,
+    stores: &DecoderStores<'caches>,
+    stage: &mut WantsPrintStatementStage<'caches>,
     src: &mut BytesMut,
-    pointer_width: PointerWidth,
 ) -> Result<Option<()>, RedefmtDecoderError> {
-    if let Some(current_value_context) = segment_context.current_value.take() {
+    if let Some(current_value_context) = stage.segment_context.current_value.take() {
         let SegmentValueContext { type_hint, format_options, mut value_context } = current_value_context;
 
-        match decode_value(type_hint, src, pointer_width, &mut value_context)? {
+        match decode_value(type_hint, src, stage.header.pointer_width(), &mut value_context)? {
             Some(value) => {
-                decoded_segments.push(DecodedSegment::Value(value, format_options));
-                segment_context.current_value = None;
+                stage
+                    .decoded_segments
+                    .push(DecodedSegment::Value(value, format_options));
+                stage.segment_context.current_value = None;
             }
             None => {
-                segment_context.current_value = Some(SegmentValueContext { type_hint, format_options, value_context });
+                stage.segment_context.current_value =
+                    Some(SegmentValueContext { type_hint, format_options, value_context });
                 return Ok(None);
             }
         }
     }
 
-    while let Some(next_segment) = segment_context.segments.peek() {
+    while let Some(next_segment) = stage.segment_context.segments.peek() {
         match next_segment {
             Segment::Str(str) => {
-                decoded_segments.push(DecodedSegment::Str(str));
-                segment_context.segments.next();
+                stage.decoded_segments.push(DecodedSegment::Str(str));
+                stage.segment_context.segments.next();
             }
             Segment::Arg(format_options) => {
                 let Ok(type_hint_repr) = src.try_get_u8() else {
@@ -195,13 +167,15 @@ fn decode_segments<'caches>(
 
                 let mut value_context = ValueContext::default();
 
-                match decode_value(type_hint, src, pointer_width, &mut value_context)? {
+                match decode_value(type_hint, src, stage.header.pointer_width(), &mut value_context)? {
                     Some(value) => {
-                        decoded_segments.push(DecodedSegment::Value(value, format_options));
-                        segment_context.segments.next();
+                        stage
+                            .decoded_segments
+                            .push(DecodedSegment::Value(value, format_options));
+                        stage.segment_context.segments.next();
                     }
                     None => {
-                        segment_context.current_value =
+                        stage.segment_context.current_value =
                             Some(SegmentValueContext { type_hint, format_options, value_context });
                         return Ok(None);
                     }
@@ -589,43 +563,27 @@ mod tests {
     }
 
     #[test]
-    fn empty_after_new() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
-
-        let item = decoder.decode(&mut BytesMut::new()).unwrap();
-        assert!(item.is_none());
-    }
-
-    #[test]
     fn header() {
         let crate_cache = CrateCache::new();
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
 
+        assert!(matches!(decoder.stage, DecoderWants::Header));
+
         let expected_header = Header::all();
 
         let mut bytes = BytesMut::from_iter([expected_header.bits()]);
 
-        assert!(decoder.header.is_none());
-
         decoder.decode(&mut bytes).unwrap();
+
         assert!(bytes.is_empty());
 
-        assert_eq!(expected_header, decoder.header.unwrap());
-    }
-
-    #[test]
-    fn empty_after_header() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
-
-        decoder.header = Some(Header::all());
-
-        let item = decoder.decode(&mut BytesMut::new()).unwrap();
-        assert!(item.is_none());
+        match decoder.stage {
+            DecoderWants::Stamp(stage) => {
+                assert_eq!(expected_header, stage.header);
+            }
+            _ => panic!("unexpected stage"),
+        }
     }
 
     #[test]
@@ -641,24 +599,17 @@ mod tests {
         bytes.put_u8(header.bits());
         bytes.put_u64(*stamp.as_ref());
 
-        assert!(decoder.stamp.is_none());
-
         decoder.decode(&mut bytes).unwrap();
+
         assert!(bytes.is_empty());
 
-        assert_eq!(stamp, decoder.stamp.unwrap());
-    }
-
-    #[test]
-    fn empty_after_stamp() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
-
-        decoder.header = Some(Header::new(false));
-
-        let item = decoder.decode(&mut BytesMut::new()).unwrap();
-        assert!(item.is_none());
+        match decoder.stage {
+            DecoderWants::PrintCrateId(stage) => {
+                let actual_stamp = stage.stamp.unwrap();
+                assert_eq!(stamp, actual_stamp);
+            }
+            _ => panic!("unexpected stage"),
+        }
     }
 
     #[test]
@@ -667,17 +618,22 @@ mod tests {
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
 
-        decoder.header = Some(Header::new(false));
+        decoder.stage = mock_stamp_stage();
 
-        let crate_id = seed_crate(&mut decoder);
+        let crate_id = seed_crate(&decoder);
 
-        assert!(decoder.print_crate_id.is_none());
         assert!(crate_cache.inner().is_empty());
 
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
-        assert!(decoder.print_crate_id.is_some_and(|(id, _)| id == crate_id));
-        assert!(decoder.crate_cache.inner().get(&crate_id).is_some());
+        let expected_crate_value = decoder.stores.crate_cache.inner().get(&crate_id).unwrap();
+
+        match decoder.stage {
+            DecoderWants::PrintStatementId(stage) => {
+                assert_eq!(expected_crate_value.1, stage.print_crate_value.1);
+            }
+            _ => panic!("unexpected stage"),
+        }
     }
 
     #[test]
@@ -686,7 +642,7 @@ mod tests {
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
 
-        decoder.header = Some(Header::new(false));
+        decoder.stage = mock_stamp_stage();
 
         let crate_id = CrateId::new(123);
 
@@ -703,9 +659,9 @@ mod tests {
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
 
-        decoder.header = Some(Header::new(false));
+        decoder.stage = mock_stamp_stage();
 
-        let crate_id = seed_crate(&mut decoder);
+        let crate_id = seed_crate(&decoder);
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
         let item = decoder.decode(&mut BytesMut::new()).unwrap();
@@ -718,24 +674,30 @@ mod tests {
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
 
-        decoder.header = Some(Header::new(false));
+        decoder.stage = mock_stamp_stage();
 
-        let crate_id = seed_crate(&mut decoder);
+        let crate_id = seed_crate(&decoder);
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
-        let (print_statement_id, print_statement) = seed_print_statement(&mut decoder);
+        let (print_statement_id, print_statement) = seed_print_statement(&decoder, crate_id);
 
-        assert!(decoder.print_statement.is_none());
-        assert!(decoder.print_statement_cache.inner().is_empty());
+        assert!(!matches!(decoder.stage, DecoderWants::PrintStatement(_)));
+        assert!(decoder.stores.print_statement_cache.inner().is_empty());
 
         put_and_decode_print_statement_id(&mut decoder, print_statement_id);
 
+        let cached_print_statement = decoder.stores.print_statement_cache.inner().get(&print_statement_id);
+        assert!(cached_print_statement.is_some());
+
         let expected_segments = print_statement.segments().iter().collect::<Vec<_>>();
-        let actual_segments = decoder.print_statement.unwrap().1.segments.collect::<Vec<_>>();
 
-        assert_eq!(expected_segments, actual_segments);
-
-        assert!(decoder.print_statement_cache.inner().get(&print_statement_id).is_some());
+        match decoder.stage {
+            DecoderWants::PrintStatement(stage) => {
+                let actual_segments = stage.segment_context.segments.collect::<Vec<_>>();
+                assert_eq!(expected_segments, actual_segments);
+            }
+            _ => panic!("unexpected stage"),
+        }
     }
 
     #[test]
@@ -744,9 +706,9 @@ mod tests {
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
 
-        decoder.header = Some(Header::new(false));
+        decoder.stage = mock_stamp_stage();
 
-        let crate_id = seed_crate(&mut decoder);
+        let crate_id = seed_crate(&decoder);
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
         let print_statement_id = PrintStatementId::new(123);
@@ -764,12 +726,12 @@ mod tests {
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
 
-        decoder.header = Some(Header::new(false));
+        decoder.stage = mock_stamp_stage();
 
-        let crate_id = seed_crate(&mut decoder);
+        let crate_id = seed_crate(&decoder);
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
-        let (print_statement_id, print_statement) = seed_print_statement(&mut decoder);
+        let (print_statement_id, print_statement) = seed_print_statement(&decoder, crate_id);
         put_and_decode_print_statement_id(&mut decoder, print_statement_id);
 
         let value = true;
@@ -788,27 +750,29 @@ mod tests {
         assert_eq!(expected_frame, actual_frame);
 
         // Clears per frame content
-        assert!(decoder.header.is_none());
-        assert!(decoder.stamp.is_none());
-        assert!(decoder.print_crate_id.is_none());
-        assert!(decoder.print_statement.is_none());
-        assert!(decoder.decoded_segments.is_empty());
+        assert!(matches!(decoder.stage, DecoderWants::Header));
     }
 
-    fn seed_crate(decoder: &mut RedefmtDecoder) -> CrateId {
+    fn seed_crate(decoder: &RedefmtDecoder) -> CrateId {
         let crate_name = CrateName::new("x").unwrap();
         let crate_record = Crate::new(crate_name);
-        decoder.main_db.insert(&crate_record).unwrap()
+        decoder.stores.main_db.insert(&crate_record).unwrap()
     }
 
-    fn seed_print_statement(decoder: &mut RedefmtDecoder) -> (PrintStatementId, PrintStatement<'static>) {
-        let (crate_id, _) = decoder.print_crate_id.unwrap();
-        let (crate_db, _) = decoder.crate_cache.inner().get(&crate_id).unwrap();
+    fn seed_print_statement(
+        decoder: &RedefmtDecoder,
+        crate_id: CrateId,
+    ) -> (PrintStatementId, PrintStatement<'static>) {
+        let (crate_db, _) = decoder.stores.crate_cache.inner().get(&crate_id).unwrap();
 
         let statement = mock_print_statement();
         let id = crate_db.insert(&statement).unwrap();
 
         (id, statement)
+    }
+
+    fn mock_stamp_stage<'a>() -> DecoderWants<'a> {
+        DecoderWants::PrintCrateId(WantsPrintCrateIdStage { header: Header::new(false), stamp: None })
     }
 
     fn mock_print_statement() -> PrintStatement<'static> {
