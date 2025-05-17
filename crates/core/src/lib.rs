@@ -1,4 +1,4 @@
-//! redefmt commons.
+//! redefmt - Redefined Deferred Formatting
 
 #![no_std]
 // TEMP:
@@ -7,7 +7,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub const APPLICATION_NAME: &str = "redefmt";
+#[cfg(feature = "derive")]
+pub use redefmt_macros::Format;
 
 pub mod codec;
 pub(crate) use codec::*;

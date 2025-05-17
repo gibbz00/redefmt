@@ -16,6 +16,7 @@ redefmt = { path = "crates/core" }
 redefmt-args = { path = "crates/args" }
 redefmt-db = { path = "crates/db" }
 redefmt-internal-macros = { path = "crates/internal_macros" }
+redefmt-macros = { path = "crates/macros" }
 
 [workspace.lints.rust]
 missing_docs = "warn"
