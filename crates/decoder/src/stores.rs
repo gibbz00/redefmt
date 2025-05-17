@@ -35,3 +35,25 @@ impl<'caches> DecoderStores<'caches> {
         self.crate_cache.get_or_insert(crate_id, &self.main_db, &self.state_dir)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tempfile::TempDir;
+
+    use super::*;
+
+    impl<'caches> DecoderStores<'caches> {
+        pub fn mock(
+            crate_cache: &'caches CrateCache,
+            print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
+        ) -> (TempDir, Self) {
+            let temp_dir = tempfile::tempdir().unwrap();
+
+            let state_dir = temp_dir.path().to_path_buf();
+
+            let stores = DecoderStores::new_impl(crate_cache, print_statement_cache, state_dir).unwrap();
+
+            (temp_dir, stores)
+        }
+    }
+}
