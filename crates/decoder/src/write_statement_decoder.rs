@@ -49,7 +49,9 @@ impl<'caches> WriteStatementDecoder<'caches> {
                     WriteStatement::TypeStructure(type_structure) => todo!(),
                 }
             }
-            WriteStatementDecoderStage::Segments(segments_decoder) => {}
+            WriteStatementDecoderStage::Segments(segments_decoder) => {
+                todo!()
+            }
         }
     }
 }
