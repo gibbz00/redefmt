@@ -222,7 +222,13 @@ impl<'cache> ValueDecoder<'cache> {
 
 #[cfg(test)]
 mod tests {
+    use redefmt_args::FormatOptions;
     use redefmt_common::codec::encoding::{SimpleTestDispatcher, WriteValue};
+    use redefmt_db::{
+        Table,
+        crate_table::{Crate, CrateName},
+        statement_table::{Segment, write::WriteStatement},
+    };
 
     use super::*;
 
@@ -357,6 +363,41 @@ mod tests {
         });
     }
 
+    #[test]
+    fn write_segments() {
+        // setup
+        let cache = DecoderCache::default();
+        let (_dir_guard, stores) = DecoderStores::mock(&cache);
+
+        // input
+        let arg_value = true;
+        let arg_format = FormatOptions::default();
+        let write_statement =
+            WriteStatement::Segments(vec![Segment::Str("x".into()), Segment::Arg(arg_format.clone())]);
+        // expected
+        let expected_value = ComplexValue::Segments(vec![
+            DecodedSegment::Str("x"),
+            DecodedSegment::Value(ComplexValue::Value(Value::Boolean(arg_value)), &arg_format),
+        ]);
+
+        // seed crate and write statement
+        let write_id = {
+            let crate_record = Crate::new(CrateName::new("x").unwrap());
+            let crate_id = stores.main_db.insert(&crate_record).unwrap();
+            let crate_context = stores.get_or_insert_crate(crate_id).unwrap();
+            let write_statement_id = crate_context.db.insert(&write_statement).unwrap();
+
+            (crate_id, write_statement_id)
+        };
+
+        // encode segment + arg
+        let mut dispatcher = SimpleTestDispatcher::default();
+        write_id.write_value(&mut dispatcher);
+        arg_value.write_value(&mut dispatcher);
+
+        assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
+    }
+
     fn assert_simple_value<T: WriteValue>(type_hint: TypeHint, encoded_value: T, from_inner: impl FnOnce(T) -> Value) {
         assert_value(type_hint, encoded_value, |t| ComplexValue::Value(from_inner(t)));
     }
@@ -372,6 +413,17 @@ mod tests {
         let mut dispatcher = SimpleTestDispatcher::default();
         encoded_value.write_value(&mut dispatcher);
 
+        let expected_value = from_inner(encoded_value);
+
+        assert_value_impl(stores, dispatcher, type_hint, expected_value);
+    }
+
+    fn assert_value_impl<'a, 'cache>(
+        stores: DecoderStores<'a>,
+        dispatcher: SimpleTestDispatcher,
+        type_hint: TypeHint,
+        expected_value: ComplexValue<'cache>,
+    ) {
         let mut dispatched_bytes = dispatcher.bytes;
 
         let dispatched_type_hint = TypeHint::from_repr(dispatched_bytes.get_u8()).unwrap();
@@ -381,8 +433,6 @@ mod tests {
         let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), type_hint);
 
         let actual_value = value_decoder.decode(&stores, &mut dispatched_bytes).unwrap().unwrap();
-
-        let expected_value = from_inner(encoded_value);
 
         assert_eq!(expected_value, actual_value);
     }
