@@ -1,24 +1,12 @@
-use std::path::PathBuf;
-
 use encode_unicode::CharExt;
 use redefmt_common::{
     codec::frame::{Header, PointerWidth, Stamp, TypeHint},
     identifiers::{CrateId, PrintStatementId},
 };
-use redefmt_db::{
-    DbClient, MainDb, StateDir,
-    statement_table::{Segment, print::PrintStatement},
-};
+use redefmt_db::statement_table::Segment;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::*;
-
-struct DecoderStores<'caches> {
-    state_dir: PathBuf,
-    main_db: DbClient<MainDb>,
-    crate_cache: &'caches CrateCache,
-    print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
-}
 
 pub struct RedefmtDecoder<'caches> {
     // frame indenpendent state
@@ -28,22 +16,8 @@ pub struct RedefmtDecoder<'caches> {
 }
 
 impl<'caches> RedefmtDecoder<'caches> {
-    pub fn new(
-        crate_cache: &'caches CrateCache,
-        print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
-    ) -> Result<Self, RedefmtDecoderError> {
-        let dir = StateDir::resolve()?;
-        Self::new_impl(crate_cache, print_statement_cache, dir)
-    }
-
-    pub(crate) fn new_impl(
-        crate_cache: &'caches CrateCache,
-        print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
-        db_dir: PathBuf,
-    ) -> Result<Self, RedefmtDecoderError> {
-        let main_db = DbClient::new_main(&db_dir)?;
-        let stores = DecoderStores { state_dir: db_dir, main_db, crate_cache, print_statement_cache };
-        Ok(Self { stores, stage: DecoderWants::Header })
+    pub fn new(stores: DecoderStores<'caches>) -> Self {
+        Self { stores, stage: DecoderWants::Header }
     }
 }
 
@@ -85,11 +59,7 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
                     return Ok(None);
                 };
 
-                let print_crate_value = self.stores.crate_cache.get_or_insert(
-                    print_crate_id,
-                    &self.stores.main_db,
-                    &self.stores.state_dir,
-                )?;
+                let print_crate_value = self.stores.get_or_insert_crate(print_crate_id)?;
 
                 self.stage = stage.next(print_crate_value);
                 self.decode(src)
@@ -291,6 +261,8 @@ fn decode_value(
                 return Ok(None);
             };
 
+            // TODO:
+
             let Some(statement_id) = write_context.get_or_store_statement_id(src) else {
                 return Ok(None);
             };
@@ -379,6 +351,7 @@ fn decode_list(
 
 #[cfg(test)]
 mod mock {
+    use redefmt_db::statement_table::print::PrintStatement;
     use tempfile::TempDir;
 
     use super::*;
@@ -390,8 +363,11 @@ mod mock {
         ) -> (TempDir, Self) {
             let temp_dir = tempfile::tempdir().unwrap();
 
-            let decoder =
-                RedefmtDecoder::new_impl(crate_cache, print_statement_cache, temp_dir.path().to_path_buf()).unwrap();
+            let state_dir = temp_dir.path().to_path_buf();
+
+            let stores = DecoderStores::new_impl(crate_cache, print_statement_cache, state_dir).unwrap();
+
+            let decoder = RedefmtDecoder::new(stores);
 
             (temp_dir, decoder)
         }
