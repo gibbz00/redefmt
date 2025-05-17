@@ -10,15 +10,16 @@ mod core;
 pub use core::RedefmtDecoder;
 
 mod stage;
-pub(crate) use stage::{
-    DecoderWants, WantsPrintCrateIdStage, WantsPrintStatementIdStage, WantsPrintStatementStage, WantsStampStage,
-};
+pub(crate) use stage::*;
 
 mod frame;
 pub(crate) use frame::{DecodedSegment, RedefmtFrame};
 
 mod value;
 pub(crate) use value::Value;
+
+mod stores;
+pub(crate) use stores::DecoderStores;
 
 mod crate_cache;
 pub(crate) use crate_cache::{CrateCache, CrateValue};
