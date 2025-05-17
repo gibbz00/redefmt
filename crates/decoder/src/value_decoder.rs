@@ -1,5 +1,8 @@
 use encode_unicode::CharExt;
-use redefmt_common::codec::frame::{PointerWidth, TypeHint};
+use redefmt_common::{
+    codec::frame::{PointerWidth, TypeHint},
+    identifiers::CrateId,
+};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::*;
@@ -9,7 +12,7 @@ pub struct ValueDecoder<'caches> {
     type_hint: TypeHint,
     length_context: Option<usize>,
     list_decoder: Option<ListValueDecoder<'caches>>,
-    write_decoder: WriteStatementWants<'caches>,
+    write_decoder: Option<WriteStatementDecoder<'caches>>,
 }
 
 impl<'caches> ValueDecoder<'caches> {
@@ -128,6 +131,10 @@ impl<'caches> ValueDecoder<'caches> {
                 Some(Value::List(values))
             }
             TypeHint::WriteId => {
+                let Some(write_statement_decoder) = self.get_or_store_write_decoder(stores, src)? else {
+                    return Ok(None);
+                };
+
                 todo!();
             } /* TODO:
                * TypeHint::Set => todo!(),
@@ -201,6 +208,24 @@ impl<'caches> ValueDecoder<'caches> {
         usize::try_from(length)
             .map(Some)
             .map_err(|_| RedefmtDecoderError::LengthOverflow(length))
+    }
+
+    fn get_or_store_write_decoder(
+        &mut self,
+        stores: &DecoderStores<'caches>,
+        src: &mut BytesMut,
+    ) -> Result<Option<&mut WriteStatementDecoder<'caches>>, RedefmtDecoderError> {
+        if self.write_decoder.is_none() {
+            let Ok(crate_id) = src.try_get_u16().map(CrateId::new) else {
+                return Ok(None);
+            };
+
+            let write_crate = stores.get_or_insert_crate(crate_id)?;
+
+            self.write_decoder = Some(WriteStatementDecoder { write_crate })
+        }
+
+        Ok(self.write_decoder.as_mut())
     }
 }
 

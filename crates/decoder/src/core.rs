@@ -57,9 +57,9 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
                     return Ok(None);
                 };
 
-                let print_crate_value = self.stores.get_or_insert_crate(print_crate_id)?;
+                let print_crate = self.stores.get_or_insert_crate(print_crate_id)?;
 
-                self.stage = stage.next(print_crate_value);
+                self.stage = stage.next(print_crate);
                 self.decode(src)
             }
             DecoderWants::PrintStatementId(stage) => {
@@ -71,7 +71,7 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
                 let print_statement = self
                     .stores
                     .print_statement_cache
-                    .get_or_insert(print_statement_id, stage.print_crate_value)?;
+                    .get_or_insert(print_statement_id, stage.print_crate)?;
 
                 self.stage = stage.next(print_statement);
                 self.decode(src)
@@ -202,7 +202,7 @@ mod tests {
 
         match decoder.stage {
             DecoderWants::PrintStatementId(stage) => {
-                assert_eq!(expected_crate_value.1, stage.print_crate_value.1);
+                assert_eq!(&expected_crate_value.1, stage.print_crate.record);
             }
             _ => panic!("unexpected stage"),
         }
@@ -258,7 +258,12 @@ mod tests {
 
         put_and_decode_print_statement_id(&mut decoder, print_statement_id);
 
-        let cached_print_statement = decoder.stores.print_statement_cache.inner().get(&print_statement_id);
+        let cached_print_statement = decoder
+            .stores
+            .print_statement_cache
+            .inner()
+            .get(&(crate_id, print_statement_id));
+
         assert!(cached_print_statement.is_some());
 
         let expected_segments = print_statement.segments().iter().collect::<Vec<_>>();
