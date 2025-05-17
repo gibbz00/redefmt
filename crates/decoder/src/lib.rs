@@ -30,14 +30,14 @@ pub(crate) use crate_cache::{CrateCache, CrateValue};
 mod statement_cache;
 pub(crate) use statement_cache::StatementCache;
 
-mod segment_context;
-pub(crate) use segment_context::SegmentContext;
+mod segment_decoder;
+pub(crate) use segment_decoder::SegmentsDecoder;
 
-mod value_context;
-pub(crate) use value_context::ValueContext;
+mod value_decoder;
+pub(crate) use value_decoder::ValueDecoder;
 
-mod list_context;
-pub(crate) use list_context::ListValueContext;
+mod list_decoder;
+pub(crate) use list_decoder::ListValueDecoder;
 
 mod utils;
 pub(crate) use utils::DecoderUtils;

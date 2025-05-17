@@ -77,7 +77,7 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
                 self.decode(src)
             }
             DecoderWants::PrintStatement(mut stage) => {
-                if stage.segment_context.decode(&self.stores, src)?.is_none() {
+                if stage.segment_decoder.decode(&self.stores, src)?.is_none() {
                     self.stage = DecoderWants::PrintStatement(stage);
                     return Ok(None);
                 }
@@ -85,7 +85,7 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
                 let item = RedefmtFrame {
                     stamp: stage.stamp,
                     print_info: stage.print_info,
-                    segments: stage.segment_context.decoded_segments,
+                    segments: stage.segment_decoder.decoded_segments,
                 };
 
                 self.stage = DecoderWants::Header;
@@ -265,7 +265,7 @@ mod tests {
 
         match decoder.stage {
             DecoderWants::PrintStatement(stage) => {
-                let actual_segments = stage.segment_context.segments.collect::<Vec<_>>();
+                let actual_segments = stage.segment_decoder.segments.collect::<Vec<_>>();
                 assert_eq!(expected_segments, actual_segments);
             }
             _ => panic!("unexpected stage"),
