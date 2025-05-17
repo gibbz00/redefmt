@@ -1,5 +1,5 @@
 [package]
-name = "redefmt-common"
+name = "redefmt"
 
 authors.workspace = true
 edition.workspace = true
@@ -36,6 +36,6 @@ bytes = { version = "1.10", default-features = false, optional = true }
 critical-section = { version = "1.2", features = ["std"], optional = true }
 
 [dev-dependencies]
-redefmt-common = { path = ".", features = ["testing"] }
+redefmt = { path = ".", features = ["testing"] }
 
 num-traits = "0.2"
