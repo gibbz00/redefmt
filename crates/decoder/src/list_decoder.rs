@@ -3,15 +3,15 @@ use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 
-pub struct ListValueDecoder<'caches> {
+pub struct ListValueDecoder<'cache> {
     pointer_width: PointerWidth,
     expected_length: usize,
-    buffer: Vec<ComplexValue<'caches>>,
-    element_context: Option<Box<ValueDecoder<'caches>>>,
+    buffer: Vec<ComplexValue<'cache>>,
+    element_context: Option<Box<ValueDecoder<'cache>>>,
     element_type_hint: Option<TypeHint>,
 }
 
-impl<'caches> ListValueDecoder<'caches> {
+impl<'cache> ListValueDecoder<'cache> {
     pub fn new(pointer_width: PointerWidth, expected_length: usize) -> Self {
         Self {
             pointer_width,
@@ -24,9 +24,9 @@ impl<'caches> ListValueDecoder<'caches> {
 
     pub fn decode_list(
         &mut self,
-        stores: &DecoderStores<'caches>,
+        stores: &DecoderStores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<Vec<ComplexValue<'caches>>>, RedefmtDecoderError> {
+    ) -> Result<Option<Vec<ComplexValue<'cache>>>, RedefmtDecoderError> {
         let Some(element_type_hint) = self.get_or_insert_element_type_hint(src)? else {
             return Ok(None);
         };
@@ -54,9 +54,9 @@ impl<'caches> ListValueDecoder<'caches> {
 
     pub fn decode_dyn_list(
         &mut self,
-        stores: &DecoderStores<'caches>,
+        stores: &DecoderStores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<Vec<ComplexValue<'caches>>>, RedefmtDecoderError> {
+    ) -> Result<Option<Vec<ComplexValue<'cache>>>, RedefmtDecoderError> {
         while self.buffer.len() < self.expected_length {
             let Some(element_type_hint) = self.get_or_insert_element_type_hint(src)? else {
                 return Ok(None);

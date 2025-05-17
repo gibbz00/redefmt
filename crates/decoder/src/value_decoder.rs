@@ -7,15 +7,15 @@ use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::{value::ComplexValue, *};
 
-pub struct ValueDecoder<'caches> {
+pub struct ValueDecoder<'cache> {
     pointer_width: PointerWidth,
     type_hint: TypeHint,
     length_context: Option<usize>,
-    list_decoder: Option<ListValueDecoder<'caches>>,
-    write_decoder: Option<WriteStatementDecoder<'caches>>,
+    list_decoder: Option<ListValueDecoder<'cache>>,
+    write_decoder: Option<WriteStatementDecoder<'cache>>,
 }
 
-impl<'caches> ValueDecoder<'caches> {
+impl<'cache> ValueDecoder<'cache> {
     pub fn new(pointer_width: PointerWidth, type_hint: TypeHint) -> Self {
         Self {
             pointer_width,
@@ -28,9 +28,9 @@ impl<'caches> ValueDecoder<'caches> {
 
     pub fn decode(
         &mut self,
-        stores: &DecoderStores<'caches>,
+        stores: &DecoderStores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<ComplexValue<'caches>>, RedefmtDecoderError> {
+    ) -> Result<Option<ComplexValue<'cache>>, RedefmtDecoderError> {
         let maybe_simple_value = match self.type_hint {
             TypeHint::U8 => src.try_get_u8().ok().map(Value::U8),
             TypeHint::U16 => src.try_get_u16().ok().map(Value::U16),
@@ -164,7 +164,7 @@ impl<'caches> ValueDecoder<'caches> {
         Ok(Some(length))
     }
 
-    fn get_or_store_u8_list(&mut self, src: &mut BytesMut) -> Option<&mut ListValueDecoder<'caches>> {
+    fn get_or_store_u8_list(&mut self, src: &mut BytesMut) -> Option<&mut ListValueDecoder<'cache>> {
         if self.list_decoder.is_none() {
             let Ok(length) = src.try_get_u8().map(Into::into) else {
                 return None;
@@ -179,7 +179,7 @@ impl<'caches> ValueDecoder<'caches> {
     fn get_or_store_usize_list(
         &mut self,
         src: &mut BytesMut,
-    ) -> Result<Option<&mut ListValueDecoder<'caches>>, RedefmtDecoderError> {
+    ) -> Result<Option<&mut ListValueDecoder<'cache>>, RedefmtDecoderError> {
         if self.list_decoder.is_none() {
             let Some(length) = self.get_usize(src)? else {
                 return Ok(None);
@@ -203,9 +203,9 @@ impl<'caches> ValueDecoder<'caches> {
 
     fn get_or_store_write_decoder(
         &mut self,
-        stores: &DecoderStores<'caches>,
+        stores: &DecoderStores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<&mut WriteStatementDecoder<'caches>>, RedefmtDecoderError> {
+    ) -> Result<Option<&mut WriteStatementDecoder<'cache>>, RedefmtDecoderError> {
         if self.write_decoder.is_none() {
             let Ok(crate_id) = src.try_get_u16().map(CrateId::new) else {
                 return Ok(None);
@@ -361,10 +361,10 @@ mod tests {
         assert_value(type_hint, encoded_value, |t| ComplexValue::Value(from_inner(t)));
     }
 
-    fn assert_value<'caches, T: WriteValue>(
+    fn assert_value<'cache, T: WriteValue>(
         type_hint: TypeHint,
         encoded_value: T,
-        from_inner: impl FnOnce(T) -> ComplexValue<'caches>,
+        from_inner: impl FnOnce(T) -> ComplexValue<'cache>,
     ) {
         let cache = DecoderCache::default();
         let (_dir_guard, stores) = DecoderStores::mock(&cache);

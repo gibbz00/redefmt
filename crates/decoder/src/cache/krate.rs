@@ -9,10 +9,10 @@ use crate::*;
 type CrateValue = (DbClient<CrateDb>, Crate<'static>);
 
 #[derive(Clone, Copy)]
-pub struct CrateContext<'caches> {
+pub struct CrateContext<'cache> {
     pub id: CrateId,
-    pub record: &'caches Crate<'static>,
-    pub db: &'caches DbClient<CrateDb>,
+    pub record: &'cache Crate<'static>,
+    pub db: &'cache DbClient<CrateDb>,
 }
 
 #[derive(Default)]

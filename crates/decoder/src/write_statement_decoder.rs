@@ -4,29 +4,29 @@ use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 
-pub struct WriteStatementDecoder<'caches> {
+pub struct WriteStatementDecoder<'cache> {
     pointer_width: PointerWidth,
-    write_crate: CrateContext<'caches>,
-    stage: WriteStatementDecoderStage<'caches>,
+    write_crate: CrateContext<'cache>,
+    stage: WriteStatementDecoderStage<'cache>,
 }
 
 #[derive(Default)]
-enum WriteStatementDecoderStage<'caches> {
+enum WriteStatementDecoderStage<'cache> {
     #[default]
     New,
-    Segments(Box<SegmentsDecoder<'caches>>),
+    Segments(Box<SegmentsDecoder<'cache>>),
 }
 
-impl<'caches> WriteStatementDecoder<'caches> {
-    pub fn new(pointer_width: PointerWidth, write_crate: CrateContext<'caches>) -> Self {
+impl<'cache> WriteStatementDecoder<'cache> {
+    pub fn new(pointer_width: PointerWidth, write_crate: CrateContext<'cache>) -> Self {
         Self { pointer_width, write_crate, stage: WriteStatementDecoderStage::New }
     }
 
     pub fn decode(
         &mut self,
-        stores: &DecoderStores<'caches>,
+        stores: &DecoderStores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<ComplexValue<'caches>>, RedefmtDecoderError> {
+    ) -> Result<Option<ComplexValue<'cache>>, RedefmtDecoderError> {
         let current_stage = std::mem::take(&mut self.stage);
 
         match current_stage {
