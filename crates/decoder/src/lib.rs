@@ -9,6 +9,11 @@ pub(crate) use error::RedefmtDecoderError;
 mod core;
 pub use core::RedefmtDecoder;
 
+mod stage;
+pub(crate) use stage::{
+    DecoderWants, WantsPrintCrateIdStage, WantsPrintStatementIdStage, WantsPrintStatementStage, WantsStampStage,
+};
+
 mod frame;
 pub(crate) use frame::{DecodedSegment, RedefmtFrame};
 
