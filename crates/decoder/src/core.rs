@@ -70,7 +70,8 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
 
                 let print_statement = self
                     .stores
-                    .print_statement_cache
+                    .cache
+                    .print_statement
                     .get_or_insert(print_statement_id, stage.print_crate)?;
 
                 self.stage = stage.next(print_statement);
@@ -98,17 +99,13 @@ impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
 
 #[cfg(test)]
 mod mock {
-    use redefmt_db::statement_table::print::PrintStatement;
     use tempfile::TempDir;
 
     use super::*;
 
     impl<'caches> RedefmtDecoder<'caches> {
-        pub fn mock(
-            crate_cache: &'caches CrateCache,
-            print_statement_cache: &'caches StatementCache<PrintStatement<'static>>,
-        ) -> (TempDir, Self) {
-            let (temp_dir, stores) = DecoderStores::mock(crate_cache, print_statement_cache);
+        pub fn mock(cache: &'caches DecoderCache) -> (TempDir, Self) {
+            let (temp_dir, stores) = DecoderStores::mock(cache);
 
             let decoder = RedefmtDecoder::new(stores);
 
@@ -136,9 +133,8 @@ mod tests {
 
     #[test]
     fn header() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         assert!(matches!(decoder.stage, DecoderWants::Header));
 
@@ -160,9 +156,8 @@ mod tests {
 
     #[test]
     fn stamp() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         let header = Header::STAMP;
         let stamp = Stamp::new(123);
@@ -186,19 +181,18 @@ mod tests {
 
     #[test]
     fn print_crate_id() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
         let crate_id = seed_crate(&decoder);
 
-        assert!(crate_cache.inner().is_empty());
+        assert!(cache.krate.inner().is_empty());
 
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
-        let expected_crate_value = decoder.stores.crate_cache.inner().get(&crate_id).unwrap();
+        let expected_crate_value = cache.krate.inner().get(&crate_id).unwrap();
 
         match decoder.stage {
             DecoderWants::PrintStatementId(stage) => {
@@ -210,9 +204,8 @@ mod tests {
 
     #[test]
     fn print_crate_id_not_found_error() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -227,9 +220,8 @@ mod tests {
 
     #[test]
     fn empty_after_print_crate_id() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -242,9 +234,8 @@ mod tests {
 
     #[test]
     fn print_statement_id() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -254,15 +245,11 @@ mod tests {
         let (print_statement_id, print_statement) = seed_print_statement(&decoder, crate_id);
 
         assert!(!matches!(decoder.stage, DecoderWants::PrintStatement(_)));
-        assert!(decoder.stores.print_statement_cache.inner().is_empty());
+        assert!(cache.print_statement.inner().is_empty());
 
         put_and_decode_print_statement_id(&mut decoder, print_statement_id);
 
-        let cached_print_statement = decoder
-            .stores
-            .print_statement_cache
-            .inner()
-            .get(&(crate_id, print_statement_id));
+        let cached_print_statement = cache.print_statement.inner().get(&(crate_id, print_statement_id));
 
         assert!(cached_print_statement.is_some());
 
@@ -279,9 +266,8 @@ mod tests {
 
     #[test]
     fn print_statement_id_not_found_error() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -299,9 +285,8 @@ mod tests {
 
     #[test]
     fn full() {
-        let crate_cache = CrateCache::new();
-        let print_statement_cache = StatementCache::new();
-        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&crate_cache, &print_statement_cache);
+        let cache = DecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -340,7 +325,7 @@ mod tests {
         decoder: &RedefmtDecoder,
         crate_id: CrateId,
     ) -> (PrintStatementId, PrintStatement<'static>) {
-        let (crate_db, _) = decoder.stores.crate_cache.inner().get(&crate_id).unwrap();
+        let (crate_db, _) = decoder.stores.cache.krate.inner().get(&crate_id).unwrap();
 
         let statement = mock_print_statement();
         let id = crate_db.insert(&statement).unwrap();

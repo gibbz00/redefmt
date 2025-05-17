@@ -13,12 +13,6 @@ pub struct StatementCache<T: StatementTable> {
 }
 
 impl<T: StatementTable> StatementCache<T> {
-    // TEMP:
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self { map: Default::default() }
-    }
-
     pub fn get_or_insert(&self, id: T::Id, crate_context: CrateContext) -> Result<&T, RedefmtDecoderError>
     where
         T::Id: Copy + AsRef<u16> + Hash + Eq,
@@ -41,6 +35,13 @@ impl<T: StatementTable> StatementCache<T> {
         };
 
         Ok(statement)
+    }
+}
+
+// overkill to pull in impl_tools::auto_impl
+impl<T: StatementTable> Default for StatementCache<T> {
+    fn default() -> Self {
+        Self { map: Default::default() }
     }
 }
 

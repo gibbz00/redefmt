@@ -21,11 +21,8 @@ pub(crate) use value::Value;
 mod stores;
 pub(crate) use stores::DecoderStores;
 
-mod crate_cache;
-pub(crate) use crate_cache::{CrateCache, CrateContext};
-
-mod statement_cache;
-pub(crate) use statement_cache::StatementCache;
+mod cache;
+pub(crate) use cache::*;
 
 mod segment_decoder;
 pub(crate) use segment_decoder::SegmentsDecoder;
