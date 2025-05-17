@@ -1,4 +1,4 @@
-use redefmt_common::{
+use redefmt::{
     codec::frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
 };
@@ -117,7 +117,7 @@ mod mock {
 #[cfg(test)]
 mod tests {
     use redefmt_args::FormatOptions;
-    use redefmt_common::codec::encoding::{SimpleTestDispatcher, WriteValue};
+    use redefmt::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use redefmt_common::identifiers::CrateId;
+use redefmt::identifiers::CrateId;
 use redefmt_db::{DbClient, MainDb, StateDir};
 
 use crate::*;

@@ -1,7 +1,7 @@
 use std::{iter::Peekable, slice::Iter as SliceIter};
 
 use redefmt_args::FormatOptions;
-use redefmt_common::codec::frame::{PointerWidth, TypeHint};
+use redefmt::codec::frame::{PointerWidth, TypeHint};
 use redefmt_db::statement_table::Segment;
 use tokio_util::bytes::{Buf, BytesMut};
 

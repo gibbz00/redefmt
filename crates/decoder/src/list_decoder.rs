@@ -1,4 +1,4 @@
-use redefmt_common::codec::frame::{PointerWidth, TypeHint};
+use redefmt::codec::frame::{PointerWidth, TypeHint};
 use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;

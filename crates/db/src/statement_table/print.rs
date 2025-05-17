@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use redefmt_common::identifiers::PrintStatementId;
+use redefmt::identifiers::PrintStatementId;
 
 use crate::*;
 
