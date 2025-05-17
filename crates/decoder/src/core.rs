@@ -6,22 +6,22 @@ use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 
-pub struct RedefmtDecoder<'caches> {
+pub struct RedefmtDecoder<'cache> {
     // frame indenpendent state
-    stores: DecoderStores<'caches>,
+    stores: DecoderStores<'cache>,
     // reset per frame
-    stage: DecoderWants<'caches>,
+    stage: DecoderWants<'cache>,
 }
 
-impl<'caches> RedefmtDecoder<'caches> {
-    pub fn new(stores: DecoderStores<'caches>) -> Self {
+impl<'cache> RedefmtDecoder<'cache> {
+    pub fn new(stores: DecoderStores<'cache>) -> Self {
         Self { stores, stage: DecoderWants::Header }
     }
 }
 
-impl<'caches> tokio_util::codec::Decoder for RedefmtDecoder<'caches> {
+impl<'cache> tokio_util::codec::Decoder for RedefmtDecoder<'cache> {
     type Error = RedefmtDecoderError;
-    type Item = RedefmtFrame<'caches>;
+    type Item = RedefmtFrame<'cache>;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let current_stage = std::mem::take(&mut self.stage);
@@ -103,8 +103,8 @@ mod mock {
 
     use super::*;
 
-    impl<'caches> RedefmtDecoder<'caches> {
-        pub fn mock(cache: &'caches DecoderCache) -> (TempDir, Self) {
+    impl<'cache> RedefmtDecoder<'cache> {
+        pub fn mock(cache: &'cache DecoderCache) -> (TempDir, Self) {
             let (temp_dir, stores) = DecoderStores::mock(cache);
 
             let decoder = RedefmtDecoder::new(stores);
