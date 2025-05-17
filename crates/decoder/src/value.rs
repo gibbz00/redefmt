@@ -21,30 +21,36 @@ pub enum Value {
     // Collections
     Char(char),
     String(String),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ComplexValue<'cache> {
+    Value(Value),
     // Reused for array, vec and slice containing both single and dyn values.
-    List(Vec<Value>),
-    Tuple(Vec<Value>),
-    Type(Type),
+    List(Vec<ComplexValue<'cache>>),
+    Tuple(Vec<ComplexValue<'cache>>),
+    Type(Type<'cache>),
+    Segments(Vec<DecodedSegment<'cache>>),
     // TODO:
     // Set(Vec<Value>),
     // Map(Vec<(Value, Value)>),
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Type {
+pub struct Type<'cache> {
     name: String,
-    variant: TypeVariant,
+    variant: TypeVariant<'cache>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum TypeVariant {
-    Struct(StructVariant),
-    Enum(Vec<(String, StructVariant)>),
+pub enum TypeVariant<'cache> {
+    Struct(StructVariant<'cache>),
+    Enum(Vec<(String, StructVariant<'cache>)>),
 }
 
 #[derive(Debug, PartialEq)]
-pub enum StructVariant {
+pub enum StructVariant<'cache> {
     Unit,
-    Tuple(Vec<Value>),
-    Named(Vec<(String, Value)>),
+    Tuple(Vec<ComplexValue<'cache>>),
+    Named(Vec<(String, ComplexValue<'cache>)>),
 }

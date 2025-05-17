@@ -16,7 +16,7 @@ mod frame;
 pub(crate) use frame::{DecodedSegment, RedefmtFrame};
 
 mod value;
-pub(crate) use value::Value;
+pub(crate) use value::{ComplexValue, Value};
 
 mod stores;
 pub(crate) use stores::DecoderStores;

@@ -304,7 +304,7 @@ mod tests {
             stamp: None,
             print_info: print_statement.info(),
             segments: vec![
-                DecodedSegment::Value(Value::Boolean(value), &format_options),
+                DecodedSegment::Value(ComplexValue::Value(Value::Boolean(value)), &format_options),
                 DecodedSegment::Str("x"),
             ],
         };
