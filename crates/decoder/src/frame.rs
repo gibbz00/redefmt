@@ -28,5 +28,5 @@ pub struct RedefmtFrame<'caches> {
 #[derive(Debug, PartialEq)]
 pub enum DecodedSegment<'caches> {
     Str(&'caches str),
-    Value(Value, &'caches FormatOptions<'static>),
+    Value(ComplexValue<'caches>, &'caches FormatOptions<'static>),
 }

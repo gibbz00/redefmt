@@ -6,7 +6,7 @@ use crate::*;
 pub struct ListValueDecoder<'caches> {
     pointer_width: PointerWidth,
     expected_length: usize,
-    buffer: Vec<Value>,
+    buffer: Vec<ComplexValue<'caches>>,
     element_context: Option<Box<ValueDecoder<'caches>>>,
     element_type_hint: Option<TypeHint>,
 }
@@ -26,7 +26,7 @@ impl<'caches> ListValueDecoder<'caches> {
         &mut self,
         stores: &DecoderStores<'caches>,
         src: &mut BytesMut,
-    ) -> Result<Option<Vec<Value>>, RedefmtDecoderError> {
+    ) -> Result<Option<Vec<ComplexValue<'caches>>>, RedefmtDecoderError> {
         let Some(element_type_hint) = self.get_or_insert_element_type_hint(src)? else {
             return Ok(None);
         };
@@ -56,7 +56,7 @@ impl<'caches> ListValueDecoder<'caches> {
         &mut self,
         stores: &DecoderStores<'caches>,
         src: &mut BytesMut,
-    ) -> Result<Option<Vec<Value>>, RedefmtDecoderError> {
+    ) -> Result<Option<Vec<ComplexValue<'caches>>>, RedefmtDecoderError> {
         while self.buffer.len() < self.expected_length {
             let Some(element_type_hint) = self.get_or_insert_element_type_hint(src)? else {
                 return Ok(None);
