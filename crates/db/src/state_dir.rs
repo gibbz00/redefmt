@@ -1,7 +1,8 @@
 use std::{io::Error as IoError, path::PathBuf};
 
-use redefmt::APPLICATION_NAME;
 use xdg::BaseDirectoriesError;
+
+const APPLICATION_NAME: &str = "redefmt";
 
 const XDG_ENV_NAME: &str = "XDG_STATE_HOME";
 

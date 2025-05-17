@@ -15,12 +15,15 @@ workspace = true
 [features]
 alloc = []
 db = ["dep:rusqlite"]
+derive = ["dep:redefmt-macros"]
 testing = ["alloc", "dep:bytes", "dep:critical-section"]
 
 [dependencies]
 # Internal
-redefmt-args.workspace = true
 redefmt-internal-macros.workspace = true
+
+# feature: derive
+redefmt-macros = { workspace = true, optional = true }
 
 # External
 bitflags = "2.9.0"
@@ -36,6 +39,7 @@ bytes = { version = "1.10", default-features = false, optional = true }
 critical-section = { version = "1.2", features = ["std"], optional = true }
 
 [dev-dependencies]
-redefmt = { path = ".", features = ["testing"] }
+redefmt = { path = ".", features = ["alloc", "derive", "testing"] }
 
 num-traits = "0.2"
+trybuild = "1"
