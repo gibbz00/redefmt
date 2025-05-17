@@ -41,14 +41,14 @@ impl<'caches> WantsPrintStatementIdStage<'caches> {
         let Self { header, stamp, .. } = self;
 
         let print_info = print_statement.info();
-        let segment_context = SegmentContext::new(header.pointer_width(), print_statement.segments());
+        let segment_decoder = SegmentsDecoder::new(header.pointer_width(), print_statement.segments());
 
-        DecoderWants::PrintStatement(WantsPrintStatementStage { stamp, print_info, segment_context })
+        DecoderWants::PrintStatement(WantsPrintStatementStage { stamp, print_info, segment_decoder })
     }
 }
 
 pub struct WantsPrintStatementStage<'caches> {
     pub stamp: Option<Stamp>,
     pub print_info: &'caches PrintInfo<'static>,
-    pub segment_context: SegmentContext<'caches>,
+    pub segment_decoder: SegmentsDecoder<'caches>,
 }

@@ -4,28 +4,26 @@ use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::*;
 
-pub struct ValueContext<'caches> {
+pub struct ValueDecoder<'caches> {
     pointer_width: PointerWidth,
     type_hint: TypeHint,
     length_context: Option<usize>,
-    list_context: Option<ListValueContext<'caches>>,
-    write_context: WriteStatementWants<'caches>,
+    list_decoder: Option<ListValueDecoder<'caches>>,
+    write_decoder: WriteStatementWants<'caches>,
 }
 
-impl<'caches> ValueContext<'caches> {
+impl<'caches> ValueDecoder<'caches> {
     pub fn new(pointer_width: PointerWidth, type_hint: TypeHint) -> Self {
         Self {
             pointer_width,
             type_hint,
             length_context: None,
-            list_context: None,
-            write_context: Default::default(),
+            list_decoder: None,
+            write_decoder: Default::default(),
         }
     }
 
-    /// Returns no if `src` does not yet contain enough bytes for the given type hint.
-    /// `value_context` must be cleared by callee if function returns Ok(Some(value))
-    pub fn decode_value(
+    pub fn decode(
         &mut self,
         stores: &DecoderStores<'caches>,
         src: &mut BytesMut,
@@ -97,33 +95,33 @@ impl<'caches> ValueContext<'caches> {
                 Some(Value::String(string))
             }
             TypeHint::Tuple => {
-                let Some(list_context) = self.get_or_store_u8_list(src) else {
+                let Some(list_decoder) = self.get_or_store_u8_list(src) else {
                     return Ok(None);
                 };
 
-                let Some(values) = list_context.decode_dyn_list(stores, src)? else {
+                let Some(values) = list_decoder.decode_dyn_list(stores, src)? else {
                     return Ok(None);
                 };
 
                 Some(Value::Tuple(values))
             }
             TypeHint::DynList => {
-                let Some(list_context) = self.get_or_store_usize_list(src)? else {
+                let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
                     return Ok(None);
                 };
 
-                let Some(values) = list_context.decode_dyn_list(stores, src)? else {
+                let Some(values) = list_decoder.decode_dyn_list(stores, src)? else {
                     return Ok(None);
                 };
 
                 Some(Value::List(values))
             }
             TypeHint::List => {
-                let Some(list_context) = self.get_or_store_usize_list(src)? else {
+                let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
                     return Ok(None);
                 };
 
-                let Some(values) = list_context.decode_list(stores, src)? else {
+                let Some(values) = list_decoder.decode_list(stores, src)? else {
                     return Ok(None);
                 };
 
@@ -168,33 +166,31 @@ impl<'caches> ValueContext<'caches> {
         Ok(Some(length))
     }
 
-    fn get_or_store_u8_list(&mut self, src: &mut BytesMut) -> Option<&mut ListValueContext<'caches>> {
-        if self.list_context.is_none() {
+    fn get_or_store_u8_list(&mut self, src: &mut BytesMut) -> Option<&mut ListValueDecoder<'caches>> {
+        if self.list_decoder.is_none() {
             let Ok(length) = src.try_get_u8().map(Into::into) else {
                 return None;
             };
 
-            let list_context = ListValueContext::new(self.pointer_width, length);
-            self.list_context = Some(list_context);
+            self.list_decoder = Some(ListValueDecoder::new(self.pointer_width, length));
         }
 
-        self.list_context.as_mut()
+        self.list_decoder.as_mut()
     }
 
     fn get_or_store_usize_list(
         &mut self,
         src: &mut BytesMut,
-    ) -> Result<Option<&mut ListValueContext<'caches>>, RedefmtDecoderError> {
-        if self.list_context.is_none() {
+    ) -> Result<Option<&mut ListValueDecoder<'caches>>, RedefmtDecoderError> {
+        if self.list_decoder.is_none() {
             let Some(length) = self.get_usize(src)? else {
                 return Ok(None);
             };
 
-            let list_context = ListValueContext::new(self.pointer_width, length);
-            self.list_context = Some(list_context);
+            self.list_decoder = Some(ListValueDecoder::new(self.pointer_width, length));
         }
 
-        Ok(self.list_context.as_mut())
+        Ok(self.list_decoder.as_mut())
     }
 
     fn get_usize(&self, src: &mut BytesMut) -> Result<Option<usize>, RedefmtDecoderError> {
@@ -226,10 +222,10 @@ mod tests {
         let print_statement_cache = StatementCache::new();
         let (_dir_guard, stores) = DecoderStores::mock(&crate_cache, &print_statement_cache);
 
-        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), TypeHint::Boolean);
+        let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), TypeHint::Boolean);
         let mut bytes = BytesMut::from_iter([2]);
 
-        let error = value_decoder.decode_value(&stores, &mut bytes).unwrap_err();
+        let error = value_decoder.decode(&stores, &mut bytes).unwrap_err();
 
         assert!(matches!(error, RedefmtDecoderError::InvalidValueBytes(_, _)));
     }
@@ -274,9 +270,9 @@ mod tests {
         bytes.put_u8(invalid_utf8_bytes.len() as u8);
         bytes.put_slice(&invalid_utf8_bytes);
 
-        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), TypeHint::Char);
+        let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), TypeHint::Char);
 
-        let error = value_decoder.decode_value(&stores, &mut bytes).unwrap_err();
+        let error = value_decoder.decode(&stores, &mut bytes).unwrap_err();
 
         assert!(matches!(error, RedefmtDecoderError::InvalidUtf8Char(_)))
     }
@@ -298,9 +294,9 @@ mod tests {
         bytes.put_slice(&invalid_utf8_bytes.len().to_be_bytes());
         bytes.put_slice(&invalid_utf8_bytes);
 
-        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), TypeHint::StringSlice);
+        let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), TypeHint::StringSlice);
 
-        let error = value_decoder.decode_value(&stores, &mut bytes).unwrap_err();
+        let error = value_decoder.decode(&stores, &mut bytes).unwrap_err();
 
         assert!(matches!(error, RedefmtDecoderError::InvalidStringBytes(_)))
     }
@@ -347,12 +343,9 @@ mod tests {
 
         assert_eq!(dispatched_type_hint, type_hint);
 
-        let mut value_decoder = ValueContext::new(PointerWidth::of_target(), type_hint);
+        let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), type_hint);
 
-        let actual_value = value_decoder
-            .decode_value(&stores, &mut dispatched_bytes)
-            .unwrap()
-            .unwrap();
+        let actual_value = value_decoder.decode(&stores, &mut dispatched_bytes).unwrap().unwrap();
 
         let expected_value = from_inner(encoded_value);
 

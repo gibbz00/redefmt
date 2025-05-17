@@ -3,15 +3,15 @@ use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 
-pub struct ListValueContext<'caches> {
+pub struct ListValueDecoder<'caches> {
     pointer_width: PointerWidth,
     expected_length: usize,
     buffer: Vec<Value>,
-    element_context: Option<Box<ValueContext<'caches>>>,
+    element_context: Option<Box<ValueDecoder<'caches>>>,
     element_type_hint: Option<TypeHint>,
 }
 
-impl<'caches> ListValueContext<'caches> {
+impl<'caches> ListValueDecoder<'caches> {
     pub fn new(pointer_width: PointerWidth, expected_length: usize) -> Self {
         Self {
             pointer_width,
@@ -34,9 +34,9 @@ impl<'caches> ListValueContext<'caches> {
         while self.buffer.len() < self.expected_length {
             let element_context = self
                 .element_context
-                .get_or_insert_with(|| Box::new(ValueContext::new(self.pointer_width, element_type_hint)));
+                .get_or_insert_with(|| Box::new(ValueDecoder::new(self.pointer_width, element_type_hint)));
 
-            match element_context.decode_value(stores, src)? {
+            match element_context.decode(stores, src)? {
                 Some(value) => {
                     self.buffer.push(value);
                     self.element_context = None;
@@ -64,9 +64,9 @@ impl<'caches> ListValueContext<'caches> {
 
             let element_context = self
                 .element_context
-                .get_or_insert_with(|| Box::new(ValueContext::new(self.pointer_width, element_type_hint)));
+                .get_or_insert_with(|| Box::new(ValueDecoder::new(self.pointer_width, element_type_hint)));
 
-            match element_context.decode_value(stores, src)? {
+            match element_context.decode(stores, src)? {
                 Some(value) => {
                     self.buffer.push(value);
 

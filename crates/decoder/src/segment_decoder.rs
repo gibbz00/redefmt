@@ -10,17 +10,17 @@ use crate::*;
 struct SegmentValueContext<'caches> {
     type_hint: TypeHint,
     format_options: &'caches FormatOptions<'static>,
-    value_context: ValueContext<'caches>,
+    value_decoder: ValueDecoder<'caches>,
 }
 
-pub struct SegmentContext<'caches> {
+pub struct SegmentsDecoder<'caches> {
     pointer_width: PointerWidth,
     current_value: Option<SegmentValueContext<'caches>>,
     pub(crate) segments: Peekable<SliceIter<'caches, Segment<'static>>>,
     pub(crate) decoded_segments: Vec<DecodedSegment<'caches>>,
 }
 
-impl<'caches> SegmentContext<'caches> {
+impl<'caches> SegmentsDecoder<'caches> {
     pub fn new(pointer_width: PointerWidth, segments: &'caches [Segment<'static>]) -> Self {
         let segments_iter = segments.iter().peekable();
 
@@ -41,15 +41,15 @@ impl<'caches> SegmentContext<'caches> {
         src: &mut BytesMut,
     ) -> Result<Option<()>, RedefmtDecoderError> {
         if let Some(current_value_context) = self.current_value.take() {
-            let SegmentValueContext { type_hint, format_options, mut value_context } = current_value_context;
+            let SegmentValueContext { type_hint, format_options, mut value_decoder } = current_value_context;
 
-            match value_context.decode_value(stores, src)? {
+            match value_decoder.decode(stores, src)? {
                 Some(value) => {
                     self.decoded_segments.push(DecodedSegment::Value(value, format_options));
                     self.current_value = None;
                 }
                 None => {
-                    self.current_value = Some(SegmentValueContext { type_hint, format_options, value_context });
+                    self.current_value = Some(SegmentValueContext { type_hint, format_options, value_decoder });
                     return Ok(None);
                 }
             }
@@ -69,15 +69,15 @@ impl<'caches> SegmentContext<'caches> {
                     let type_hint = TypeHint::from_repr(type_hint_repr)
                         .ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
 
-                    let mut value_context = ValueContext::new(self.pointer_width, type_hint);
+                    let mut value_decoder = ValueDecoder::new(self.pointer_width, type_hint);
 
-                    match value_context.decode_value(stores, src)? {
+                    match value_decoder.decode(stores, src)? {
                         Some(value) => {
                             self.decoded_segments.push(DecodedSegment::Value(value, format_options));
                             self.segments.next();
                         }
                         None => {
-                            self.current_value = Some(SegmentValueContext { type_hint, format_options, value_context });
+                            self.current_value = Some(SegmentValueContext { type_hint, format_options, value_decoder });
                             return Ok(None);
                         }
                     }
