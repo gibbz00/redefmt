@@ -135,6 +135,8 @@ impl<'caches> ValueDecoder<'caches> {
                     return Ok(None);
                 };
 
+                let x = write_statement_decoder.decode(stores, src)?;
+
                 todo!();
             } /* TODO:
                * TypeHint::Set => todo!(),
@@ -222,7 +224,7 @@ impl<'caches> ValueDecoder<'caches> {
 
             let write_crate = stores.get_or_insert_crate(crate_id)?;
 
-            self.write_decoder = Some(WriteStatementDecoder { write_crate })
+            self.write_decoder = Some(WriteStatementDecoder::new(self.pointer_width, write_crate))
         }
 
         Ok(self.write_decoder.as_mut())
