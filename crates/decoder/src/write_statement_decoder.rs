@@ -26,7 +26,7 @@ impl<'caches> WriteStatementDecoder<'caches> {
         &mut self,
         stores: &DecoderStores<'caches>,
         src: &mut BytesMut,
-    ) -> Result<Option<Value>, RedefmtDecoderError> {
+    ) -> Result<Option<ComplexValue<'caches>>, RedefmtDecoderError> {
         let current_stage = std::mem::take(&mut self.stage);
 
         match current_stage {
@@ -49,8 +49,13 @@ impl<'caches> WriteStatementDecoder<'caches> {
                     WriteStatement::TypeStructure(type_structure) => todo!(),
                 }
             }
-            WriteStatementDecoderStage::Segments(segments_decoder) => {
-                todo!()
+            WriteStatementDecoderStage::Segments(mut segment_decoder) => {
+                if segment_decoder.decode(stores, src)?.is_none() {
+                    self.stage = WriteStatementDecoderStage::Segments(segment_decoder);
+                    return Ok(None);
+                }
+
+                Ok(Some(ComplexValue::Segments(segment_decoder.decoded_segments)))
             }
         }
     }
