@@ -240,7 +240,7 @@ mod tests {
 
     #[test]
     fn boolean_err() {
-        let cache = Cache::default();
+        let cache = RedefmtDecoderCache::default();
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), TypeHint::Boolean);
@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn char_invalid_utf8_error() {
-        let cache = Cache::default();
+        let cache = RedefmtDecoderCache::default();
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn string_invalid_utf8_error() {
-        let cache = Cache::default();
+        let cache = RedefmtDecoderCache::default();
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
@@ -366,7 +366,7 @@ mod tests {
     #[test]
     fn write_segments() {
         // setup
-        let cache = Cache::default();
+        let cache = RedefmtDecoderCache::default();
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         // input
@@ -407,7 +407,7 @@ mod tests {
         encoded_value: T,
         from_inner: impl FnOnce(T) -> ComplexValue<'cache>,
     ) {
-        let cache = Cache::default();
+        let cache = RedefmtDecoderCache::default();
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         let mut dispatcher = SimpleTestDispatcher::default();
