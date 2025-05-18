@@ -81,7 +81,28 @@ fn struct_impl(
                 f.write(#write_id);
             })
         }
-        Fields::Named(fields_named) => todo!(),
+        Fields::Named(fields_named) => {
+            let field_idents = fields_named
+                .named
+                .into_iter()
+                .map(|field| field.ident.expect("named field has no identifier"));
+
+            let field_names = field_idents.clone().map(|x| x.to_string()).collect();
+
+            let write_statement = WriteStatement::TypeStructure(TypeStructure {
+                name: ident.to_string(),
+                variant: TypeStructureVariant::Struct(StructVariant::Named(field_names)),
+            });
+
+            let write_statement_id = db_clients.crate_db.insert(&write_statement)?;
+
+            let write_id = gen_write_id(db_clients.crate_id, write_statement_id);
+
+            Ok(quote! {
+                f.write(#write_id);
+                #(self.#field_idents.fmt(f);)*
+            })
+        }
         Fields::Unnamed(fields_unnamed) => todo!(),
     }
 }
