@@ -103,7 +103,25 @@ fn struct_impl(
                 #(self.#field_idents.fmt(f);)*
             })
         }
-        Fields::Unnamed(fields_unnamed) => todo!(),
+        Fields::Unnamed(fields_unnamed) => {
+            let tuple_length = fields_unnamed.unnamed.len();
+
+            let write_statement = WriteStatement::TypeStructure(TypeStructure {
+                name: ident.to_string(),
+                variant: TypeStructureVariant::Struct(StructVariant::Tuple(tuple_length as u8)),
+            });
+
+            let write_statement_id = db_clients.crate_db.insert(&write_statement)?;
+
+            let write_id = gen_write_id(db_clients.crate_id, write_statement_id);
+
+            let tuple_indexes = (0..tuple_length).map(syn::Index::from);
+
+            Ok(quote! {
+                f.write(#write_id);
+                #(self.#tuple_indexes.fmt(f);)*
+            })
+        }
     }
 }
 
