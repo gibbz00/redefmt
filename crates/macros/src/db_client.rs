@@ -9,10 +9,10 @@ use redefmt_internal::identifiers::CrateId;
 use crate::*;
 
 pub struct DbClients {
-    state_dir: PathBuf,
-    main_db: DbClient<MainDb>,
-    crate_db: DbClient<CrateDb>,
-    crate_id: CrateId,
+    pub state_dir: PathBuf,
+    pub main_db: DbClient<MainDb>,
+    pub crate_db: DbClient<CrateDb>,
+    pub crate_id: CrateId,
 }
 
 impl DbClients {
