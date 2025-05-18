@@ -6,9 +6,6 @@
 mod error;
 pub(crate) use error::RedefmtDecoderError;
 
-mod core;
-pub use core::RedefmtDecoder;
-
 mod decoder_stage;
 pub(crate) use decoder_stage::*;
 
@@ -23,6 +20,9 @@ pub(crate) use stores::DecoderStores;
 
 mod cache;
 pub(crate) use cache::*;
+
+mod frame_decoder;
+pub(crate) use frame_decoder::FrameDecoder;
 
 mod segment_decoder;
 pub(crate) use segment_decoder::SegmentsDecoder;
