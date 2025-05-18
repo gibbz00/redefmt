@@ -5,7 +5,7 @@ use crate::*;
 
 // Can't use generic state parameter on tokio_util::codec::Decoder
 #[derive(Default)]
-pub enum DecoderWants<'cache> {
+pub enum FrameDecoderWants<'cache> {
     #[default]
     Header,
     Stamp(WantsStampStage),
@@ -24,9 +24,9 @@ pub struct WantsPrintCrateIdStage {
 }
 
 impl WantsPrintCrateIdStage {
-    pub fn next<'cache>(self, print_crate: CrateContext<'cache>) -> DecoderWants<'cache> {
+    pub fn next<'cache>(self, print_crate: CrateContext<'cache>) -> FrameDecoderWants<'cache> {
         let Self { header, stamp } = self;
-        DecoderWants::PrintStatementId(WantsPrintStatementIdStage { header, stamp, print_crate })
+        FrameDecoderWants::PrintStatementId(WantsPrintStatementIdStage { header, stamp, print_crate })
     }
 }
 
@@ -37,13 +37,13 @@ pub struct WantsPrintStatementIdStage<'cache> {
 }
 
 impl<'cache> WantsPrintStatementIdStage<'cache> {
-    pub fn next(self, print_statement: &'cache PrintStatement<'static>) -> DecoderWants<'cache> {
+    pub fn next(self, print_statement: &'cache PrintStatement<'static>) -> FrameDecoderWants<'cache> {
         let Self { header, stamp, .. } = self;
 
         let print_info = print_statement.info();
         let segment_decoder = SegmentsDecoder::new(header.pointer_width(), print_statement.segments());
 
-        DecoderWants::PrintStatement(WantsPrintStatementStage { stamp, print_info, segment_decoder })
+        FrameDecoderWants::PrintStatement(WantsPrintStatementStage { stamp, print_info, segment_decoder })
     }
 }
 

@@ -6,26 +6,20 @@
 mod error;
 pub(crate) use error::RedefmtDecoderError;
 
-mod decoder_stage;
-pub(crate) use decoder_stage::*;
-
-mod frame;
-pub(crate) use frame::{DecodedSegment, RedefmtFrame};
-
 mod value;
 pub(crate) use value::{ComplexValue, Value};
 
 mod stores;
-pub(crate) use stores::DecoderStores;
+pub(crate) use stores::Stores;
 
 mod cache;
 pub(crate) use cache::*;
 
-mod frame_decoder;
-pub(crate) use frame_decoder::FrameDecoder;
+mod frame;
+pub(crate) use frame::*;
 
 mod segment_decoder;
-pub(crate) use segment_decoder::SegmentsDecoder;
+pub(crate) use segment_decoder::{DecodedSegment, SegmentsDecoder};
 
 mod value_decoder;
 pub(crate) use value_decoder::ValueDecoder;

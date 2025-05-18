@@ -24,7 +24,7 @@ impl<'cache> ListValueDecoder<'cache> {
 
     pub fn decode_list(
         &mut self,
-        stores: &DecoderStores<'cache>,
+        stores: &Stores<'cache>,
         src: &mut BytesMut,
     ) -> Result<Option<Vec<ComplexValue<'cache>>>, RedefmtDecoderError> {
         let Some(element_type_hint) = self.get_or_insert_element_type_hint(src)? else {
@@ -54,7 +54,7 @@ impl<'cache> ListValueDecoder<'cache> {
 
     pub fn decode_dyn_list(
         &mut self,
-        stores: &DecoderStores<'cache>,
+        stores: &Stores<'cache>,
         src: &mut BytesMut,
     ) -> Result<Option<Vec<ComplexValue<'cache>>>, RedefmtDecoderError> {
         while self.buffer.len() < self.expected_length {

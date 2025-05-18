@@ -8,14 +8,14 @@ use crate::*;
 
 pub struct FrameDecoder<'cache> {
     // frame indenpendent state
-    stores: DecoderStores<'cache>,
+    stores: Stores<'cache>,
     // reset per frame
-    stage: DecoderWants<'cache>,
+    stage: FrameDecoderWants<'cache>,
 }
 
 impl<'cache> FrameDecoder<'cache> {
-    pub fn new(stores: DecoderStores<'cache>) -> Self {
-        Self { stores, stage: DecoderWants::Header }
+    pub fn new(stores: Stores<'cache>) -> Self {
+        Self { stores, stage: FrameDecoderWants::Header }
     }
 }
 
@@ -26,7 +26,7 @@ impl<'cache> tokio_util::codec::Decoder for FrameDecoder<'cache> {
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let current_stage = std::mem::take(&mut self.stage);
         match current_stage {
-            DecoderWants::Header => {
+            FrameDecoderWants::Header => {
                 let Ok(header_byte) = src.try_get_u8() else {
                     return Ok(None);
                 };
@@ -34,26 +34,28 @@ impl<'cache> tokio_util::codec::Decoder for FrameDecoder<'cache> {
                 let header = Header::from_bits(header_byte).ok_or(RedefmtDecoderError::UnknownHeader(header_byte))?;
 
                 let next_stage = match header.contains(Header::STAMP) {
-                    true => DecoderWants::Stamp(WantsStampStage { header }),
-                    false => DecoderWants::PrintCrateId(WantsPrintCrateIdStage { header, stamp: None }),
+                    true => FrameDecoderWants::Stamp(WantsStampStage { header }),
+                    false => FrameDecoderWants::PrintCrateId(WantsPrintCrateIdStage { header, stamp: None }),
                 };
 
                 self.stage = next_stage;
                 self.decode(src)
             }
-            DecoderWants::Stamp(stage) => {
+            FrameDecoderWants::Stamp(stage) => {
                 let Ok(stamp) = src.try_get_u64().map(Stamp::new) else {
-                    self.stage = DecoderWants::Stamp(stage);
+                    self.stage = FrameDecoderWants::Stamp(stage);
                     return Ok(None);
                 };
 
-                self.stage =
-                    DecoderWants::PrintCrateId(WantsPrintCrateIdStage { header: stage.header, stamp: Some(stamp) });
+                self.stage = FrameDecoderWants::PrintCrateId(WantsPrintCrateIdStage {
+                    header: stage.header,
+                    stamp: Some(stamp),
+                });
                 self.decode(src)
             }
-            DecoderWants::PrintCrateId(stage) => {
+            FrameDecoderWants::PrintCrateId(stage) => {
                 let Ok(print_crate_id) = src.try_get_u16().map(CrateId::new) else {
-                    self.stage = DecoderWants::PrintCrateId(stage);
+                    self.stage = FrameDecoderWants::PrintCrateId(stage);
                     return Ok(None);
                 };
 
@@ -62,9 +64,9 @@ impl<'cache> tokio_util::codec::Decoder for FrameDecoder<'cache> {
                 self.stage = stage.next(print_crate);
                 self.decode(src)
             }
-            DecoderWants::PrintStatementId(stage) => {
+            FrameDecoderWants::PrintStatementId(stage) => {
                 let Ok(print_statement_id) = src.try_get_u16().map(PrintStatementId::new) else {
-                    self.stage = DecoderWants::PrintStatementId(stage);
+                    self.stage = FrameDecoderWants::PrintStatementId(stage);
                     return Ok(None);
                 };
 
@@ -77,9 +79,9 @@ impl<'cache> tokio_util::codec::Decoder for FrameDecoder<'cache> {
                 self.stage = stage.next(print_statement);
                 self.decode(src)
             }
-            DecoderWants::PrintStatement(mut stage) => {
+            FrameDecoderWants::PrintStatement(mut stage) => {
                 if stage.segment_decoder.decode(&self.stores, src)?.is_none() {
-                    self.stage = DecoderWants::PrintStatement(stage);
+                    self.stage = FrameDecoderWants::PrintStatement(stage);
                     return Ok(None);
                 }
 
@@ -89,7 +91,7 @@ impl<'cache> tokio_util::codec::Decoder for FrameDecoder<'cache> {
                     segments: stage.segment_decoder.decoded_segments,
                 };
 
-                self.stage = DecoderWants::Header;
+                self.stage = FrameDecoderWants::Header;
 
                 Ok(Some(item))
             }
@@ -104,8 +106,8 @@ mod mock {
     use super::*;
 
     impl<'cache> FrameDecoder<'cache> {
-        pub fn mock(cache: &'cache DecoderCache) -> (TempDir, Self) {
-            let (temp_dir, stores) = DecoderStores::mock(cache);
+        pub fn mock(cache: &'cache Cache) -> (TempDir, Self) {
+            let (temp_dir, stores) = Stores::mock(cache);
 
             let decoder = FrameDecoder::new(stores);
 
@@ -133,10 +135,10 @@ mod tests {
 
     #[test]
     fn header() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
-        assert!(matches!(decoder.stage, DecoderWants::Header));
+        assert!(matches!(decoder.stage, FrameDecoderWants::Header));
 
         let expected_header = Header::all();
 
@@ -147,7 +149,7 @@ mod tests {
         assert!(bytes.is_empty());
 
         match decoder.stage {
-            DecoderWants::Stamp(stage) => {
+            FrameDecoderWants::Stamp(stage) => {
                 assert_eq!(expected_header, stage.header);
             }
             _ => panic!("unexpected stage"),
@@ -156,7 +158,7 @@ mod tests {
 
     #[test]
     fn stamp() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
         let header = Header::STAMP;
@@ -171,7 +173,7 @@ mod tests {
         assert!(bytes.is_empty());
 
         match decoder.stage {
-            DecoderWants::PrintCrateId(stage) => {
+            FrameDecoderWants::PrintCrateId(stage) => {
                 let actual_stamp = stage.stamp.unwrap();
                 assert_eq!(stamp, actual_stamp);
             }
@@ -181,7 +183,7 @@ mod tests {
 
     #[test]
     fn print_crate_id() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
@@ -195,7 +197,7 @@ mod tests {
         let expected_crate_value = cache.krate.inner().get(&crate_id).unwrap();
 
         match decoder.stage {
-            DecoderWants::PrintStatementId(stage) => {
+            FrameDecoderWants::PrintStatementId(stage) => {
                 assert_eq!(&expected_crate_value.1, stage.print_crate.record);
             }
             _ => panic!("unexpected stage"),
@@ -204,7 +206,7 @@ mod tests {
 
     #[test]
     fn print_crate_id_not_found_error() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
@@ -220,7 +222,7 @@ mod tests {
 
     #[test]
     fn empty_after_print_crate_id() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
@@ -234,7 +236,7 @@ mod tests {
 
     #[test]
     fn print_statement_id() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
@@ -244,7 +246,7 @@ mod tests {
 
         let (print_statement_id, print_statement) = seed_print_statement(&decoder, crate_id);
 
-        assert!(!matches!(decoder.stage, DecoderWants::PrintStatement(_)));
+        assert!(!matches!(decoder.stage, FrameDecoderWants::PrintStatement(_)));
         assert!(cache.print_statement.inner().is_empty());
 
         put_and_decode_print_statement_id(&mut decoder, print_statement_id);
@@ -256,7 +258,7 @@ mod tests {
         let expected_segments = print_statement.segments().iter().collect::<Vec<_>>();
 
         match decoder.stage {
-            DecoderWants::PrintStatement(stage) => {
+            FrameDecoderWants::PrintStatement(stage) => {
                 let actual_segments = stage.segment_decoder.segments.collect::<Vec<_>>();
                 assert_eq!(expected_segments, actual_segments);
             }
@@ -266,7 +268,7 @@ mod tests {
 
     #[test]
     fn print_statement_id_not_found_error() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
@@ -285,7 +287,7 @@ mod tests {
 
     #[test]
     fn full() {
-        let cache = DecoderCache::default();
+        let cache = Cache::default();
         let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
@@ -312,7 +314,7 @@ mod tests {
         assert_eq!(expected_frame, actual_frame);
 
         // Clears per frame content
-        assert!(matches!(decoder.stage, DecoderWants::Header));
+        assert!(matches!(decoder.stage, FrameDecoderWants::Header));
     }
 
     fn seed_crate(decoder: &FrameDecoder) -> CrateId {
@@ -330,8 +332,8 @@ mod tests {
         (id, statement)
     }
 
-    fn mock_stamp_stage<'a>() -> DecoderWants<'a> {
-        DecoderWants::PrintCrateId(WantsPrintCrateIdStage { header: Header::new(false), stamp: None })
+    fn mock_stamp_stage<'a>() -> FrameDecoderWants<'a> {
+        FrameDecoderWants::PrintCrateId(WantsPrintCrateIdStage { header: Header::new(false), stamp: None })
     }
 
     fn mock_print_statement() -> PrintStatement<'static> {

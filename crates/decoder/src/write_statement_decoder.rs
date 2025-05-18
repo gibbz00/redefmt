@@ -24,7 +24,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
 
     pub fn decode(
         &mut self,
-        stores: &DecoderStores<'cache>,
+        stores: &Stores<'cache>,
         src: &mut BytesMut,
     ) -> Result<Option<ComplexValue<'cache>>, RedefmtDecoderError> {
         let current_stage = std::mem::take(&mut self.stage);
