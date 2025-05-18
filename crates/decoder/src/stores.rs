@@ -5,19 +5,19 @@ use redefmt_internal::identifiers::CrateId;
 
 use crate::*;
 
-pub struct DecoderStores<'cache> {
+pub struct Stores<'cache> {
     state_dir: PathBuf,
     pub(crate) main_db: DbClient<MainDb>,
-    pub(crate) cache: &'cache DecoderCache,
+    pub(crate) cache: &'cache Cache,
 }
 
-impl<'cache> DecoderStores<'cache> {
-    pub fn new(cache: &'cache DecoderCache) -> Result<Self, RedefmtDecoderError> {
+impl<'cache> Stores<'cache> {
+    pub fn new(cache: &'cache Cache) -> Result<Self, RedefmtDecoderError> {
         let dir = StateDir::resolve()?;
         Self::new_impl(cache, dir)
     }
 
-    pub fn new_impl(cache: &'cache DecoderCache, state_dir: PathBuf) -> Result<Self, RedefmtDecoderError> {
+    pub fn new_impl(cache: &'cache Cache, state_dir: PathBuf) -> Result<Self, RedefmtDecoderError> {
         let main_db = DbClient::new_main(&state_dir)?;
 
         Ok(Self { state_dir, main_db, cache })
@@ -34,13 +34,13 @@ mod tests {
 
     use super::*;
 
-    impl<'cache> DecoderStores<'cache> {
-        pub fn mock(cache: &'cache DecoderCache) -> (TempDir, Self) {
+    impl<'cache> Stores<'cache> {
+        pub fn mock(cache: &'cache Cache) -> (TempDir, Self) {
             let temp_dir = tempfile::tempdir().unwrap();
 
             let state_dir = temp_dir.path().to_path_buf();
 
-            let stores = DecoderStores::new_impl(cache, state_dir).unwrap();
+            let stores = Stores::new_impl(cache, state_dir).unwrap();
 
             (temp_dir, stores)
         }
