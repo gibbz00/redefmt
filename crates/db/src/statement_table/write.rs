@@ -1,4 +1,4 @@
-use redefmt::identifiers::WriteStatementId;
+use redefmt_internal::identifiers::WriteStatementId;
 
 use crate::*;
 
