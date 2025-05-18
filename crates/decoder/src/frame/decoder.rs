@@ -1,25 +1,38 @@
+use std::path::PathBuf;
+
+use redefmt_db::StateDir;
 use redefmt_internal::{
     codec::frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
 };
-use tokio_util::bytes::{Buf, BytesMut};
+use tokio_util::{
+    bytes::{Buf, BytesMut},
+    codec::Decoder,
+};
 
 use crate::*;
 
-pub struct FrameDecoder<'cache> {
+pub struct RedefmtDecoder<'cache> {
     // frame indenpendent state
     stores: Stores<'cache>,
     // reset per frame
     stage: FrameDecoderWants<'cache>,
 }
 
-impl<'cache> FrameDecoder<'cache> {
-    pub fn new(stores: Stores<'cache>) -> Self {
-        Self { stores, stage: FrameDecoderWants::Header }
+impl<'cache> RedefmtDecoder<'cache> {
+    pub fn new(cache: &'cache RedefmtDecoderCache) -> Result<Self, RedefmtDecoderError> {
+        let state_dir = StateDir::resolve()?;
+        let stores = Stores::new(cache, state_dir)?;
+        Ok(Self { stores, stage: FrameDecoderWants::Header })
+    }
+
+    pub fn new_impl(cache: &'cache RedefmtDecoderCache, state_dir: PathBuf) -> Result<Self, RedefmtDecoderError> {
+        let stores = Stores::new(cache, state_dir)?;
+        Ok(Self { stores, stage: FrameDecoderWants::Header })
     }
 }
 
-impl<'cache> tokio_util::codec::Decoder for FrameDecoder<'cache> {
+impl<'cache> Decoder for RedefmtDecoder<'cache> {
     type Error = RedefmtDecoderError;
     type Item = RedefmtFrame<'cache>;
 
@@ -105,11 +118,11 @@ mod mock {
 
     use super::*;
 
-    impl<'cache> FrameDecoder<'cache> {
-        pub fn mock(cache: &'cache Cache) -> (TempDir, Self) {
+    impl<'cache> RedefmtDecoder<'cache> {
+        pub fn mock(cache: &'cache RedefmtDecoderCache) -> (TempDir, Self) {
             let (temp_dir, stores) = Stores::mock(cache);
 
-            let decoder = FrameDecoder::new(stores);
+            let decoder = RedefmtDecoder { stores, stage: FrameDecoderWants::Header };
 
             (temp_dir, decoder)
         }
@@ -135,8 +148,8 @@ mod tests {
 
     #[test]
     fn header() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         assert!(matches!(decoder.stage, FrameDecoderWants::Header));
 
@@ -158,8 +171,8 @@ mod tests {
 
     #[test]
     fn stamp() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         let header = Header::STAMP;
         let stamp = Stamp::new(123);
@@ -183,8 +196,8 @@ mod tests {
 
     #[test]
     fn print_crate_id() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -206,8 +219,8 @@ mod tests {
 
     #[test]
     fn print_crate_id_not_found_error() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -222,8 +235,8 @@ mod tests {
 
     #[test]
     fn empty_after_print_crate_id() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -236,8 +249,8 @@ mod tests {
 
     #[test]
     fn print_statement_id() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -268,8 +281,8 @@ mod tests {
 
     #[test]
     fn print_statement_id_not_found_error() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -287,8 +300,8 @@ mod tests {
 
     #[test]
     fn full() {
-        let cache = Cache::default();
-        let (_dir_guard, mut decoder) = FrameDecoder::mock(&cache);
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, mut decoder) = RedefmtDecoder::mock(&cache);
 
         decoder.stage = mock_stamp_stage();
 
@@ -317,13 +330,16 @@ mod tests {
         assert!(matches!(decoder.stage, FrameDecoderWants::Header));
     }
 
-    fn seed_crate(decoder: &FrameDecoder) -> CrateId {
+    fn seed_crate(decoder: &RedefmtDecoder) -> CrateId {
         let crate_name = CrateName::new("x").unwrap();
         let crate_record = Crate::new(crate_name);
         decoder.stores.main_db.insert(&crate_record).unwrap()
     }
 
-    fn seed_print_statement(decoder: &FrameDecoder, crate_id: CrateId) -> (PrintStatementId, PrintStatement<'static>) {
+    fn seed_print_statement(
+        decoder: &RedefmtDecoder,
+        crate_id: CrateId,
+    ) -> (PrintStatementId, PrintStatement<'static>) {
         let (crate_db, _) = decoder.stores.cache.krate.inner().get(&crate_id).unwrap();
 
         let statement = mock_print_statement();
@@ -344,19 +360,19 @@ mod tests {
         )
     }
 
-    fn put_and_decode_print_crate_id(decoder: &mut FrameDecoder, crate_id: CrateId) {
+    fn put_and_decode_print_crate_id(decoder: &mut RedefmtDecoder, crate_id: CrateId) {
         let mut bytes = BytesMut::new();
         bytes.put_u16(*crate_id.as_ref());
         decoder.decode(&mut bytes).unwrap();
     }
 
-    fn put_and_decode_print_statement_id(decoder: &mut FrameDecoder, print_statement_id: PrintStatementId) {
+    fn put_and_decode_print_statement_id(decoder: &mut RedefmtDecoder, print_statement_id: PrintStatementId) {
         let mut bytes = BytesMut::new();
         bytes.put_u16(*print_statement_id.as_ref());
         decoder.decode(&mut bytes).unwrap();
     }
 
-    fn put_and_decode_bool_arg<'a>(decoder: &mut FrameDecoder<'a>, value: bool) -> Option<RedefmtFrame<'a>> {
+    fn put_and_decode_bool_arg<'a>(decoder: &mut RedefmtDecoder<'a>, value: bool) -> Option<RedefmtFrame<'a>> {
         let mut dispatcher = SimpleTestDispatcher::default();
         value.write_value(&mut dispatcher);
         decoder.decode(&mut dispatcher.bytes).unwrap()

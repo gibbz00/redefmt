@@ -4,7 +4,7 @@
 #![allow(missing_docs)]
 
 mod error;
-pub(crate) use error::RedefmtDecoderError;
+pub use error::RedefmtDecoderError;
 
 mod value;
 pub(crate) use value::{ComplexValue, Value};
@@ -13,9 +13,11 @@ mod stores;
 pub(crate) use stores::Stores;
 
 mod cache;
+pub use cache::RedefmtDecoderCache;
 pub(crate) use cache::*;
 
 mod frame;
+pub use frame::RedefmtDecoder;
 pub(crate) use frame::*;
 
 mod sub_decoders;

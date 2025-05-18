@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use redefmt_db::{DbClient, MainDb, StateDir};
+use redefmt_db::{DbClient, MainDb};
 use redefmt_internal::identifiers::CrateId;
 
 use crate::*;
@@ -8,16 +8,11 @@ use crate::*;
 pub struct Stores<'cache> {
     state_dir: PathBuf,
     pub(crate) main_db: DbClient<MainDb>,
-    pub(crate) cache: &'cache Cache,
+    pub(crate) cache: &'cache RedefmtDecoderCache,
 }
 
 impl<'cache> Stores<'cache> {
-    pub fn new(cache: &'cache Cache) -> Result<Self, RedefmtDecoderError> {
-        let dir = StateDir::resolve()?;
-        Self::new_impl(cache, dir)
-    }
-
-    pub fn new_impl(cache: &'cache Cache, state_dir: PathBuf) -> Result<Self, RedefmtDecoderError> {
+    pub fn new(cache: &'cache RedefmtDecoderCache, state_dir: PathBuf) -> Result<Self, RedefmtDecoderError> {
         let main_db = DbClient::new_main(&state_dir)?;
 
         Ok(Self { state_dir, main_db, cache })
@@ -35,12 +30,12 @@ mod tests {
     use super::*;
 
     impl<'cache> Stores<'cache> {
-        pub fn mock(cache: &'cache Cache) -> (TempDir, Self) {
+        pub fn mock(cache: &'cache RedefmtDecoderCache) -> (TempDir, Self) {
             let temp_dir = tempfile::tempdir().unwrap();
 
             let state_dir = temp_dir.path().to_path_buf();
 
-            let stores = Stores::new_impl(cache, state_dir).unwrap();
+            let stores = Stores::new(cache, state_dir).unwrap();
 
             (temp_dir, stores)
         }

@@ -1,5 +1,5 @@
 mod decoder;
-pub(crate) use decoder::FrameDecoder;
+pub use decoder::RedefmtDecoder;
 
 mod item;
 pub(crate) use item::RedefmtFrame;

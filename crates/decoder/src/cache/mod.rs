@@ -1,5 +1,5 @@
 mod combined;
-pub(crate) use combined::Cache;
+pub use combined::RedefmtDecoderCache;
 
 mod krate;
 pub(crate) use krate::{CrateCache, CrateContext};
