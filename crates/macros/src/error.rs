@@ -1,5 +1,6 @@
 use std::env::VarError;
 
+use proc_macro::TokenStream;
 use proc_macro2::Span;
 use redefmt_db::{DbClientError, StateDirError, crate_table::CrateNameError};
 
@@ -16,7 +17,7 @@ pub enum RedefmtMacroError {
 }
 
 impl RedefmtMacroError {
-    pub fn as_syn_error(&self, span: Span) -> syn::Error {
-        syn::Error::new(span, self.to_string())
+    pub fn as_compiler_error(&self, span: Span) -> TokenStream {
+        syn::Error::new(span, self.to_string()).into_compile_error().into()
     }
 }

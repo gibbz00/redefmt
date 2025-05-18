@@ -7,6 +7,10 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub use redefmt_internal::{Format, Formatter};
 #[cfg(feature = "derive")]
 pub use redefmt_macros::Format;
+
+mod export {
+    pub use redefmt_internal::{Format, Formatter, identifiers};
+}
+pub use export::*;
