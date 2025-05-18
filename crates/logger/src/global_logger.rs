@@ -1,4 +1,4 @@
-use redefmt::{
+use redefmt_internal::{
     Format, Formatter,
     codec::frame::Header,
     identifiers::{CrateId, PrintStatementId},

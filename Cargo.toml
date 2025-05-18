@@ -12,9 +12,9 @@ repository = "https://github.com/gibbz00/redefmt"
 version = "0.1.0"
 
 [workspace.dependencies]
-redefmt = { path = "crates/core" }
 redefmt-args = { path = "crates/args" }
 redefmt-db = { path = "crates/db" }
+redefmt-internal = { path = "crates/internal" }
 redefmt-internal-macros = { path = "crates/internal_macros" }
 redefmt-macros = { path = "crates/macros" }
 

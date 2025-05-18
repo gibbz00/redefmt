@@ -14,8 +14,8 @@ workspace = true
 
 [dependencies]
 # Internal
-redefmt = { workspace = true, features = ["db"] }
 redefmt-args = { workspace = true, features = ["serde"] }
+redefmt-internal = { workspace = true, features = ["db"] }
 
 derive-getters = "0.5"
 derive_more = { version = "2.0", features = ["deref", "display"] }
