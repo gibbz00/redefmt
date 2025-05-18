@@ -5,7 +5,11 @@
 
 use proc_macro::TokenStream;
 
+mod error;
+pub(crate) use error::RedefmtMacroError;
+
 mod db_client;
+pub(crate) use db_client::DbClients;
 
 mod derive_format;
 
