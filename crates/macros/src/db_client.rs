@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-
 use redefmt_db::{
-    CrateDb, DbClient, MainDb, StateDir, Table,
+    CrateDb, DbClient, StateDir, Table,
     crate_table::{Crate, CrateName, CrateTable},
 };
 use redefmt_internal::identifiers::CrateId;
@@ -9,8 +7,6 @@ use redefmt_internal::identifiers::CrateId;
 use crate::*;
 
 pub struct DbClients {
-    pub state_dir: PathBuf,
-    pub main_db: DbClient<MainDb>,
     pub crate_db: DbClient<CrateDb>,
     pub crate_id: CrateId,
 }
@@ -33,7 +29,7 @@ impl DbClients {
             }
         };
 
-        Ok(Self { state_dir, main_db, crate_db, crate_id })
+        Ok(Self { crate_db, crate_id })
     }
 
     fn crate_name() -> Result<CrateName<'static>, RedefmtMacroError> {
