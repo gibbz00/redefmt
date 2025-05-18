@@ -25,7 +25,8 @@ pub enum DbClientError {
 }
 
 impl DbClient<MainDb> {
-    /// Applications will normally supply `StateDir::resolve()` as `dir`.
+    /// Applications will normally supply `StateDir::resolve()` as `dir` and
+    /// then reuse dir when connecting to the crate databases.
     pub fn new_main(dir: &Path) -> Result<Self, DbClientError> {
         let path = MainDb::path(dir);
         Self::init(&path)
