@@ -1,7 +1,14 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, TypeParamBound, parse_macro_input, spanned::Spanned};
+use redefmt_db::{
+    Table,
+    statement_table::write::{StructVariant, TypeStructure, TypeStructureVariant, WriteStatement},
+};
+use redefmt_internal::identifiers::{CrateId, WriteStatementId};
+use syn::{
+    Data, DataEnum, DataStruct, DeriveInput, Fields, Ident, TypeParamBound, parse_macro_input, spanned::Spanned,
+};
 
 use crate::*;
 
@@ -10,23 +17,27 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
 
     let db_clients = match DbClients::new() {
         Ok(clients) => clients,
-        Err(err) => return err.as_syn_error(type_definition.span()).into_compile_error().into(),
+        Err(err) => return err.as_compiler_error(type_definition.span()),
     };
 
     let ident = type_definition.ident;
 
-    let impl_body_result: syn::Result<TokenStream2> = match type_definition.data {
-        Data::Struct(data_struct) => struct_impl(&db_clients, data_struct),
-        Data::Enum(data_enum) => enum_impl(&db_clients, data_enum),
-        Data::Union(data_union) => Err(syn::Error::new(
-            data_union.union_token.span,
-            "redefmt::Format derives on unions are not supported",
-        )),
+    let impl_body_result = match type_definition.data {
+        Data::Struct(data_struct) => struct_impl(&db_clients, &ident, data_struct),
+        Data::Enum(data_enum) => enum_impl(&db_clients, &ident, data_enum),
+        Data::Union(data_union) => {
+            return syn::Error::new(
+                data_union.union_token.span,
+                "redefmt::Format derives on unions are not supported",
+            )
+            .into_compile_error()
+            .into();
+        }
     };
 
     let impl_body = match impl_body_result {
         Ok(impl_body) => impl_body,
-        Err(err) => return err.into_compile_error().into(),
+        Err(err) => return err.as_compiler_error(ident.span()),
     };
 
     let mut generics = type_definition.generics;
@@ -50,17 +61,43 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
     .into()
 }
 
-fn struct_impl(db_clients: &DbClients, data_struct: DataStruct) -> syn::Result<TokenStream2> {
+fn struct_impl(
+    db_clients: &DbClients,
+    ident: &Ident,
+    data_struct: DataStruct,
+) -> Result<TokenStream2, RedefmtMacroError> {
     match data_struct.fields {
         Fields::Unit => {
-            // Register to DB
-            todo!()
+            let write_statement = WriteStatement::TypeStructure(TypeStructure {
+                name: ident.to_string(),
+                variant: TypeStructureVariant::Struct(StructVariant::Unit),
+            });
+
+            let write_statement_id = db_clients.crate_db.insert(&write_statement)?;
+
+            let write_id = gen_write_id(db_clients.crate_id, write_statement_id);
+
+            Ok(quote! {
+                f.write(#write_id);
+            })
         }
         Fields::Named(fields_named) => todo!(),
         Fields::Unnamed(fields_unnamed) => todo!(),
     }
 }
 
-fn enum_impl(db_clients: &DbClients, enum_struct: DataEnum) -> syn::Result<TokenStream2> {
+fn enum_impl(db_clients: &DbClients, ident: &Ident, enum_struct: DataEnum) -> Result<TokenStream2, RedefmtMacroError> {
     todo!()
+}
+
+fn gen_write_id(crate_id: CrateId, write_statement_id: WriteStatementId) -> TokenStream2 {
+    let crate_id_inner = *crate_id.as_ref();
+    let statement_id_inner = *write_statement_id.as_ref();
+
+    quote! {
+        (
+            ::redefmt::identifiers::CrateId::new(#crate_id_inner),
+            ::redefmt::identifiers::WriteStatementId::new(#statement_id_inner)
+        )
+    }
 }

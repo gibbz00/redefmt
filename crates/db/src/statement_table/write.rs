@@ -20,8 +20,8 @@ pub enum WriteStatement<'a> {
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TypeStructure {
-    name: String,
-    variant: TypeStructureVariant,
+    pub name: String,
+    pub variant: TypeStructureVariant,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
