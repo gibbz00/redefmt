@@ -1,5 +1,5 @@
-use redefmt::{codec::frame::PointerWidth, identifiers::WriteStatementId};
 use redefmt_db::statement_table::write::WriteStatement;
+use redefmt_internal::{codec::frame::PointerWidth, identifiers::WriteStatementId};
 use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;

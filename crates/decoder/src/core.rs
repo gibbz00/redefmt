@@ -1,4 +1,4 @@
-use redefmt::{
+use redefmt_internal::{
     codec::frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
 };
@@ -117,7 +117,6 @@ mod mock {
 #[cfg(test)]
 mod tests {
     use redefmt_args::FormatOptions;
-    use redefmt::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
@@ -127,6 +126,7 @@ mod tests {
             print::{LogLevel, PrintInfo, PrintStatement},
         },
     };
+    use redefmt_internal::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use tokio_util::{bytes::BufMut, codec::Decoder};
 
     use super::*;

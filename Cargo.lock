@@ -500,17 +500,9 @@ checksum = "74765f6d916ee2faa39bc8e68e4f3ed8949b48cccdac59983d287a7cb71ce9c5"
 name = "redefmt"
 version = "0.1.0"
 dependencies = [
- "bitflags",
- "bytes",
- "critical-section",
- "derive_more",
- "num-traits",
  "redefmt",
- "redefmt-internal-macros",
+ "redefmt-internal",
  "redefmt-macros",
- "rusqlite",
- "sealed",
- "strum",
  "trybuild",
 ]
 
@@ -536,8 +528,8 @@ dependencies = [
  "derive-getters",
  "derive_more",
  "include_dir",
- "redefmt",
  "redefmt-args",
+ "redefmt-internal",
  "rusqlite",
  "rusqlite_migration",
  "serde",
@@ -556,12 +548,28 @@ dependencies = [
  "elsa",
  "encode_unicode",
  "num-traits",
- "redefmt",
  "redefmt-args",
  "redefmt-db",
+ "redefmt-internal",
  "tempfile",
  "thiserror",
  "tokio-util",
+]
+
+[[package]]
+name = "redefmt-internal"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "bytes",
+ "critical-section",
+ "derive_more",
+ "num-traits",
+ "redefmt-internal",
+ "redefmt-internal-macros",
+ "rusqlite",
+ "sealed",
+ "strum",
 ]
 
 [[package]]
@@ -578,7 +586,7 @@ name = "redefmt-logger"
 version = "0.1.0"
 dependencies = [
  "critical-section",
- "redefmt",
+ "redefmt-internal",
  "redefmt-logger",
 ]
 
@@ -588,6 +596,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
+ "redefmt-db",
  "syn",
 ]
 

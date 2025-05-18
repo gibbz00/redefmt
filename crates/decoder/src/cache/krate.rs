@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use elsa::sync::FrozenMap;
-use redefmt::identifiers::CrateId;
 use redefmt_db::{CrateDb, DbClient, MainDb, Table, crate_table::Crate};
+use redefmt_internal::identifiers::CrateId;
 
 use crate::*;
 

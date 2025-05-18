@@ -1,7 +1,7 @@
 use core::sync::atomic::{AtomicU8, Ordering};
 
 use critical_section::{CriticalSection, Mutex};
-use redefmt::codec::encoding::Dispatcher;
+use redefmt_internal::codec::encoding::Dispatcher;
 
 use crate::*;
 
@@ -122,7 +122,7 @@ impl Drop for GlobalDispatcherHandle {
 
 #[cfg(test)]
 mod tests {
-    use redefmt::codec::encoding::SharedTestDispatcher;
+    use redefmt_internal::codec::encoding::SharedTestDispatcher;
 
     use super::*;
 
