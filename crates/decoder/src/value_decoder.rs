@@ -5,7 +5,7 @@ use redefmt_internal::{
 };
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
-use crate::{value::ComplexValue, *};
+use crate::*;
 
 pub struct ValueDecoder<'cache> {
     pointer_width: PointerWidth,
@@ -28,7 +28,7 @@ impl<'cache> ValueDecoder<'cache> {
 
     pub fn decode(
         &mut self,
-        stores: &DecoderStores<'cache>,
+        stores: &Stores<'cache>,
         src: &mut BytesMut,
     ) -> Result<Option<ComplexValue<'cache>>, RedefmtDecoderError> {
         let maybe_simple_value = match self.type_hint {
@@ -203,7 +203,7 @@ impl<'cache> ValueDecoder<'cache> {
 
     fn get_or_store_write_decoder(
         &mut self,
-        stores: &DecoderStores<'cache>,
+        stores: &Stores<'cache>,
         src: &mut BytesMut,
     ) -> Result<Option<&mut WriteStatementDecoder<'cache>>, RedefmtDecoderError> {
         if self.write_decoder.is_none() {
@@ -240,8 +240,8 @@ mod tests {
 
     #[test]
     fn boolean_err() {
-        let cache = DecoderCache::default();
-        let (_dir_guard, stores) = DecoderStores::mock(&cache);
+        let cache = Cache::default();
+        let (_dir_guard, stores) = Stores::mock(&cache);
 
         let mut value_decoder = ValueDecoder::new(PointerWidth::of_target(), TypeHint::Boolean);
         let mut bytes = BytesMut::from_iter([2]);
@@ -282,8 +282,8 @@ mod tests {
 
     #[test]
     fn char_invalid_utf8_error() {
-        let cache = DecoderCache::default();
-        let (_dir_guard, stores) = DecoderStores::mock(&cache);
+        let cache = Cache::default();
+        let (_dir_guard, stores) = Stores::mock(&cache);
 
         let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
         let mut bytes = BytesMut::new();
@@ -305,8 +305,8 @@ mod tests {
 
     #[test]
     fn string_invalid_utf8_error() {
-        let cache = DecoderCache::default();
-        let (_dir_guard, stores) = DecoderStores::mock(&cache);
+        let cache = Cache::default();
+        let (_dir_guard, stores) = Stores::mock(&cache);
 
         let invalid_utf8_bytes = [0xE0, 0x80, 0x80];
         let mut bytes = BytesMut::new();
@@ -366,8 +366,8 @@ mod tests {
     #[test]
     fn write_segments() {
         // setup
-        let cache = DecoderCache::default();
-        let (_dir_guard, stores) = DecoderStores::mock(&cache);
+        let cache = Cache::default();
+        let (_dir_guard, stores) = Stores::mock(&cache);
 
         // input
         let arg_value = true;
@@ -407,8 +407,8 @@ mod tests {
         encoded_value: T,
         from_inner: impl FnOnce(T) -> ComplexValue<'cache>,
     ) {
-        let cache = DecoderCache::default();
-        let (_dir_guard, stores) = DecoderStores::mock(&cache);
+        let cache = Cache::default();
+        let (_dir_guard, stores) = Stores::mock(&cache);
 
         let mut dispatcher = SimpleTestDispatcher::default();
         encoded_value.write_value(&mut dispatcher);
@@ -419,7 +419,7 @@ mod tests {
     }
 
     fn assert_value_impl<'a, 'cache>(
-        stores: DecoderStores<'a>,
+        stores: Stores<'a>,
         dispatcher: SimpleTestDispatcher,
         type_hint: TypeHint,
         expected_value: ComplexValue<'cache>,

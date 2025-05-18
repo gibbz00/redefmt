@@ -13,6 +13,12 @@ struct SegmentValueContext<'cache> {
     value_decoder: ValueDecoder<'cache>,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum DecodedSegment<'cache> {
+    Str(&'cache str),
+    Value(ComplexValue<'cache>, &'cache FormatOptions<'static>),
+}
+
 pub struct SegmentsDecoder<'cache> {
     pointer_width: PointerWidth,
     current_value: Option<SegmentValueContext<'cache>>,
@@ -35,11 +41,7 @@ impl<'cache> SegmentsDecoder<'cache> {
         }
     }
 
-    pub fn decode(
-        &mut self,
-        stores: &DecoderStores<'cache>,
-        src: &mut BytesMut,
-    ) -> Result<Option<()>, RedefmtDecoderError> {
+    pub fn decode(&mut self, stores: &Stores<'cache>, src: &mut BytesMut) -> Result<Option<()>, RedefmtDecoderError> {
         if let Some(current_value_context) = self.current_value.take() {
             let SegmentValueContext { type_hint, format_options, mut value_decoder } = current_value_context;
 
