@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
+use quote::{format_ident, quote};
 use redefmt_db::{
     Table,
     statement_table::write::{StructVariant, TypeStructure, TypeStructureVariant, WriteStatement},
@@ -22,9 +22,9 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
 
     let ident = type_definition.ident;
 
-    let impl_body_result = match type_definition.data {
-        Data::Struct(data_struct) => struct_impl(&db_clients, &ident, data_struct),
-        Data::Enum(data_enum) => enum_impl(&db_clients, &ident, data_enum),
+    let (variant, impl_body) = match type_definition.data {
+        Data::Struct(data_struct) => struct_impl(data_struct),
+        Data::Enum(data_enum) => enum_impl(&ident, data_enum),
         Data::Union(data_union) => {
             return syn::Error::new(
                 data_union.union_token.span,
@@ -35,9 +35,15 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
         }
     };
 
-    let impl_body = match impl_body_result {
-        Ok(impl_body) => impl_body,
-        Err(err) => return err.as_compiler_error(ident.span()),
+    let write_statement = WriteStatement::TypeStructure(TypeStructure { name: ident.to_string(), variant });
+    let register_result = db_clients.crate_db.insert(&write_statement);
+
+    let write_id = match register_result {
+        Ok(statement_id) => gen_write_id(db_clients.crate_id, statement_id),
+        Err(err) => {
+            let macro_error = RedefmtMacroError::from(err);
+            return macro_error.as_compiler_error(ident.span());
+        }
     };
 
     let mut generics = type_definition.generics;
@@ -54,6 +60,7 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
     quote! {
         impl #impl_generics ::redefmt::Format for #ident #type_generics #where_clause {
             fn fmt(&self, f: &mut ::redefmt::Formatter) {
+                f.write(#write_id);
                 #impl_body
             }
         }
@@ -61,72 +68,105 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
     .into()
 }
 
-fn struct_impl(
-    db_clients: &DbClients,
-    ident: &Ident,
-    data_struct: DataStruct,
-) -> Result<TokenStream2, RedefmtMacroError> {
-    match data_struct.fields {
-        Fields::Unit => {
-            let write_statement = WriteStatement::TypeStructure(TypeStructure {
-                name: ident.to_string(),
-                variant: TypeStructureVariant::Struct(StructVariant::Unit),
-            });
+fn struct_impl(data_struct: DataStruct) -> (TypeStructureVariant, TokenStream2) {
+    let variant = struct_variant(&data_struct.fields);
 
-            let write_statement_id = db_clients.crate_db.insert(&write_statement)?;
-
-            let write_id = gen_write_id(db_clients.crate_id, write_statement_id);
-
-            Ok(quote! {
-                f.write(#write_id);
-            })
-        }
+    let impl_body = match data_struct.fields {
+        Fields::Unit => quote! {},
         Fields::Named(fields_named) => {
             let field_idents = fields_named
                 .named
                 .into_iter()
                 .map(|field| field.ident.expect("named field has no identifier"));
 
-            let field_names = field_idents.clone().map(|x| x.to_string()).collect();
-
-            let write_statement = WriteStatement::TypeStructure(TypeStructure {
-                name: ident.to_string(),
-                variant: TypeStructureVariant::Struct(StructVariant::Named(field_names)),
-            });
-
-            let write_statement_id = db_clients.crate_db.insert(&write_statement)?;
-
-            let write_id = gen_write_id(db_clients.crate_id, write_statement_id);
-
-            Ok(quote! {
-                f.write(#write_id);
-                #(self.#field_idents.fmt(f);)*
-            })
+            quote! { #(self.#field_idents.fmt(f);)* }
         }
         Fields::Unnamed(fields_unnamed) => {
-            let tuple_length = fields_unnamed.unnamed.len();
+            let tuple_indexes = (0..fields_unnamed.unnamed.len()).map(syn::Index::from);
 
-            let write_statement = WriteStatement::TypeStructure(TypeStructure {
-                name: ident.to_string(),
-                variant: TypeStructureVariant::Struct(StructVariant::Tuple(tuple_length as u8)),
-            });
-
-            let write_statement_id = db_clients.crate_db.insert(&write_statement)?;
-
-            let write_id = gen_write_id(db_clients.crate_id, write_statement_id);
-
-            let tuple_indexes = (0..tuple_length).map(syn::Index::from);
-
-            Ok(quote! {
-                f.write(#write_id);
-                #(self.#tuple_indexes.fmt(f);)*
-            })
+            quote! { #(self.#tuple_indexes.fmt(f);)* }
         }
-    }
+    };
+
+    (TypeStructureVariant::Struct(variant), impl_body)
 }
 
-fn enum_impl(db_clients: &DbClients, ident: &Ident, enum_struct: DataEnum) -> Result<TokenStream2, RedefmtMacroError> {
-    todo!()
+fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, TokenStream2) {
+    // skip generating a match statemetn to avoid `error[E0004]: non-exhaustive patterns`
+    if enum_struct.variants.is_empty() {
+        return (TypeStructureVariant::Enum(Vec::new()), quote! {});
+    }
+
+    let enum_variants = enum_struct
+        .variants
+        .iter()
+        .map(|variant| {
+            let name = variant.ident.to_string();
+            let struct_variant = struct_variant(&variant.fields);
+
+            (name, struct_variant)
+        })
+        .collect();
+
+    let match_arms = enum_struct.variants.into_iter().map(|variant| {
+        let variant_ident = variant.ident;
+
+        match variant.fields {
+            Fields::Named(fields_named) => {
+                let field_idents = fields_named
+                    .named
+                    .into_iter()
+                    .map(|field| field.ident.expect("named field has no identifier"))
+                    .collect::<Vec<_>>();
+
+                quote! {
+                    #ident::#variant_ident { #(#field_idents),* } => {
+                         #(#field_idents.fmt(f);)*
+                    }
+                }
+            }
+            Fields::Unnamed(fields_unnamed) => {
+                let tuple_idents = (0..fields_unnamed.unnamed.len())
+                    .map(|index| format_ident!("i_{}", index))
+                    .collect::<Vec<_>>();
+
+                quote! {
+                    #ident::#variant_ident(#(#tuple_idents),*) => {
+                         #(#tuple_idents.fmt(f);)*
+                    }
+                }
+            }
+            Fields::Unit => {
+                quote! {
+                    #ident::#variant_ident => {}
+                }
+            }
+        }
+    });
+
+    let impl_body = quote! {
+        match self {
+            #(#match_arms),*
+        }
+    };
+
+    (TypeStructureVariant::Enum(enum_variants), impl_body)
+}
+
+fn struct_variant(fields: &Fields) -> StructVariant {
+    match fields {
+        Fields::Named(fields_named) => {
+            let field_names = fields_named
+                .named
+                .iter()
+                .map(|field| field.ident.as_ref().expect("named field has no identifier").to_string())
+                .collect();
+
+            StructVariant::Named(field_names)
+        }
+        Fields::Unnamed(fields_unnamed) => StructVariant::Tuple(fields_unnamed.unnamed.len() as u8),
+        Fields::Unit => StructVariant::Unit,
+    }
 }
 
 fn gen_write_id(crate_id: CrateId, write_statement_id: WriteStatementId) -> TokenStream2 {
