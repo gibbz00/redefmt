@@ -60,8 +60,7 @@ is created and given an ID in a `crates` table in the `main.sqlite` database.
 If it does exist from before, then the its ID is retrieved by name from the
 `main.sqlite` database, warranting an index on the name column.
 
-Crate names are usually provided by expanding declarative register macros to a
-proc macro call with a `env!("CARGO_CRATE_NAME")` parameter.
+Crate names are provided by calling `std::env::var("CARGO_PKG_NAME")` in the proc macro itself.
 
 [WAL mode]: https://www.sqlite.org/wal.html
 [PRAGMA synchronous]: https://www.sqlite.org/pragma.html#pragma_synchronous

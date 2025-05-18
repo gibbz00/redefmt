@@ -597,7 +597,9 @@ dependencies = [
  "proc-macro2",
  "quote",
  "redefmt-db",
+ "redefmt-internal",
  "syn",
+ "thiserror",
 ]
 
 [[package]]
