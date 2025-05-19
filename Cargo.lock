@@ -517,6 +517,7 @@ dependencies = [
  "redefmt-args",
  "serde",
  "serde_json",
+ "syn",
  "thiserror",
  "unicode-xid",
 ]
