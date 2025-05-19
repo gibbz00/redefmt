@@ -25,13 +25,13 @@ mod timestamp {
 pub(crate) use timestamp::{Timestamp, TimestampPrecision};
 
 mod counter {
-    use redefmt_args::{FormatString, ParseError, RequiredArgumentsError};
+    use redefmt_args::{FormatString, ParseError, RequiredArgsError};
 
     // TODO: integrate with thiserror
     #[derive(Debug, PartialEq)]
     pub enum CounterNewError {
         Format(ParseError),
-        Args(RequiredArgumentsError),
+        Args(RequiredArgsError),
         /// Counter format string expects one and only one unnamed argument.
         ArgCount,
     }
