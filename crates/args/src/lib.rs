@@ -26,11 +26,7 @@ mod format_segment;
 pub(crate) use format_segment::FormatSegment;
 
 mod format_string;
-pub use format_string::FormatString;
 pub(crate) use format_string::*;
-
-mod argument_register;
-pub use argument_register::RequiredArgumentsError;
-pub(crate) use argument_register::{ArgumentRegister, RequiredArguments};
+pub use format_string::{FormatString, RequiredArguments, RequiredArgumentsError};
 
 mod serde_utils;
