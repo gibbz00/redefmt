@@ -1,12 +1,5 @@
-use alloc::vec::Vec;
-
-use crate::*;
-
-pub struct Args {
-    pub positional: Vec<PositionalArg>,
-    // named args after positional, all else is an error
-    pub named: Vec<NamedArg>,
-}
+mod core;
+pub(crate) use core::Args;
 
 mod positional;
 pub(crate) use positional::PositionalArg;

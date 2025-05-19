@@ -2,6 +2,7 @@ use syn::parse::Parse;
 
 use crate::*;
 
+#[derive(Debug, PartialEq)]
 pub struct PositionalArg(pub ArgValue);
 
 impl Parse for PositionalArg {

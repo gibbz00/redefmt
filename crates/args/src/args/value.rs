@@ -1,4 +1,4 @@
-use ::syn::parse::{Parse, ParseStream};
+use syn::parse::{Parse, ParseStream};
 
 #[derive(Debug, PartialEq)]
 pub enum ArgValue {
