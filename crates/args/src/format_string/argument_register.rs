@@ -249,7 +249,7 @@ mod tests {
         };
 
         let format_string = FormatString::parse(str).unwrap();
-        let actual = format_string.required_parameters().unwrap();
+        let actual = format_string.required_arguments().unwrap();
 
         assert_eq!(expected, actual);
     }
@@ -257,7 +257,7 @@ mod tests {
     fn assert_invalid(invalid_str: &str) {
         let actual = FormatString::parse(invalid_str)
             .unwrap()
-            .required_parameters()
+            .required_arguments()
             .unwrap_err();
 
         assert_eq!(RequiredArgumentsError::InvalidIndex, actual);

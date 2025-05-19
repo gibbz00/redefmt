@@ -29,9 +29,9 @@ mod format_string;
 pub(crate) use format_string::*;
 pub use format_string::{FormatString, RequiredArguments, RequiredArgumentsError};
 
-#[cfg(feature = "syn")]
-mod args;
-#[cfg(feature = "syn")]
-pub(crate) use args::*;
+#[cfg(feature = "provided-args")]
+pub mod provided_args;
+#[cfg(feature = "provided-args")]
+pub(crate) use provided_args::*;
 
 mod serde_utils;

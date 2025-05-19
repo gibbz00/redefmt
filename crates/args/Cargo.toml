@@ -11,8 +11,8 @@ version.workspace = true
 
 [features]
 builder = ["dep:bon"]
+provided-args = ["dep:check_keyword", "dep:proc-macro2", "dep:syn"]
 serde = ["dep:serde"]
-syn = ["dep:proc-macro2", "dep:syn"]
 
 [lints]
 workspace = true
@@ -30,10 +30,11 @@ bon = { version = "3.6", default-features = false, optional = true }
 # feature: serde
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
 
-# feature: syn
+# feature: provided-args
+check_keyword = { version = "0.4", optional = true }
 proc-macro2 = { version = "1.0", optional = true }
 syn = { version = "2.0", default-features = false, features = ["extra-traits", "parsing", "printing"], optional = true }
 
 [dev-dependencies]
-redefmt-args = { path = ".", features = ["builder", "serde", "syn"] }
+redefmt-args = { path = ".", features = ["builder", "provided-args", "serde"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
