@@ -5,6 +5,7 @@ use alloc::{
 
 use check_keyword::CheckKeyword;
 use hashbrown::{HashMap, HashSet};
+use proc_macro2::Span;
 use syn::{Token, ext::IdentExt, parse::Parse};
 
 use crate::*;
@@ -16,9 +17,9 @@ pub struct ProvidedArgs {
     named: HashMap<syn::Ident, ProvidedArgValue>,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum ProvidedArgsError {
-    #[error("format string positional argument count ({0}) does not match the provided count ({1})")]
+    #[error("required format string positional argument count ({0}) does not match the provided count ({1})")]
     PositionalMismatch(usize, usize),
     #[error("provided named argument {0} not used in format string")]
     UnusedNamed(String),
@@ -48,6 +49,7 @@ impl ProvidedArgs {
     /// format_args!("{match}", r#match = 10);
     ///
     /// // Raw ident in named argument value
+    /// let r#match = 10;
     /// format_args!("{match}", match = r#match);
     ///
     /// // Raw ident as positional argument value
@@ -65,7 +67,7 @@ impl ProvidedArgs {
     /// capture the raw counterpart.
     ///
     /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
-    pub fn consolidate(&mut self, required_arguments: RequiredArgs) -> Result<(), ProvidedArgsError> {
+    pub fn consolidate(&mut self, required_arguments: &RequiredArgs) -> Result<(), ProvidedArgsError> {
         let required_named_arguments = required_arguments
             .named_arguments
             .iter()
@@ -95,7 +97,7 @@ impl ProvidedArgs {
 
         for required_name in required_named_arguments {
             if !unrawed_provided.contains(required_name) {
-                let captured_name = syn::parse_str(required_name).expect("invalid identifier");
+                let captured_name = syn::Ident::new(required_name, Span::call_site());
 
                 let captured_value = syn::parse_str(&required_name.into_safe())
                     .map(ProvidedArgValue::Variable)
@@ -158,71 +160,177 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn parse_empty() {
-        let expected = ProvidedArgs { positional: Default::default(), named: Default::default() };
+    mod parse {
 
-        let actual = parse_quote!();
+        use super::*;
 
-        assert_eq!(expected, actual);
+        #[test]
+        fn parse_empty() {
+            let expected = ProvidedArgs { positional: Default::default(), named: Default::default() };
+
+            let actual = parse_quote!();
+
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn parse_positional() {
+            let expected = ProvidedArgs { positional: mock_positional(), named: Default::default() };
+
+            let actual = parse_quote!(10, a, "y");
+
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn parse_named() {
+            let expected = ProvidedArgs { positional: Default::default(), named: mock_named() };
+
+            let actual = parse_quote!(x = 10, match = y);
+
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn parse_combined() {
+            let expected = ProvidedArgs { positional: mock_positional(), named: mock_named() };
+
+            let actual = parse_quote!(10, a, "y", x = 10, match = y);
+
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn parse_with_trailing_comma() {
+            let expected = ProvidedArgs { positional: Default::default(), named: mock_named() };
+
+            let actual = parse_quote!(x = 10, match = y,);
+
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        #[should_panic]
+        fn positional_after_named_error() {
+            let _: ProvidedArgs = parse_quote!(x = 10, "x");
+        }
+
+        #[test]
+        #[should_panic]
+        fn duplicate_name_error() {
+            let _: ProvidedArgs = parse_quote!(x = 10, x = 20);
+        }
+
+        fn mock_positional() -> Vec<ProvidedArgValue> {
+            alloc::vec![parse_quote!(10), parse_quote!(a), parse_quote!("y")]
+        }
+
+        fn mock_named() -> HashMap<syn::Ident, ProvidedArgValue> {
+            [
+                (syn::Ident::new("x", Span::call_site()), parse_quote!(10)),
+                (syn::Ident::new("match", Span::call_site()), parse_quote!(y)),
+            ]
+            .into_iter()
+            .collect()
+        }
     }
 
-    #[test]
-    fn parse_positional() {
-        let expected = ProvidedArgs { positional: mock_positional(), named: Default::default() };
+    mod consolidate {
+        use super::*;
 
-        let actual = parse_quote!(10, a, "y");
+        #[test]
+        fn match_normal() {
+            assert_match("x", parse_quote!(x));
+        }
 
-        assert_eq!(expected, actual);
-    }
+        #[test]
+        fn match_raw() {
+            assert_match("match", parse_quote!(r#match));
+        }
 
-    #[test]
-    fn parse_named() {
-        let expected = ProvidedArgs { positional: Default::default(), named: mock_named() };
+        fn assert_match(required: &str, provided: syn::Ident) {
+            let mut provided = ProvidedArgs {
+                positional: Default::default(),
+                named: [(provided, parse_quote!(10))].into_iter().collect(),
+            };
 
-        let actual = parse_quote!(x = 10, match = y);
+            let identifier = Identifier::parse(0, required).unwrap();
+            let required = RequiredArgs {
+                unnamed_argument_count: 0,
+                named_arguments: [&identifier].into_iter().collect(),
+            };
 
-        assert_eq!(expected, actual);
-    }
+            assert!(provided.consolidate(&required).is_ok());
 
-    #[test]
-    fn parse_combined() {
-        let expected = ProvidedArgs { positional: mock_positional(), named: mock_named() };
+            assert_eq!(provided.named.len(), 1);
+            assert_eq!(provided.positional.len(), 0);
+        }
 
-        let actual = parse_quote!(10, a, "y", x = 10, match = y);
+        #[test]
+        fn captures_non_keyword() {
+            assert_captures("x", "x", parse_quote!(x))
+        }
 
-        assert_eq!(expected, actual);
-    }
+        #[test]
+        fn captures_keyword() {
+            assert_captures("match", "match", parse_quote!(r#match))
+        }
 
-    #[test]
-    fn parse_with_trailing_comma() {
-        let expected = ProvidedArgs { positional: Default::default(), named: mock_named() };
+        fn assert_captures(required: &str, captured_name: &str, captured_value: ProvidedArgValue) {
+            let mut provided = ProvidedArgs { positional: Default::default(), named: Default::default() };
 
-        let actual = parse_quote!(x = 10, match = y,);
+            let identifier = Identifier::parse(0, required).unwrap();
+            let required = RequiredArgs {
+                unnamed_argument_count: 0,
+                named_arguments: [&identifier].into_iter().collect(),
+            };
 
-        assert_eq!(expected, actual);
-    }
+            assert!(provided.named.is_empty());
 
-    #[test]
-    #[should_panic]
-    fn positional_after_named_error() {
-        let _: ProvidedArgs = parse_quote!(x = 10, "x");
-    }
+            assert!(provided.consolidate(&required).is_ok());
 
-    #[test]
-    #[should_panic]
-    fn duplicate_name_error() {
-        let _: ProvidedArgs = parse_quote!(x = 10, x = 20);
-    }
+            let captured_name = syn::Ident::new(captured_name, Span::call_site());
+            let expected_named = HashMap::from_iter([(captured_name, captured_value)]);
+            assert_eq!(expected_named, provided.named);
 
-    fn mock_positional() -> Vec<ProvidedArgValue> {
-        alloc::vec![parse_quote!(10), parse_quote!(a), parse_quote!("y")]
-    }
+            assert_eq!(provided.positional.len(), 0);
+        }
 
-    fn mock_named() -> HashMap<syn::Ident, ProvidedArgValue> {
-        HashMap::from_iter([
-            (syn::parse_str("x").unwrap(), parse_quote!(10)),
-            (syn::parse_str("match").unwrap(), parse_quote!(y)),
-        ])
+        #[test]
+        fn unused_error() {
+            let mut provided = ProvidedArgs {
+                positional: Default::default(),
+                named: [(parse_quote!(x), parse_quote!(10))].into_iter().collect(),
+            };
+
+            let required = RequiredArgs { unnamed_argument_count: 0, named_arguments: Default::default() };
+
+            let actual = provided.consolidate(&required).unwrap_err();
+            let expected = ProvidedArgsError::UnusedNamed("x".to_string());
+
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn more_positional_in_provided_error() {
+            let mut provided = ProvidedArgs { positional: alloc::vec![parse_quote!(10)], named: Default::default() };
+            let required = RequiredArgs { unnamed_argument_count: 0, named_arguments: Default::default() };
+
+            let actual = provided.consolidate(&required).unwrap_err();
+            let expected = ProvidedArgsError::PositionalMismatch(0, 1);
+
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn more_positional_in_required_error() {
+            let mut provided = ProvidedArgs { positional: Default::default(), named: Default::default() };
+            let required = RequiredArgs { unnamed_argument_count: 1, named_arguments: Default::default() };
+
+            let actual = provided.consolidate(&required).unwrap_err();
+            let expected = ProvidedArgsError::PositionalMismatch(1, 0);
+
+            assert_eq!(expected, actual);
+        }
     }
 }
