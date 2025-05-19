@@ -27,7 +27,7 @@ pub(crate) use format_segment::FormatSegment;
 
 mod format_string;
 pub(crate) use format_string::*;
-pub use format_string::{FormatString, RequiredArguments, RequiredArgumentsError};
+pub use format_string::{FormatString, RequiredArgs, RequiredArgsError};
 
 #[cfg(feature = "provided-args")]
 pub mod provided_args;

@@ -48,7 +48,6 @@ impl ProvidedArgs {
     /// format_args!("{match}", r#match = 10);
     ///
     /// // Raw ident in named argument value
-    /// let r#match = 10;
     /// format_args!("{match}", match = r#match);
     ///
     /// // Raw ident as positional argument value
@@ -66,9 +65,9 @@ impl ProvidedArgs {
     /// capture the raw counterpart.
     ///
     /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
-    pub fn consolidate(&mut self, required_arguments: RequiredArguments) -> Result<(), ProvidedArgsError> {
+    pub fn consolidate(&mut self, required_arguments: RequiredArgs) -> Result<(), ProvidedArgsError> {
         let required_named_arguments = required_arguments
-            .named_arguments()
+            .named_arguments
             .iter()
             .map(|identifier| identifier.as_ref())
             .collect::<HashSet<_>>();
@@ -80,7 +79,7 @@ impl ProvidedArgs {
             .collect::<HashSet<_>>();
 
         {
-            let required_count = *required_arguments.unnamed_argument_count();
+            let required_count = required_arguments.unnamed_argument_count;
             let provided_count = self.positional.len();
 
             if required_count != provided_count {

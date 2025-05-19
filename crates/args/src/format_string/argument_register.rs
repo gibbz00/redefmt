@@ -1,11 +1,11 @@
 #[derive(Debug, PartialEq, derive_getters::Getters)]
-pub struct RequiredArguments<'a, 's> {
-    unnamed_argument_count: usize,
-    named_arguments: HashSet<&'s Identifier<'a>>,
+pub struct RequiredArgs<'a, 's> {
+    pub(crate) unnamed_argument_count: usize,
+    pub(crate) named_arguments: HashSet<&'s Identifier<'a>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum RequiredArgumentsError {
+pub enum RequiredArgsError {
     /// Provided index larger than unique argument count
     InvalidIndex,
 }
@@ -62,19 +62,19 @@ impl<'a, 's> ArgumentRegister<'a, 's> {
         };
     }
 
-    pub(crate) fn resolve(self) -> Result<RequiredArguments<'a, 's>, RequiredArgumentsError> {
+    pub(crate) fn resolve(self) -> Result<RequiredArgs<'a, 's>, RequiredArgsError> {
         match self.index_arguments.is_empty() {
             true => self.resolve_unindexed(),
             false => self.resolve_indexed(),
         }
     }
 
-    fn resolve_unindexed(self) -> Result<RequiredArguments<'a, 's>, RequiredArgumentsError> {
+    fn resolve_unindexed(self) -> Result<RequiredArgs<'a, 's>, RequiredArgsError> {
         let ArgumentRegister { unnamed_argument_count, named_arguments, .. } = self;
-        Ok(RequiredArguments { unnamed_argument_count, named_arguments })
+        Ok(RequiredArgs { unnamed_argument_count, named_arguments })
     }
 
-    fn resolve_indexed(self) -> Result<RequiredArguments<'a, 's>, RequiredArgumentsError> {
+    fn resolve_indexed(self) -> Result<RequiredArgs<'a, 's>, RequiredArgsError> {
         let max_index = self.max_index();
         let named_argument_count = self.named_arguments.len();
         let unnamed_argument_count = self.unnamed_argument_count;
@@ -91,15 +91,15 @@ impl<'a, 's> ArgumentRegister<'a, 's> {
             }
         };
 
-        Ok(RequiredArguments { unnamed_argument_count: count, named_arguments: self.named_arguments })
+        Ok(RequiredArgs { unnamed_argument_count: count, named_arguments: self.named_arguments })
     }
 
     /// panics if index is out of bounds
-    fn assert_continuous_from(&self, index: usize) -> Result<usize, RequiredArgumentsError> {
+    fn assert_continuous_from(&self, index: usize) -> Result<usize, RequiredArgsError> {
         let max_index = self.max_index();
         for i in index..max_index + 1 {
             if !self.index_arguments.contains(i) {
-                return Err(RequiredArgumentsError::InvalidIndex);
+                return Err(RequiredArgsError::InvalidIndex);
             }
         }
 
@@ -232,7 +232,7 @@ mod tests {
 
         fn assert_discountinous(argument_register: &ArgumentRegister, from: usize) {
             let discontinuous_error = argument_register.assert_continuous_from(from).unwrap_err();
-            assert_eq!(RequiredArgumentsError::InvalidIndex, discontinuous_error);
+            assert_eq!(RequiredArgsError::InvalidIndex, discontinuous_error);
         }
     }
 
@@ -243,7 +243,7 @@ mod tests {
             .map(|str| Identifier::parse(0, *str).unwrap())
             .collect::<Vec<_>>();
 
-        let expected = RequiredArguments {
+        let expected = RequiredArgs {
             unnamed_argument_count: expected_unique,
             named_arguments: HashSet::from_iter(expected_named_arguments.iter()),
         };
@@ -260,6 +260,6 @@ mod tests {
             .required_arguments()
             .unwrap_err();
 
-        assert_eq!(RequiredArgumentsError::InvalidIndex, actual);
+        assert_eq!(RequiredArgsError::InvalidIndex, actual);
     }
 }
