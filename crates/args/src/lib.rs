@@ -29,4 +29,7 @@ mod format_string;
 pub(crate) use format_string::*;
 pub use format_string::{FormatString, RequiredArguments, RequiredArgumentsError};
 
+#[cfg(feature = "syn")]
+mod args;
+
 mod serde_utils;
