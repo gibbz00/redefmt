@@ -31,5 +31,7 @@ pub use format_string::{FormatString, RequiredArguments, RequiredArgumentsError}
 
 #[cfg(feature = "syn")]
 mod args;
+#[cfg(feature = "syn")]
+pub(crate) use args::*;
 
 mod serde_utils;

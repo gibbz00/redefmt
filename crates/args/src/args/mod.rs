@@ -8,16 +8,11 @@ pub struct Args {
     pub named: Vec<NamedArg>,
 }
 
-pub struct PositionalArg {
-    pub value: ArgValue,
-}
+mod positional;
+pub(crate) use positional::PositionalArg;
 
-pub struct NamedArg {
-    // important to parse with simply `syn::Ident` here
-    // this one is `IDENTIFIER_OR_KEYWORD`
-    pub name: Identifier<'static>,
-    pub value: ArgValue,
-}
+mod named;
+pub(crate) use named::NamedArg;
 
 mod value;
 pub(crate) use value::ArgValue;
