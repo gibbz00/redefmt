@@ -1,19 +1,21 @@
 use alloc::vec::Vec;
 
+use hashbrown::HashMap;
 use syn::{Token, parse::Parse};
 
 use crate::*;
 
 #[derive(Debug, PartialEq)]
 pub struct Args {
-    pub positional: Vec<PositionalArg>,
-    pub named: Vec<NamedArg>,
+    pub positional: Vec<ArgValue>,
+    // important to parse with simply `syn::Ident` since names are `IDENTIFIER_OR_KEYWORD`
+    pub named: HashMap<Identifier<'static>, ArgValue>,
 }
 
 impl Parse for Args {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut positional_args = Vec::new();
-        let mut named_args = Vec::new();
+        let mut named_args = HashMap::new();
 
         loop {
             if input.is_empty() {
@@ -22,14 +24,19 @@ impl Parse for Args {
 
             // named before positional so to not parse `x` in `x = 10` as a positional argument
             if input.peek2(Token![=]) {
-                let named_arg = input.parse()?;
-                named_args.push(named_arg);
+                let name = input.parse::<ArgName>()?;
+                let _ = input.parse::<Token![=]>()?;
+                let value = input.parse()?;
+
+                if named_args.insert(name.identifier, value).is_some() {
+                    return Err(syn::Error::new(name.span, "duplicate argument names not allowed"));
+                }
             } else {
-                let positional_arg = input.parse()?;
+                let positional_arg: ArgValue = input.parse()?;
 
                 if !named_args.is_empty() {
                     return Err(syn::Error::new(
-                        input.span(),
+                        positional_arg.span(),
                         "positional arguments can not follow named arguments",
                     ));
                 } else {
@@ -54,7 +61,7 @@ mod tests {
 
     #[test]
     fn parse_empty() {
-        let expected = Args { positional: Vec::new(), named: Vec::new() };
+        let expected = Args { positional: Default::default(), named: Default::default() };
 
         let actual = parse_quote!();
 
@@ -63,7 +70,7 @@ mod tests {
 
     #[test]
     fn parse_positional() {
-        let expected = Args { positional: mock_positional(), named: Vec::new() };
+        let expected = Args { positional: mock_positional(), named: Default::default() };
 
         let actual = parse_quote!(10, a, "y");
 
@@ -72,7 +79,7 @@ mod tests {
 
     #[test]
     fn parse_named() {
-        let expected = Args { positional: Vec::new(), named: mock_named() };
+        let expected = Args { positional: Default::default(), named: mock_named() };
 
         let actual = parse_quote!(x = 10, match = y);
 
@@ -90,7 +97,7 @@ mod tests {
 
     #[test]
     fn parse_with_trailing_comma() {
-        let expected = Args { positional: Vec::new(), named: mock_named() };
+        let expected = Args { positional: Default::default(), named: mock_named() };
 
         let actual = parse_quote!(x = 10, match = y,);
 
@@ -99,16 +106,24 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn posistional_after_named_error() {
+    fn positional_after_named_error() {
         let _: Args = parse_quote!(x = 10, "x");
     }
 
-    fn mock_positional() -> Vec<PositionalArg> {
-        let args = [parse_quote!(10), parse_quote!(a), parse_quote!("y")].map(PositionalArg);
-        Vec::from_iter(args)
+    #[test]
+    #[should_panic]
+    fn duplicate_name_error() {
+        let _: Args = parse_quote!(x = 10, x = 20);
     }
 
-    fn mock_named() -> Vec<NamedArg> {
-        alloc::vec![parse_quote!(x = 10), parse_quote!(match = y)]
+    fn mock_positional() -> Vec<ArgValue> {
+        alloc::vec![parse_quote!(10), parse_quote!(a), parse_quote!("y")]
+    }
+
+    fn mock_named() -> HashMap<Identifier<'static>, ArgValue> {
+        HashMap::from_iter([
+            (Identifier::parse(0, "x").unwrap(), parse_quote!(10)),
+            (Identifier::parse(0, "match").unwrap(), parse_quote!(y)),
+        ])
     }
 }
