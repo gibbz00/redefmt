@@ -245,7 +245,7 @@ mod tests {
 
         let expected = RequiredArgs {
             unnamed_argument_count: expected_unique,
-            named_arguments: HashSet::from_iter(expected_named_arguments.iter()),
+            named_arguments: expected_named_arguments.iter().collect(),
         };
 
         let format_string = FormatString::parse(str).unwrap();
