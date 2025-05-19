@@ -1,9 +1,19 @@
+use proc_macro2::Span;
 use syn::parse::{Parse, ParseStream};
 
 #[derive(Debug, PartialEq)]
 pub enum ArgValue {
     Literal(syn::Lit),
     Variable(syn::Ident),
+}
+
+impl ArgValue {
+    pub fn span(&self) -> Span {
+        match self {
+            ArgValue::Literal(lit) => lit.span(),
+            ArgValue::Variable(ident) => ident.span(),
+        }
+    }
 }
 
 impl Parse for ArgValue {

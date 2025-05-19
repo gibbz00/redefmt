@@ -11,8 +11,8 @@ use crate::*;
 /// Results in `format_args!("{match}", match = 10);` being a valid expression.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Identifier<'a> {
-    raw: bool,
-    inner: Cow<'a, str>,
+    pub(crate) raw: bool,
+    pub(crate) inner: Cow<'a, str>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
@@ -190,61 +190,6 @@ mod serde {
 
                 assert_eq!(expected_ident, actual_ident)
             }
-        }
-    }
-}
-
-#[cfg(feature = "syn")]
-mod syn {
-    use ::syn::{
-        ext::IdentExt,
-        parse::{Parse, ParseStream},
-    };
-
-    use super::*;
-
-    impl Parse for Identifier<'static> {
-        fn parse(input: ParseStream) -> ::syn::Result<Self> {
-            let ident = input.call(::syn::Ident::parse_any)?;
-
-            // HACK:
-            // proc_macro2 exposes neither `is_raw` nor `sym`
-            // so we can't just `Identifier { inner: ident.sym(), raw: ident.is_raw() }`
-            let identifier = Identifier::parse(0, ident.to_string())
-                .expect("Identifier::parse failed when ::syn::Ident::parse_any succeeded");
-
-            Ok(identifier)
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use ::syn::parse_quote;
-
-        use super::*;
-
-        #[test]
-        fn parse_keyword() {
-            let actual = parse_quote!(match);
-            let expected = Identifier { raw: false, inner: "match".into() };
-
-            assert_eq!(expected, actual);
-        }
-
-        #[test]
-        fn parse_ident() {
-            let actual = parse_quote!(test);
-            let expected = Identifier { raw: false, inner: "test".into() };
-
-            assert_eq!(expected, actual);
-        }
-
-        #[test]
-        fn parse_raw_ident() {
-            let actual = parse_quote!(r#test);
-            let expected = Identifier { raw: true, inner: "test".into() };
-
-            assert_eq!(expected, actual);
         }
     }
 }

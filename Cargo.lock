@@ -514,6 +514,7 @@ dependencies = [
  "bon",
  "derive-getters",
  "hashbrown",
+ "proc-macro2",
  "redefmt-args",
  "serde",
  "serde_json",
