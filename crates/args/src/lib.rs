@@ -12,7 +12,7 @@ pub use error::ParseError;
 mod integer;
 pub(crate) use integer::Integer;
 
-mod identifier;
+pub mod identifier;
 pub(crate) use identifier::{Identifier, IdentifierParseError};
 
 mod argument;
