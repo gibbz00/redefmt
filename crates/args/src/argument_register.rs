@@ -55,10 +55,10 @@ impl<'a, 's> ArgumentRegister<'a, 's> {
         register
     }
 
-    fn register_argument(&mut self, argument: &'s Argument<'a>) {
+    fn register_argument(&mut self, argument: &'s FormatArgument<'a>) {
         match argument {
-            Argument::Index(integer) => self.index_arguments.insert(integer.inner()),
-            Argument::Identifier(identifier) => self.named_arguments.insert(identifier),
+            FormatArgument::Index(integer) => self.index_arguments.insert(integer.inner()),
+            FormatArgument::Identifier(identifier) => self.named_arguments.insert(identifier),
         };
     }
 

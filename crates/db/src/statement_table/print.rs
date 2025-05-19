@@ -68,7 +68,6 @@ pub struct Location<'a> {
 }
 
 impl<'a> Location<'a> {
-    #[doc(hidden)]
     pub fn new(file: Cow<'a, str>, module: Cow<'a, str>, line: u32) -> Self {
         Self { file, module, line }
     }

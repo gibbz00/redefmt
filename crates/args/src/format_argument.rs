@@ -2,26 +2,26 @@ use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Argument<'a> {
+pub enum FormatArgument<'a> {
     Index(Integer),
     #[cfg_attr(feature = "serde", serde(borrow))]
     Identifier(Identifier<'a>),
 }
 
-impl<'a> Argument<'a> {
+impl<'a> FormatArgument<'a> {
     /// Context from `FormatSegment::parse`:
     /// - `str` not empty
     pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
         match str.starts_with(|ch: char| ch.is_ascii_digit()) {
-            true => Integer::parse(offset, str).map(Argument::Index),
-            false => Identifier::parse(offset, str).map(Argument::Identifier),
+            true => Integer::parse(offset, str).map(FormatArgument::Index),
+            false => Identifier::parse(offset, str).map(FormatArgument::Identifier),
         }
     }
 
-    pub(crate) fn owned(&self) -> Argument<'static> {
+    pub(crate) fn owned(&self) -> FormatArgument<'static> {
         match self {
-            Argument::Index(integer) => Argument::Index(*integer),
-            Argument::Identifier(identifier) => Argument::Identifier(identifier.owned()),
+            FormatArgument::Index(integer) => FormatArgument::Index(*integer),
+            FormatArgument::Identifier(identifier) => FormatArgument::Identifier(identifier.owned()),
         }
     }
 }
@@ -36,10 +36,10 @@ mod tests {
 
         let expected_argument = {
             let integer = Integer::parse(0, str).unwrap();
-            Argument::Index(integer)
+            FormatArgument::Index(integer)
         };
 
-        let actual_argument = Argument::parse(0, str).unwrap();
+        let actual_argument = FormatArgument::parse(0, str).unwrap();
 
         assert_eq!(expected_argument, actual_argument);
     }
@@ -50,10 +50,10 @@ mod tests {
 
         let expected_argument = {
             let identifier = Identifier::parse(0, str).unwrap();
-            Argument::Identifier(identifier)
+            FormatArgument::Identifier(identifier)
         };
 
-        let actual_argument = Argument::parse(0, str).unwrap();
+        let actual_argument = FormatArgument::parse(0, str).unwrap();
 
         assert_eq!(expected_argument, actual_argument);
     }
