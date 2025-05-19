@@ -15,8 +15,8 @@ pub(crate) use integer::Integer;
 pub mod identifier;
 pub(crate) use identifier::{Identifier, IdentifierParseError};
 
-mod argument;
-pub(crate) use argument::Argument;
+mod format_argument;
+pub(crate) use format_argument::FormatArgument;
 
 mod format_options;
 pub use format_options::FormatOptions;

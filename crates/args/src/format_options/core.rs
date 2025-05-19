@@ -192,7 +192,7 @@ fn parse_from_width<'a>(
 
     if has_width_argument && ch == '$' && format_options.use_zero_padding {
         format_options.use_zero_padding = false;
-        format_options.width = Some(FormatCount::Argument(Argument::Index(Integer::new(0))));
+        format_options.width = Some(FormatCount::Argument(FormatArgument::Index(Integer::new(0))));
     } else if ch.is_ascii_digit() || has_width_argument {
         format_options.width = Some(parse_count(offset, ch, ch_index, initial_str, str_iter)?);
     }
@@ -298,7 +298,9 @@ fn parse_count<'a>(
             if *next_char == '$' {
                 str_iter.next();
 
-                return Ok(FormatCount::Argument(Argument::Index(Integer::new(number as usize))));
+                return Ok(FormatCount::Argument(FormatArgument::Index(Integer::new(
+                    number as usize,
+                ))));
             } else {
                 return Ok(FormatCount::Integer(Integer::new(number as usize)));
             }
@@ -314,7 +316,7 @@ fn parse_count<'a>(
                 let identifier_str = &initial_str[first_char_index..end_index];
                 let identifier = Identifier::parse(first_char_index, identifier_str)?;
 
-                Ok(FormatCount::Argument(Argument::Identifier(identifier)))
+                Ok(FormatCount::Argument(FormatArgument::Identifier(identifier)))
             }
             None => Err(ParseError::new(
                 offset,
@@ -387,7 +389,7 @@ mod tests {
     #[test]
     fn parse_width_count_index_argument() {
         let expected = FormatOptions::builder()
-            .width(FormatCount::Argument(Argument::Index(Integer::new(1))))
+            .width(FormatCount::Argument(FormatArgument::Index(Integer::new(1))))
             .build();
 
         assert_format_options("1$", expected);
@@ -396,7 +398,7 @@ mod tests {
     // assert that this isn't parsed as zero padding with an unclosed width argument
     #[test]
     fn parse_width_count_zero_index_argument() {
-        let count = FormatCount::Argument(Argument::Index(Integer::new(0)));
+        let count = FormatCount::Argument(FormatArgument::Index(Integer::new(0)));
 
         let expected = FormatOptions::builder().width(count.clone()).build();
         assert_format_options("0$", expected);
@@ -410,7 +412,7 @@ mod tests {
         let identifier = Identifier::parse(0, "x").unwrap();
 
         let expected = FormatOptions::builder()
-            .width(FormatCount::Argument(Argument::Identifier(identifier)))
+            .width(FormatCount::Argument(FormatArgument::Identifier(identifier)))
             .build();
 
         assert_format_options("x$", expected);
@@ -443,7 +445,7 @@ mod tests {
     #[test]
     fn parse_all_combined() {
         let identifier = Identifier::parse(0, "x").unwrap();
-        let count = FormatCount::Argument(Argument::Identifier(identifier));
+        let count = FormatCount::Argument(FormatArgument::Identifier(identifier));
 
         let expected = FormatOptions::builder()
             .align(FormatAlign::new(Alignment::Right, Some('🦀')))

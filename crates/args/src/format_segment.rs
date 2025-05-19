@@ -4,7 +4,7 @@ use crate::*;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FormatSegment<'a> {
     #[cfg_attr(feature = "serde", serde(default, borrow, skip_serializing_if = "Option::is_none"))]
-    argument: Option<Argument<'a>>,
+    argument: Option<FormatArgument<'a>>,
     #[cfg_attr(feature = "serde", serde(borrow))]
     options: FormatOptions<'a>,
 }
@@ -20,7 +20,7 @@ impl<'a> FormatSegment<'a> {
 
                 let argument = match argument_str.is_empty() {
                     true => None,
-                    false => Some(Argument::parse(offset, argument_str)?),
+                    false => Some(FormatArgument::parse(offset, argument_str)?),
                 };
 
                 let format_options_str = &str[split_index + 1..].trim_end();
@@ -29,7 +29,7 @@ impl<'a> FormatSegment<'a> {
                 Self { argument, options }
             }
             None => {
-                let argument = Argument::parse(offset, str)?;
+                let argument = FormatArgument::parse(offset, str)?;
                 Self { argument: Some(argument), options: Default::default() }
             }
         };
@@ -77,15 +77,15 @@ mod tests {
         assert_parse("x:?", mock_argument(), mock_options());
     }
 
-    fn assert_parse(str: &str, expected_argument: Option<Argument>, expected_options: FormatOptions) {
+    fn assert_parse(str: &str, expected_argument: Option<FormatArgument>, expected_options: FormatOptions) {
         let actual = FormatSegment::parse(0, str).unwrap();
         let expected = FormatSegment { argument: expected_argument, options: expected_options };
 
         assert_eq!(expected, actual);
     }
 
-    fn mock_argument() -> Option<Argument<'static>> {
-        let argument = Argument::parse(0, "x").unwrap();
+    fn mock_argument() -> Option<FormatArgument<'static>> {
+        let argument = FormatArgument::parse(0, "x").unwrap();
         Some(argument)
     }
 

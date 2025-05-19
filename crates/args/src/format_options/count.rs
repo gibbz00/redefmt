@@ -12,7 +12,7 @@ pub enum FormatCountParseError {
 pub enum FormatCount<'a> {
     Integer(Integer),
     #[cfg_attr(feature = "serde", serde(borrow))]
-    Argument(Argument<'a>),
+    Argument(FormatArgument<'a>),
 }
 
 impl FormatCount<'_> {
