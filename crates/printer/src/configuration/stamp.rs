@@ -47,7 +47,7 @@ mod counter {
                 .map_err(CounterNewError::Format)?
                 .owned();
 
-            let required_arguments = format_string.required_parameters().map_err(CounterNewError::Args)?;
+            let required_arguments = format_string.required_arguments().map_err(CounterNewError::Args)?;
 
             if !required_arguments.named_arguments().is_empty() || *required_arguments.unnamed_argument_count() != 1 {
                 return Err(CounterNewError::ArgCount);

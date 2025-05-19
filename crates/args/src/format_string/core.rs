@@ -16,7 +16,7 @@ impl<'a> FormatString<'a> {
     }
 
     /// Verify that format string parameters are consistent, returning their requirements
-    pub fn required_parameters(&self) -> Result<RequiredArguments, RequiredArgumentsError> {
+    pub fn required_arguments(&self) -> Result<RequiredArguments, RequiredArgumentsError> {
         ArgumentRegister::new(self).resolve()
     }
 
