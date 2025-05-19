@@ -17,6 +17,7 @@ workspace = true
 
 [dependencies]
 # Internal
+redefmt-args.workspace = true
 redefmt-db.workspace = true
 redefmt-internal.workspace = true
 
