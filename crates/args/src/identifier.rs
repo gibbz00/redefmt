@@ -10,7 +10,7 @@ use crate::*;
 /// As defined in <https://doc.rust-lang.org/reference/identifiers.html>
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Identifier<'a> {
-    pub(crate) inner: Cow<'a, str>,
+    inner: Cow<'a, str>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
@@ -26,6 +26,14 @@ pub enum IdentifierParseError {
     InvalidStartCharacter,
     #[error("invalid XID_Continue character")]
     InvalidContinueCharacter,
+}
+
+#[cfg(feature = "provided-args")]
+impl Identifier<'static> {
+    pub fn from_provided(ident: &syn::Ident) -> Self {
+        use syn::ext::IdentExt;
+        Self { inner: ident.unraw().to_string().into() }
+    }
 }
 
 impl<'a> Identifier<'a> {

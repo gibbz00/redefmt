@@ -14,17 +14,17 @@ workspace = true
 
 [features]
 alloc = ["redefmt-internal/alloc"]
-derive = ["dep:redefmt-macros"]
+macros = ["dep:redefmt-macros"]
 
 [dependencies]
 redefmt-internal.workspace = true
 
-# feature: derive
+# feature: macros
 redefmt-macros = { workspace = true, optional = true }
 
 [dev-dependencies]
 # Internal
-redefmt = { path = ".", features = ["alloc", "derive"] }
+redefmt = { path = ".", features = ["alloc", "macros"] }
 
 # External
 trybuild = "1"

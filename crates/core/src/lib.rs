@@ -7,7 +7,7 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "derive")]
+#[cfg(feature = "macros")]
 pub use redefmt_macros::Format;
 
 mod export {
@@ -15,35 +15,39 @@ mod export {
 }
 pub use export::*;
 
+#[cfg(feature = "macros")]
 #[doc(hidden)]
 pub mod hidden_export {
     pub use redefmt_macros::{print, println, write, writeln};
 }
 
-#[macro_export]
-macro_rules! print {
+#[cfg(feature = "macros")]
+mod macros {
+    #[macro_export]
+    macro_rules! print {
     ($($arg:tt)*) => {
         $crate::hidden_export::print((file!(), module_path!(), line!()), $($arg:tt)*)
     };
 }
 
-#[macro_export]
-macro_rules! println {
+    #[macro_export]
+    macro_rules! println {
     ($($arg:tt)*) => {
         $crate::hidden_export::print((file!(), module_path!(), line!()), $($arg:tt)*)
     };
 }
 
-#[macro_export]
-macro_rules! write {
+    #[macro_export]
+    macro_rules! write {
     ($($arg:tt)*) => {
         $crate::hidden_export::write($($arg:tt)*)
     };
 }
 
-#[macro_export]
-macro_rules! writeln {
+    #[macro_export]
+    macro_rules! writeln {
     ($($arg:tt)*) => {
         $crate::hidden_export::writeln($($arg:tt)*)
     };
+}
 }

@@ -18,9 +18,10 @@ serde = ["dep:serde"]
 workspace = true
 
 [dependencies]
-bit-set = { version = "0.8", default-features = false }
 derive-getters = "0.5"
+foldhash = { version = "0.1.5", default-features = false }
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
+indexmap = { version = "2.9", default-features = false }
 thiserror = { version = "2.0", default-features = false }
 unicode-xid = "0.2"
 
