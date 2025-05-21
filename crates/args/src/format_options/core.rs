@@ -20,9 +20,9 @@ pub struct FormatOptions<'a> {
     #[cfg_attr(feature = "builder", builder(default))]
     use_zero_padding: bool,
     #[cfg_attr(feature = "serde", serde(borrow, skip_serializing_if = "Option::is_none"))]
-    width: Option<FormatCount<'a>>,
+    pub(crate) width: Option<FormatCount<'a>>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    precision: Option<FormatPrecision<'a>>,
+    pub(crate) precision: Option<FormatPrecision<'a>>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_default"))]
     #[cfg_attr(feature = "builder", builder(default))]
     format_trait: FormatTrait,
