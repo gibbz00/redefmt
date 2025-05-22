@@ -29,6 +29,10 @@ impl<'a> FormatString<'a> {
         FormatString { segments }
     }
 
+    pub fn segments(&self) -> &[FormatStringSegment] {
+        &self.segments
+    }
+
     #[cfg(feature = "provided-args")]
     pub(crate) fn collect_args_mut(&mut self) -> Vec<&mut FormatArgument<'a>> {
         let mut format_string_args = Vec::new();
