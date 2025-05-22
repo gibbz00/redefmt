@@ -23,7 +23,7 @@ pub use format_options::FormatOptions;
 pub(crate) use format_options::*;
 
 mod format_segment;
-pub(crate) use format_segment::FormatSegment;
+pub(crate) use format_segment::{FormatSegment, FormatStringSegment};
 
 mod format_string;
 pub use format_string::FormatString;
