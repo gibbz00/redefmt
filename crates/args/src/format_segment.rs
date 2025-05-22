@@ -2,7 +2,7 @@ use alloc::{borrow::Cow, string::ToString};
 
 use crate::*;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatStringSegment<'a> {
     Literal(Cow<'a, str>),
@@ -19,7 +19,7 @@ impl FormatStringSegment<'_> {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Hash, derive_getters::Getters)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, derive_getters::Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FormatSegment<'a> {
     #[cfg_attr(feature = "serde", serde(default, borrow, skip_serializing_if = "Option::is_none"))]
