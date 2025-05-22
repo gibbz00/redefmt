@@ -9,7 +9,7 @@ type Inner = Vec<(syn::Ident, ProvidedArgValue)>;
 ///
 /// Sorting requirements matters when reusing named arguments for
 /// positional arguments.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ProvidedNamedArgsMap(Inner);
 
 impl ProvidedNamedArgsMap {

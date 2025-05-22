@@ -1,7 +1,7 @@
 use proc_macro2::Span;
 use syn::parse::{Parse, ParseStream};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ProvidedArgValue {
     Literal(syn::Lit),
     Variable(syn::Ident),
