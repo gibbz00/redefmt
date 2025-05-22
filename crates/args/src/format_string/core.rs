@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, string::ToString, vec::Vec};
+use alloc::vec::Vec;
 
 use crate::*;
 
@@ -49,22 +49,5 @@ impl<'a> FormatString<'a> {
         }
 
         format_string_args
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum FormatStringSegment<'a> {
-    Literal(Cow<'a, str>),
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    Format(FormatSegment<'a>),
-}
-
-impl FormatStringSegment<'_> {
-    pub(crate) fn owned(&self) -> FormatStringSegment<'static> {
-        match self {
-            FormatStringSegment::Literal(cow) => FormatStringSegment::Literal(Cow::Owned(cow.to_string())),
-            FormatStringSegment::Format(segment) => FormatStringSegment::Format(segment.owned()),
-        }
     }
 }
