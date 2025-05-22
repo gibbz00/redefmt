@@ -5,25 +5,16 @@ use alloc::{
 
 use check_keyword::CheckKeyword;
 use hashbrown::HashSet;
-use indexmap::IndexMap;
 use proc_macro2::Span;
 use syn::{Token, ext::IdentExt, parse::Parse};
 
 use crate::*;
 
-/// Not much thought has gone into selecting an appropriate hasher other
-/// than it being the default hasher for `hashbrown::HashMap`.
-type DefaultHasher = foldhash::fast::RandomState;
-
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "provided-args-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProvidedArgs {
     positional: Vec<ProvidedArgValue>,
-
-    /// Parsed with `syn::Ident::parse_any` as the key can be IDENT_OR_KEYWORD.
-    ///
-    /// Needs to be sorted as order matters when reusing named arguments for
-    /// positional arguments.
-    named: IndexMap<syn::Ident, ProvidedArgValue, DefaultHasher>,
+    named: ProvidedNamedArgsMap,
 }
 
 #[derive(Debug, PartialEq, thiserror::Error)]
@@ -108,10 +99,10 @@ impl ProvidedArgs {
 
     fn collect_named_set(&self) -> HashSet<String> {
         self.named
-            .keys()
+            .iter()
             // idents unrawed since checks with format string arguments need to
             // match against both raw and non-raw alternatives
-            .map(|ident| ident.unraw().to_string())
+            .map(|(ident, _)| ident.unraw().to_string())
             .collect::<HashSet<_>>()
     }
 
@@ -130,7 +121,7 @@ impl ProvidedArgs {
                     if argument_index >= positional_len {
                         let named_index = argument_index - positional_len;
 
-                        let Some((arg_name, _)) = self.named.get_index(named_index) else {
+                        let Some((arg_name, _)) = self.named.get(named_index) else {
                             return Err(ProvidedArgsError::InvalidStringPositional(
                                 argument_index,
                                 positional_len + self.named.len(),
@@ -158,7 +149,7 @@ impl ProvidedArgs {
                             ProvidedArgValue::Variable(ident)
                         };
 
-                        self.named.insert(captured_name, captured_variable);
+                        self.named.push((captured_name, captured_variable));
                     };
                 }
             }
@@ -211,18 +202,18 @@ impl ProvidedArgs {
 
     fn inline_named(&mut self, format_string_args: &mut [&mut FormatArgument]) {
         for current_index in (0..self.named.len()).rev() {
-            let (current_name, current_value) = self.named.get_index(current_index).expect("index out of bounds");
+            let (current_name, current_value) = self.named.get(current_index).expect("index out of bounds");
             if let ProvidedArgValue::Variable(variable_value) = current_value {
-                if self
+                let inlined = self
                     .named
-                    .get(variable_value)
-                    // to avoid removing `x = x`
-                    .is_some_and(|other_value| other_value != current_value)
-                {
+                    .iter()
+                    .any(|(key, value)| key == variable_value && value != current_value);
+
+                if inlined {
                     let redundant_identifier = Identifier::from_provided(current_name);
                     let replacing_identifier = Identifier::from_provided(variable_value);
 
-                    self.named.swap_remove_index(current_index);
+                    self.named.swap_remove(current_index);
 
                     for format_string_arg in format_string_args.iter_mut() {
                         if format_string_arg.matches_name(&redundant_identifier) {
@@ -260,17 +251,15 @@ impl ProvidedArgs {
             // None if i was removed in a previous iteration, less performant
             // but simpler than a "skip while" approach. Skeptical to it
             // affecting affecting performance in any noticeable way.
-            if let Some((current_name, current_value)) = self.named.get_index(i) {
-                let (other_name, other_value) = self
-                    .named
-                    .get_index(j)
-                    .expect("out of bounds indexes, `j` not less than `i`");
+            if let Some((current_name, current_value)) = self.named.get(i) {
+                let (other_name, other_value) =
+                    self.named.get(j).expect("out of bounds indexes, `j` not less than `i`");
 
                 if current_value == other_value {
                     let replacing_name = Identifier::from_provided(other_name);
                     let matching_name = Identifier::from_provided(current_name);
 
-                    self.named.swap_remove_index(i);
+                    self.named.swap_remove(i);
 
                     for format_string_arg in format_string_args.iter_mut() {
                         if let FormatArgument::Identifier(format_string_identifier) = format_string_arg {
@@ -321,7 +310,8 @@ impl ProvidedArgs {
 impl Parse for ProvidedArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut positional_args = Vec::new();
-        let mut named_args = IndexMap::default();
+        let mut named_args = Vec::new();
+        let mut registered_named_args = HashSet::new();
 
         loop {
             if input.is_empty() {
@@ -336,8 +326,11 @@ impl Parse for ProvidedArgs {
 
                 let name_span = name.span();
 
-                if named_args.insert(name, value).is_some() {
+                if registered_named_args.contains(&name) {
                     return Err(syn::Error::new(name_span, "duplicate argument names not allowed"));
+                } else {
+                    named_args.push((name.clone(), value));
+                    registered_named_args.insert(name);
                 }
             } else {
                 let positional_arg: ProvidedArgValue = input.parse()?;
@@ -357,7 +350,10 @@ impl Parse for ProvidedArgs {
             }
         }
 
-        Ok(Self { positional: positional_args, named: named_args })
+        Ok(Self {
+            positional: positional_args,
+            named: ProvidedNamedArgsMap::from_inner(named_args),
+        })
     }
 }
 
@@ -431,13 +427,15 @@ mod tests {
             alloc::vec![parse_quote!(10), parse_quote!(a), parse_quote!("y")]
         }
 
-        fn mock_named() -> IndexMap<syn::Ident, ProvidedArgValue, DefaultHasher> {
-            [
+        fn mock_named() -> ProvidedNamedArgsMap {
+            let inner = [
                 (syn::Ident::new("x", Span::call_site()), parse_quote!(10)),
                 (syn::Ident::new("match", Span::call_site()), parse_quote!(y)),
             ]
             .into_iter()
-            .collect()
+            .collect();
+
+            ProvidedNamedArgsMap::from_inner(inner)
         }
     }
 
@@ -688,6 +686,16 @@ mod tests {
             let expected = alloc::vec![(2, 1), (2, 0), (1, 0)];
             let actual = ProvidedArgs::reversed_combinations(3).collect::<Vec<_>>();
             assert_eq!(expected, actual);
+        }
+    }
+
+    mod serde {
+        use super::*;
+
+        #[test]
+        fn serialization() {
+            let args = parse_quote!(1, "x", x = y, y = false);
+            serde_utils::assert::bijective_serialization::<ProvidedArgs>(args);
         }
     }
 }
