@@ -8,7 +8,7 @@ use syn::{Token, ext::IdentExt, parse::Parse};
 
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "provided-args-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProvidedArgs {
     pub(crate) positional: Vec<ProvidedArgValue>,

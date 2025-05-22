@@ -1,3 +1,4 @@
+use redefmt_args::provided_args::CombinedFormatString;
 use redefmt_internal::identifiers::WriteStatementId;
 
 use crate::*;
@@ -15,7 +16,7 @@ pub enum WriteStatement<'a> {
     TypeStructure(TypeStructure),
     // Often from manual implementations
     #[serde(borrow)]
-    Segments(Vec<Segment<'a>>),
+    FormatString(CombinedFormatString<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -40,6 +41,8 @@ pub enum StructVariant {
 
 #[cfg(test)]
 mod tests {
+    use redefmt_args::{FormatString, provided_args::ProvidedArgs};
+
     use super::*;
 
     statement_table_tests!(WriteStatement);
@@ -50,11 +53,17 @@ mod tests {
         }
 
         fn mock() -> Self {
-            WriteStatement::Segments(vec![Segment::Str("x".into())])
+            let format_string = FormatString::parse("x").unwrap();
+            let provided_args = ProvidedArgs::default();
+            let combined = CombinedFormatString::combine(format_string, provided_args).unwrap();
+            WriteStatement::FormatString(combined)
         }
 
         fn mock_other() -> Self {
-            WriteStatement::Segments(vec![Segment::Str("y".into())])
+            let format_string = FormatString::parse("y").unwrap();
+            let provided_args = ProvidedArgs::default();
+            let combined = CombinedFormatString::combine(format_string, provided_args).unwrap();
+            WriteStatement::FormatString(combined)
         }
     }
 }
