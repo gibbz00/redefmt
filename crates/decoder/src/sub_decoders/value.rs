@@ -373,7 +373,7 @@ mod tests {
         let arg_value = true;
         let arg_format = FormatOptions::default();
         let write_statement =
-            WriteStatement::Segments(vec![Segment::Str("x".into()), Segment::Arg(arg_format.clone())]);
+            WriteStatement::FormatString(vec![Segment::Str("x".into()), Segment::Arg(arg_format.clone())]);
         // expected
         let expected_value = ComplexValue::Segments(vec![
             DecodedSegment::Str("x"),

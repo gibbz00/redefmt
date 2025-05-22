@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use redefmt_args::provided_args::CombinedFormatString;
 use redefmt_internal::identifiers::PrintStatementId;
 
 use crate::*;
@@ -14,19 +15,12 @@ impl StatementTable for PrintStatement<'_> {
 pub struct PrintStatement<'a> {
     info: PrintInfo<'a>,
     #[serde(borrow)]
-    #[getter(skip)]
-    segments: Vec<Segment<'a>>,
+    combined_format_string: CombinedFormatString<'a>,
 }
 
 impl<'a> PrintStatement<'a> {
-    pub fn segments(&self) -> &[Segment<'a>] {
-        &self.segments
-    }
-}
-
-impl<'a> PrintStatement<'a> {
-    pub fn new(info: PrintInfo<'a>, segments: Vec<Segment<'a>>) -> Self {
-        Self { info, segments }
+    pub fn new(info: PrintInfo<'a>, combined_format_string: CombinedFormatString<'a>) -> Self {
+        Self { info, combined_format_string }
     }
 }
 
@@ -82,6 +76,8 @@ macro_rules! location {
 
 #[cfg(test)]
 mod tests {
+    use redefmt_args::{FormatString, provided_args::ProvidedArgs};
+
     use super::*;
 
     statement_table_tests!(PrintStatement);
@@ -92,11 +88,19 @@ mod tests {
         }
 
         fn mock() -> Self {
-            PrintStatement::new(mock_print_info(), vec![Segment::Str("x".into())])
+            let format_string = FormatString::parse("x").unwrap();
+            let provided_args = ProvidedArgs::default();
+            let combined = CombinedFormatString::combine(format_string, provided_args).unwrap();
+
+            PrintStatement::new(mock_print_info(), combined)
         }
 
         fn mock_other() -> Self {
-            PrintStatement::new(mock_print_info(), vec![Segment::Str("y".into())])
+            let format_string = FormatString::parse("y").unwrap();
+            let provided_args = ProvidedArgs::default();
+            let combined = CombinedFormatString::combine(format_string, provided_args).unwrap();
+
+            PrintStatement::new(mock_print_info(), combined)
         }
     }
 

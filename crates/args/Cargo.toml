@@ -33,7 +33,7 @@ serde = { version = "1.0", default-features = false, features = ["alloc", "deriv
 # feature: provided-args
 check_keyword = { version = "0.4", optional = true }
 proc-macro2 = { version = "1.0", optional = true }
-syn = { version = "2.0", default-features = false, features = ["extra-traits", "parsing", "printing"], optional = true }
+syn = { version = "2.0", default-features = false, features = ["clone-impls", "extra-traits", "parsing", "printing"], optional = true }
 
 # feature: serde-provided-args
 syn-serde = { version = "0.3", optional = true }

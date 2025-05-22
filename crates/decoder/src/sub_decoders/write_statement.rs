@@ -41,7 +41,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     .get_or_insert(write_statement_id, self.write_crate)?;
 
                 match write_statement {
-                    WriteStatement::Segments(segments) => {
+                    WriteStatement::FormatString(segments) => {
                         let segment_decoder = SegmentsDecoder::new(self.pointer_width, segments);
                         self.stage = WriteStatementDecoderStage::Segments(Box::new(segment_decoder));
                         self.decode(stores, src)
