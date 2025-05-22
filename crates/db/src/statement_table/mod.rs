@@ -1,9 +1,6 @@
 mod hash;
 pub(crate) use hash::Hash;
 
-mod segment;
-pub use segment::Segment;
-
 mod table;
 pub use table::StatementTable;
 #[cfg(test)]
