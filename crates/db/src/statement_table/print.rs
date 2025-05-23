@@ -15,11 +15,11 @@ impl StatementTable for PrintStatement<'_> {
 pub struct PrintStatement<'a> {
     info: PrintInfo<'a>,
     #[serde(borrow)]
-    combined_format_string: CombinedFormatString<'a, 'a>,
+    combined_format_string: CombinedFormatString<'a>,
 }
 
 impl<'a> PrintStatement<'a> {
-    pub fn new(info: PrintInfo<'a>, combined_format_string: CombinedFormatString<'a, 'a>) -> Self {
+    pub fn new(info: PrintInfo<'a>, combined_format_string: CombinedFormatString<'a>) -> Self {
         Self { info, combined_format_string }
     }
 }
