@@ -5,27 +5,23 @@ use crate::*;
 type StrIter<'a> = Peekable<CharIndices<'a>>;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, derive_getters::Getters)]
-#[cfg_attr(feature = "builder", derive(bon::Builder))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(default))]
 pub struct FormatOptions<'a> {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    align: Option<FormatAlign>,
+    pub(crate) align: Option<FormatAlign>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    sign: Option<Sign>,
+    pub(crate) sign: Option<Sign>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
-    #[cfg_attr(feature = "builder", builder(default))]
-    use_alternate_form: bool,
+    pub(crate) use_alternate_form: bool,
     /// <https://doc.rust-lang.org/std/fmt/index.html#sign0>
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
-    #[cfg_attr(feature = "builder", builder(default))]
-    use_zero_padding: bool,
+    pub(crate) use_zero_padding: bool,
     #[cfg_attr(feature = "serde", serde(borrow, skip_serializing_if = "Option::is_none"))]
     pub(crate) width: Option<FormatCount<'a>>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub(crate) precision: Option<FormatPrecision<'a>>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_default"))]
-    #[cfg_attr(feature = "builder", builder(default))]
-    format_trait: FormatTrait,
+    pub(crate) format_trait: FormatTrait,
 }
 
 impl<'a> FormatOptions<'a> {
@@ -338,59 +334,64 @@ mod tests {
 
     #[test]
     fn parse_alignment() {
-        let expected = FormatOptions::builder()
-            .align(FormatAlign::new(Alignment::Left, None))
-            .build();
+        let expected = FormatOptions {
+            align: Some(FormatAlign::new(Alignment::Left, None)),
+            ..Default::default()
+        };
 
         assert_format_options("<", expected);
     }
 
     #[test]
     fn parse_fill_alignment() {
-        let expected = FormatOptions::builder()
-            .align(FormatAlign::new(Alignment::Center, Some('🦀')))
-            .build();
+        let expected = FormatOptions {
+            align: Some(FormatAlign::new(Alignment::Center, Some('🦀'))),
+            ..Default::default()
+        };
 
         assert_format_options("🦀^", expected);
     }
 
     #[test]
     fn parse_plus_sign() {
-        let expected = FormatOptions::builder().sign(Sign::Plus).build();
+        let expected = FormatOptions { sign: Some(Sign::Plus), ..Default::default() };
         assert_format_options("+", expected);
     }
 
     #[test]
     fn parse_minus_sign() {
-        let expected = FormatOptions::builder().sign(Sign::Minus).build();
+        let expected = FormatOptions { sign: Some(Sign::Minus), ..Default::default() };
         assert_format_options("-", expected);
     }
 
     #[test]
     fn parse_alternate_form() {
-        let expected = FormatOptions::builder().use_alternate_form(true).build();
+        let expected = FormatOptions { use_alternate_form: true, ..Default::default() };
         assert_format_options("#", expected);
     }
 
     #[test]
     fn parse_zero_padding() {
-        let expected = FormatOptions::builder().use_zero_padding(true).build();
+        let expected = FormatOptions { use_zero_padding: true, ..Default::default() };
         assert_format_options("0", expected);
     }
 
     #[test]
     fn parse_width_count_literal() {
-        let expected = FormatOptions::builder()
-            .width(FormatCount::Integer(Integer::new(1)))
-            .build();
+        let expected = FormatOptions {
+            width: Some(FormatCount::Integer(Integer::new(1))),
+            ..Default::default()
+        };
+
         assert_format_options("1", expected);
     }
 
     #[test]
     fn parse_width_count_index_argument() {
-        let expected = FormatOptions::builder()
-            .width(FormatCount::Argument(FormatArgument::Index(Integer::new(1))))
-            .build();
+        let expected = FormatOptions {
+            width: Some(FormatCount::Argument(FormatArgument::Index(Integer::new(1)))),
+            ..Default::default()
+        };
 
         assert_format_options("1$", expected);
     }
@@ -400,10 +401,14 @@ mod tests {
     fn parse_width_count_zero_index_argument() {
         let count = FormatCount::Argument(FormatArgument::Index(Integer::new(0)));
 
-        let expected = FormatOptions::builder().width(count.clone()).build();
+        let expected = FormatOptions { width: Some(count.clone()), ..Default::default() };
         assert_format_options("0$", expected);
 
-        let expected = FormatOptions::builder().use_zero_padding(true).width(count).build();
+        let expected = FormatOptions {
+            use_zero_padding: true,
+            width: Some(count.clone()),
+            ..Default::default()
+        };
         assert_format_options("00$", expected);
     }
 
@@ -411,34 +416,32 @@ mod tests {
     fn parse_width_count_named_argument() {
         let identifier = Identifier::parse(0, "x").unwrap();
 
-        let expected = FormatOptions::builder()
-            .width(FormatCount::Argument(FormatArgument::Identifier(identifier)))
-            .build();
+        let expected = FormatOptions {
+            width: Some(FormatCount::Argument(FormatArgument::Identifier(identifier))),
+            ..Default::default()
+        };
 
         assert_format_options("x$", expected);
     }
 
     #[test]
     fn parse_precision_next_argument() {
-        let expected = FormatOptions::builder()
-            .precision(FormatPrecision::NextArgument)
-            .build();
+        let expected = FormatOptions { precision: Some(FormatPrecision::NextArgument), ..Default::default() };
         assert_format_options(".*", expected);
     }
 
     #[test]
     fn parse_precision_count_literal() {
-        let expected = FormatOptions::builder()
-            .precision(FormatPrecision::Count(FormatCount::Integer(Integer::new(1))))
-            .build();
+        let expected = FormatOptions {
+            precision: Some(FormatPrecision::Count(FormatCount::Integer(Integer::new(1)))),
+            ..Default::default()
+        };
         assert_format_options(".01", expected);
     }
 
     #[test]
     fn parse_format_trait() {
-        let expected = FormatOptions::builder()
-            .format_trait(FormatTrait::DebugLowerHex)
-            .build();
+        let expected = FormatOptions { format_trait: FormatTrait::DebugLowerHex, ..Default::default() };
         assert_format_options("x?", expected);
     }
 
@@ -447,15 +450,15 @@ mod tests {
         let identifier = Identifier::parse(0, "x").unwrap();
         let count = FormatCount::Argument(FormatArgument::Identifier(identifier));
 
-        let expected = FormatOptions::builder()
-            .align(FormatAlign::new(Alignment::Right, Some('🦀')))
-            .sign(Sign::Plus)
-            .use_alternate_form(true)
-            .use_zero_padding(true)
-            .width(count.clone())
-            .precision(FormatPrecision::Count(count))
-            .format_trait(FormatTrait::DebugLowerHex)
-            .build();
+        let expected = FormatOptions {
+            align: Some(FormatAlign::new(Alignment::Right, Some('🦀'))),
+            sign: Some(Sign::Plus),
+            use_alternate_form: true,
+            use_zero_padding: true,
+            width: Some(count.clone()),
+            precision: Some(FormatPrecision::Count(count)),
+            format_trait: FormatTrait::DebugLowerHex,
+        };
 
         assert_format_options("🦀>+#0x$.x$x?", expected);
     }

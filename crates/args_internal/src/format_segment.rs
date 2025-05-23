@@ -109,6 +109,6 @@ mod tests {
     }
 
     fn mock_options() -> FormatOptions<'static> {
-        FormatOptions::builder().format_trait(FormatTrait::Debug).build()
+        FormatOptions { format_trait: FormatTrait::Debug, ..Default::default() }
     }
 }
