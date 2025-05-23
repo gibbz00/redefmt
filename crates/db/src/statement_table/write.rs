@@ -16,7 +16,7 @@ pub enum WriteStatement<'a> {
     TypeStructure(TypeStructure),
     // Often from manual implementations
     #[serde(borrow)]
-    FormatString(CombinedFormatString<'a, 'a>),
+    FormatString(CombinedFormatString<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]

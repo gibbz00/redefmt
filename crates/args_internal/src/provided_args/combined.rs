@@ -9,11 +9,11 @@ use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_getters::Getters)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CombinedFormatString<'a, 'b> {
+pub struct CombinedFormatString<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
     format_string: FormatString<'a>,
     #[cfg_attr(feature = "serde", serde(borrow))]
-    provided_args: ProvidedArgs<'b>,
+    provided_args: ProvidedArgs<'a>,
 }
 
 #[derive(Debug, PartialEq, thiserror::Error)]
@@ -26,7 +26,7 @@ pub enum CombineArgsError {
     UnusedNamed(String),
 }
 
-impl<'a, 'b> CombinedFormatString<'a, 'b> {
+impl<'a> CombinedFormatString<'a> {
     /// Combine provided args with those in [`FormatString`]
     ///
     /// Performs a variety of context dependant checks, optimizations and
@@ -79,14 +79,18 @@ impl<'a, 'b> CombinedFormatString<'a, 'b> {
     /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
     pub fn combine(
         mut format_string: FormatString<'a>,
-        provided_args: ProvidedArgs<'b>,
+        provided_args: ProvidedArgs<'a>,
     ) -> Result<Self, CombineArgsError> {
+        // Only valid as long as no provided args are removed. Could technically
+        // reference provided args by temporarily having the args in an append
+        // only structure--ex. from the elsa crate--for the duration it is
+        // needed. Probably a bit overkill though.
         let provided_named_str_set = provided_args.collect_named_set();
 
         let mediator = Mediator { format_string_args: format_string.collect_args_mut(), provided_args };
 
-        // preparation and validation
         let mediator = mediator
+            // preparation and validation
             .capture_and_validate_format_arguments(&provided_named_str_set)?
             .check_unused_provided_named(&provided_named_str_set)?
             .check_unused_provided_positionals()?
@@ -102,12 +106,12 @@ impl<'a, 'b> CombinedFormatString<'a, 'b> {
     }
 }
 
-struct Mediator<'a, 'b, 'aa> {
+struct Mediator<'a, 'aa> {
     format_string_args: Vec<&'aa mut FormatArgument<'a>>,
-    provided_args: ProvidedArgs<'b>,
+    provided_args: ProvidedArgs<'a>,
 }
 
-impl<'a, 'b, 'aa> Mediator<'a, 'b, 'aa> {
+impl<'a, 'aa> Mediator<'a, 'aa> {
     fn capture_and_validate_format_arguments(
         self,
         provided_named_str_set: &HashSet<String>,
