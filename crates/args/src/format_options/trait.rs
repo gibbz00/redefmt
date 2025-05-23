@@ -30,7 +30,6 @@ pub enum FormatTrait {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
-#[error("failed to parse format trait")]
 pub enum FormatTraitParseError {
     #[error("unknown variant")]
     Unknown,

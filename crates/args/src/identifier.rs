@@ -14,13 +14,12 @@ pub struct Identifier<'a> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
-#[error("failed to parse identifier")]
 pub enum IdentifierParseError {
     #[error("raw identifiers are not allowed in format strings")]
     RawIdent,
     #[error("first character may not begin with a underscore")]
     Underscore,
-    #[error("‌Zero width unicode characters (U+200C and U+200D) aren't not allowed")]
+    #[error("‌zero width unicode characters (U+200C and U+200D) aren't not allowed")]
     ZeroWidth,
     #[error("invalid XID_Start character")]
     InvalidStartCharacter,

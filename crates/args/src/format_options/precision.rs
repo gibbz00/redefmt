@@ -1,7 +1,6 @@
 use crate::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
-#[error("failed to parse precision format option")]
 pub enum FormatPrecisionParseError {
     #[error("empty string after '.', expected a precision count or argument")]
     Empty,
