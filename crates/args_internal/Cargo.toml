@@ -10,6 +10,7 @@ repository.workspace = true
 version.workspace = true
 
 [features]
+quote = ["dep:proc-macro2", "dep:quote"]
 serde = ["dep:serde"]
 syn = ["dep:syn"]
 
@@ -28,6 +29,10 @@ serde = { version = "1.0", default-features = false, features = ["alloc", "deriv
 # feature: syn
 syn = { version = "2.0", default-features = false, features = ["parsing"], optional = true }
 
+# feature: quote
+proc-macro2 = { version = "1.0", default-features = false, optional = true }
+quote = { version = "1.0", optional = true }
+
 [dev-dependencies]
-redefmt-args-internal = { path = ".", features = ["serde", "syn"] }
+redefmt-args-internal = { path = ".", features = ["quote", "serde", "syn"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
