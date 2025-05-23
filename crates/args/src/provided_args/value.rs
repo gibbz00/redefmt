@@ -8,10 +8,17 @@ pub enum ProvidedArgValue {
 }
 
 impl ProvidedArgValue {
-    pub fn span(&self) -> Span {
+    pub(crate) fn span(&self) -> Span {
         match self {
             ProvidedArgValue::Literal(lit) => lit.span(),
             ProvidedArgValue::Variable(ident) => ident.span(),
+        }
+    }
+
+    pub(crate) fn is_dynamic(&self) -> bool {
+        match self {
+            ProvidedArgValue::Literal(_) => false,
+            ProvidedArgValue::Variable(_) => true,
         }
     }
 }
