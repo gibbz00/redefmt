@@ -26,6 +26,10 @@ impl<'a> AnyIdentifier<'a> {
     pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
         let cow_str = cow_str.into();
 
+        if cow_str.is_empty() {
+            return Err(ParseError::new(0, 0..0, IdentifierParseError::Empty));
+        }
+
         let (offset, ident, raw) = match cow_str.strip_prefix(RAW_START) {
             Some(raw_ident) => (RAW_START.len(), raw_ident, true),
             None => (0, cow_str.as_ref(), false),
@@ -121,6 +125,8 @@ impl syn::parse::Parse for AnyIdentifier<'static> {
 
 #[cfg(test)]
 mod tests {
+    use syn::parse::Parse;
+
     use super::*;
 
     #[test]
@@ -150,5 +156,12 @@ mod tests {
 
         let raw_identifier = AnyIdentifier::parse("r#x").unwrap();
         serde_utils::assert::borrowed_bijective_serialization("\"r#x\"", &raw_identifier);
+    }
+
+    #[test]
+    fn empty_error() {
+        let expected = ParseError::new(0, 0..0, IdentifierParseError::Empty);
+        let actual = AnyIdentifier::parse("").unwrap_err();
+        assert_eq!(expected, actual);
     }
 }
