@@ -14,6 +14,11 @@ pub struct ArgumentIdentifier<'a> {
 }
 
 impl<'a> ArgumentIdentifier<'a> {
+    #[doc(hidden)]
+    pub unsafe fn new_unchecked(inner: Cow<'a, str>) -> Self {
+        Self { inner }
+    }
+
     pub(crate) fn owned(&self) -> ArgumentIdentifier<'static> {
         let ArgumentIdentifier { inner } = self;
         ArgumentIdentifier { inner: Cow::Owned(inner.to_string()) }
