@@ -310,7 +310,7 @@ fn parse_count<'a>(
         match str_iter.find(|(_, ch)| *ch == '$') {
             Some((end_index, _)) => {
                 let identifier_str = &initial_str[first_char_index..end_index];
-                let identifier = Identifier::parse(first_char_index, identifier_str)?;
+                let identifier = ArgumentIdentifier::parse(first_char_index, identifier_str)?;
 
                 Ok(FormatCount::Argument(FormatArgument::Identifier(identifier)))
             }
@@ -414,7 +414,7 @@ mod tests {
 
     #[test]
     fn parse_width_count_named_argument() {
-        let identifier = Identifier::parse(0, "x").unwrap();
+        let identifier = ArgumentIdentifier::parse(0, "x").unwrap();
 
         let expected = FormatOptions {
             width: Some(FormatCount::Argument(FormatArgument::Identifier(identifier))),
@@ -447,7 +447,7 @@ mod tests {
 
     #[test]
     fn parse_all_combined() {
-        let identifier = Identifier::parse(0, "x").unwrap();
+        let identifier = ArgumentIdentifier::parse(0, "x").unwrap();
         let count = FormatCount::Argument(FormatArgument::Identifier(identifier));
 
         let expected = FormatOptions {

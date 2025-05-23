@@ -32,7 +32,6 @@ impl<'a> FormatString<'a> {
         &self.segments
     }
 
-    #[cfg(feature = "provided-args")]
     pub(crate) fn collect_args_mut(&mut self) -> Vec<&mut FormatArgument<'a>> {
         let mut format_string_args = Vec::new();
         let mut next_index = 0;
@@ -174,7 +173,7 @@ impl<'a> FormatString<'a> {
     }
 }
 
-#[cfg(feature = "format-string-syn")]
+#[cfg(feature = "syn")]
 impl ::syn::parse::Parse for FormatString<'static> {
     fn parse(input: ::syn::parse::ParseStream) -> ::syn::Result<Self> {
         let lit_str = input.parse::<syn::LitStr>()?;

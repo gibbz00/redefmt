@@ -1,6 +1,9 @@
 mod core;
 pub use core::ProvidedArgs;
 
+mod literal;
+pub(crate) use literal::ProvidedLiteral;
+
 mod value;
 pub use value::ProvidedArgValue;
 

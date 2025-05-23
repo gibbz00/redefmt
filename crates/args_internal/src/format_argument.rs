@@ -5,7 +5,7 @@ use crate::*;
 pub enum FormatArgument<'a> {
     Index(Integer),
     #[cfg_attr(feature = "serde", serde(borrow))]
-    Identifier(Identifier<'a>),
+    Identifier(ArgumentIdentifier<'a>),
 }
 
 impl<'a> FormatArgument<'a> {
@@ -14,7 +14,7 @@ impl<'a> FormatArgument<'a> {
     pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
         match str.starts_with(|ch: char| ch.is_ascii_digit()) {
             true => Integer::parse(offset, str).map(FormatArgument::Index),
-            false => Identifier::parse(offset, str).map(FormatArgument::Identifier),
+            false => ArgumentIdentifier::parse(offset, str).map(FormatArgument::Identifier),
         }
     }
 
@@ -25,7 +25,7 @@ impl<'a> FormatArgument<'a> {
         }
     }
 
-    pub(crate) fn matches_name(&self, identifier: &Identifier) -> bool {
+    pub(crate) fn matches_name(&self, identifier: &ArgumentIdentifier) -> bool {
         match self {
             FormatArgument::Index(_) => false,
             FormatArgument::Identifier(argument_identifier) => argument_identifier == identifier,
@@ -63,7 +63,7 @@ mod tests {
         let str = "x";
 
         let expected_argument = {
-            let identifier = Identifier::parse(0, str).unwrap();
+            let identifier = ArgumentIdentifier::parse(0, str).unwrap();
             FormatArgument::Identifier(identifier)
         };
 

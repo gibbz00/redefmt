@@ -10,9 +10,6 @@ repository.workspace = true
 version.workspace = true
 
 [features]
-format-string-syn = ["redefmt-args-internal/format-string-syn"]
-provided-args = ["redefmt-args-internal/provided-args"]
-provided-args-serde = ["redefmt-args-internal/provided-args-serde"]
 serde = ["redefmt-args-internal/serde"]
 
 [lints]
