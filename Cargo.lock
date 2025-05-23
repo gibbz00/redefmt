@@ -561,12 +561,19 @@ dependencies = [
 name = "redefmt-args"
 version = "0.1.0"
 dependencies = [
+ "redefmt-args-internal",
+]
+
+[[package]]
+name = "redefmt-args-internal"
+version = "0.1.0"
+dependencies = [
  "bon",
  "check_keyword",
  "derive-getters",
  "hashbrown",
  "proc-macro2",
- "redefmt-args",
+ "redefmt-args-internal",
  "serde",
  "serde_json",
  "syn",

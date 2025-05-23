@@ -10,43 +10,15 @@ repository.workspace = true
 version.workspace = true
 
 [features]
-builder = ["dep:bon"]
-format-string-syn = ["dep:syn"]
-provided-args = [
-  "dep:check_keyword",
-  "dep:proc-macro2",
-  "syn/clone-impls",
-  "syn/extra-traits",
-  "syn/printing",
-]
-provided-args-serde = ["dep:syn-serde", "provided-args", "serde"]
-serde = ["dep:serde"]
+format-string-syn = ["redefmt-args-internal/format-string-syn"]
+provided-args = ["redefmt-args-internal/provided-args"]
+provided-args-serde = ["redefmt-args-internal/provided-args-serde"]
+serde = ["redefmt-args-internal/serde"]
 
 [lints]
 workspace = true
 
 [dependencies]
-derive-getters = "0.5"
-hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
-thiserror = { version = "2.0", default-features = false }
-unicode-xid = "0.2"
-
-# feature: builder
-bon = { version = "3.6", default-features = false, optional = true }
-
-# feature: serde
-serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
-
-# feature: format-string-syn + provided-args
-syn = { version = "2.0", default-features = false, features = ["parsing"], optional = true }
-
-# feature: provided-args
-check_keyword = { version = "0.4", optional = true }
-proc-macro2 = { version = "1.0", optional = true }
-
-# feature: serde-provided-args
-syn-serde = { version = "0.3", optional = true }
+redefmt-args-internal.workspace = true
 
 [dev-dependencies]
-redefmt-args = { path = ".", features = ["builder", "format-string-syn", "provided-args", "provided-args-serde", "serde"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
