@@ -14,6 +14,11 @@ pub struct AnyIdentifier<'a> {
 }
 
 impl<'a> AnyIdentifier<'a> {
+    #[doc(hidden)]
+    pub unsafe fn new_unchecked(raw: bool, inner: Cow<'a, str>) -> Self {
+        Self { raw, inner }
+    }
+
     pub(crate) fn owned(&self) -> AnyIdentifier<'static> {
         let AnyIdentifier { raw, inner } = self;
         AnyIdentifier { raw: *raw, inner: Cow::Owned(inner.to_string()) }
@@ -125,8 +130,6 @@ impl syn::parse::Parse for AnyIdentifier<'static> {
 
 #[cfg(test)]
 mod tests {
-    use syn::parse::Parse;
-
     use super::*;
 
     #[test]
