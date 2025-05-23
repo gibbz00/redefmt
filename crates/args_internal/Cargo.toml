@@ -18,7 +18,6 @@ workspace = true
 
 [dependencies]
 check_keyword = "0.4"
-derive-getters = "0.5"
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
 thiserror = { version = "2.0", default-features = false }
 unicode-xid = "0.2"

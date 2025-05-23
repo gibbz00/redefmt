@@ -7,7 +7,7 @@ use crate::*;
 pub struct Integer(usize);
 
 impl Integer {
-    pub(crate) fn new(inner: usize) -> Self {
+    pub const fn new(inner: usize) -> Self {
         Self(inner)
     }
 

@@ -7,7 +7,7 @@ use crate::*;
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct FormatString<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
-    pub(crate) segments: Vec<FormatStringSegment<'a>>,
+    pub segments: Vec<FormatStringSegment<'a>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
