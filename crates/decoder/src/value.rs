@@ -1,4 +1,4 @@
-use crate::*;
+use redefmt_args::provided_args::CombinedFormatString;
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
@@ -30,7 +30,7 @@ pub enum ComplexValue<'cache> {
     List(Vec<ComplexValue<'cache>>),
     Tuple(Vec<ComplexValue<'cache>>),
     Type(Type<'cache>),
-    Segments(Vec<DecodedSegment<'cache>>),
+    NestedFormatString(&'cache CombinedFormatString<'static>, Vec<ComplexValue<'cache>>),
     // TODO:
     // Set(Vec<Value>),
     // Map(Vec<(Value, Value)>),

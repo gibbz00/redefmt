@@ -605,6 +605,7 @@ dependencies = [
  "redefmt-args",
  "redefmt-db",
  "redefmt-internal",
+ "syn",
  "tempfile",
  "thiserror",
  "tokio-util",

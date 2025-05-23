@@ -100,8 +100,8 @@ impl<'cache> Decoder for RedefmtDecoder<'cache> {
 
                 let item = RedefmtFrame {
                     stamp: stage.stamp,
-                    print_info: stage.print_info,
-                    segments: stage.segment_decoder.decoded_segments,
+                    print_statement: stage.print_statement,
+                    decoded_values: stage.segment_decoder.decoded_args,
                 };
 
                 self.stage = FrameDecoderWants::Header;
@@ -131,15 +131,12 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::FormatOptions;
+    use redefmt_args::{FormatString, provided_args::CombinedFormatString};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
         location,
-        statement_table::{
-            Segment,
-            print::{LogLevel, PrintInfo, PrintStatement},
-        },
+        statement_table::print::{LogLevel, PrintInfo, PrintStatement},
     };
     use redefmt_internal::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use tokio_util::{bytes::BufMut, codec::Decoder};
@@ -268,12 +265,12 @@ mod tests {
 
         assert!(cached_print_statement.is_some());
 
-        let expected_segments = print_statement.segments().iter().collect::<Vec<_>>();
+        let expected_combined_format_string = print_statement.combined_format_string();
 
         match decoder.stage {
             FrameDecoderWants::PrintStatement(stage) => {
-                let actual_segments = stage.segment_decoder.segments.collect::<Vec<_>>();
-                assert_eq!(expected_segments, actual_segments);
+                let actual_combined_format_string = stage.segment_decoder.combined_format_string;
+                assert_eq!(expected_combined_format_string, actual_combined_format_string);
             }
             _ => panic!("unexpected stage"),
         }
@@ -314,14 +311,10 @@ mod tests {
         let value = true;
         let actual_frame = put_and_decode_bool_arg(&mut decoder, value).unwrap();
 
-        let format_options = FormatOptions::default();
         let expected_frame = RedefmtFrame {
             stamp: None,
-            print_info: print_statement.info(),
-            segments: vec![
-                DecodedSegment::Value(ComplexValue::Value(Value::Boolean(value)), &format_options),
-                DecodedSegment::Str("x"),
-            ],
+            print_statement: &print_statement,
+            decoded_values: vec![ComplexValue::Value(Value::Boolean(value))],
         };
 
         assert_eq!(expected_frame, actual_frame);
@@ -354,10 +347,16 @@ mod tests {
 
     fn mock_print_statement() -> PrintStatement<'static> {
         let print_info = PrintInfo::new(Some(LogLevel::Debug), location!());
-        PrintStatement::new(
-            print_info,
-            vec![Segment::Arg(FormatOptions::default()), Segment::Str("x".into())],
-        )
+
+        let combined_format_string = {
+            // NOTE: Two format arguments, but only one provided. Implicitly
+            // ensures that it only needs to be encoded and decoded once
+            let format_string = FormatString::parse("{0} {0}").unwrap();
+            let provided_args = syn::parse_quote!(y = y);
+            CombinedFormatString::combine(format_string, provided_args).unwrap()
+        };
+
+        PrintStatement::new(print_info, combined_format_string)
     }
 
     fn put_and_decode_print_crate_id(decoder: &mut RedefmtDecoder, crate_id: CrateId) {

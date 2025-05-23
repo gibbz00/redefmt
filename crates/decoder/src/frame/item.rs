@@ -1,4 +1,4 @@
-use redefmt_db::statement_table::print::PrintInfo;
+use redefmt_db::statement_table::print::PrintStatement;
 use redefmt_internal::codec::frame::Stamp;
 
 use crate::*;
@@ -15,6 +15,6 @@ use crate::*;
 #[derive(Debug, PartialEq)]
 pub struct RedefmtFrame<'cache> {
     pub(crate) stamp: Option<Stamp>,
-    pub(crate) print_info: &'cache PrintInfo<'static>,
-    pub(crate) segments: Vec<DecodedSegment<'cache>>,
+    pub(crate) print_statement: &'cache PrintStatement<'static>,
+    pub(crate) decoded_values: Vec<ComplexValue<'cache>>,
 }
