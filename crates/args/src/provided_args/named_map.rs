@@ -5,10 +5,6 @@ use crate::*;
 
 type Inner = Vec<(syn::Ident, ProvidedArgValue)>;
 
-/// Sorted collection with unique elements.
-///
-/// Sorting requirements matters when reusing named arguments for
-/// positional arguments.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ProvidedNamedArgsMap(Inner);
 

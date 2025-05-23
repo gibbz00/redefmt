@@ -6,7 +6,7 @@ use proc_macro2::Span;
 
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_getters::Getters)]
 #[cfg_attr(feature = "provided-args-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CombinedFormatString<'a> {
     #[serde(borrow)]
