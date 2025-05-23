@@ -2,13 +2,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FormatAlign {
-    alignment: Alignment,
+    pub alignment: Alignment,
     #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "Option::is_none"))]
-    character: Option<char>,
+    pub character: Option<char>,
 }
 
 impl FormatAlign {
-    pub(crate) fn new(alignment: Alignment, character: Option<char>) -> Self {
+    pub(crate) const fn new(alignment: Alignment, character: Option<char>) -> Self {
         Self { alignment, character }
     }
 }

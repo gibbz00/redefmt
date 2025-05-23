@@ -19,7 +19,7 @@ pub struct SegmentsDecoder<'cache> {
 
 impl<'cache> SegmentsDecoder<'cache> {
     pub fn new(pointer_width: PointerWidth, combined_format_string: &'cache CombinedFormatString<'static>) -> Self {
-        let expected_arg_count = combined_format_string.provided_args().dynamic_count();
+        let expected_arg_count = combined_format_string.provided_args.dynamic_count();
         let decoded_args = Vec::with_capacity(expected_arg_count);
 
         Self {

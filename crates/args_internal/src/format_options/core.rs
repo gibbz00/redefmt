@@ -4,24 +4,24 @@ use crate::*;
 
 type StrIter<'a> = Peekable<CharIndices<'a>>;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, derive_getters::Getters)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(default))]
 pub struct FormatOptions<'a> {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub(crate) align: Option<FormatAlign>,
+    pub align: Option<FormatAlign>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub(crate) sign: Option<Sign>,
+    pub sign: Option<Sign>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
-    pub(crate) use_alternate_form: bool,
+    pub use_alternate_form: bool,
     /// <https://doc.rust-lang.org/std/fmt/index.html#sign0>
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
-    pub(crate) use_zero_padding: bool,
+    pub use_zero_padding: bool,
     #[cfg_attr(feature = "serde", serde(borrow, skip_serializing_if = "Option::is_none"))]
-    pub(crate) width: Option<FormatCount<'a>>,
+    pub width: Option<FormatCount<'a>>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub(crate) precision: Option<FormatPrecision<'a>>,
+    pub precision: Option<FormatPrecision<'a>>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_default"))]
-    pub(crate) format_trait: FormatTrait,
+    pub format_trait: FormatTrait,
 }
 
 impl<'a> FormatOptions<'a> {

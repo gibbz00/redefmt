@@ -7,13 +7,13 @@ use hashbrown::HashSet;
 
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_getters::Getters)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CombinedFormatString<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
-    format_string: FormatString<'a>,
+    pub format_string: FormatString<'a>,
     #[cfg_attr(feature = "serde", serde(borrow))]
-    provided_args: ProvidedArgs<'a>,
+    pub provided_args: ProvidedArgs<'a>,
 }
 
 #[derive(Debug, PartialEq, thiserror::Error)]
