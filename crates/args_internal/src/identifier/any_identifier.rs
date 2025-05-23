@@ -128,6 +128,23 @@ impl syn::parse::Parse for AnyIdentifier<'static> {
     }
 }
 
+#[cfg(feature = "quote")]
+impl quote::ToTokens for AnyIdentifier<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let raw = self.raw;
+        let inner = self.inner.as_ref();
+
+        const DOC_MESSAGE: &str = "SAFETY: provided inner str provided from a validated `AnyIdentifier`";
+
+        let identifier_tokens = quote::quote! {
+            #[doc = #DOC_MESSAGE]
+            unsafe { ::redefmt_args::identifier::AnyIdentifier<'static>::new_unchecked(#raw, #inner) }
+        };
+
+        tokens.extend(identifier_tokens);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -153,6 +170,13 @@ mod tests {
     }
 
     #[test]
+    fn empty_error() {
+        let expected = FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty);
+        let actual = AnyIdentifier::parse("").unwrap_err();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn serialization() {
         let non_raw_identifier = AnyIdentifier::parse("x").unwrap();
         serde_utils::assert::borrowed_bijective_serialization("\"x\"", &non_raw_identifier);
@@ -162,9 +186,16 @@ mod tests {
     }
 
     #[test]
-    fn empty_error() {
-        let expected = FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty);
-        let actual = AnyIdentifier::parse("").unwrap_err();
-        assert_eq!(expected, actual);
+    fn to_tokens() {
+        let inner = "r#x";
+
+        let input = AnyIdentifier::parse(inner).unwrap();
+
+        let expected = quote::quote! {
+            #[doc = "SAFETY: provided inner str provided from a validated `AnyIdentifier`"]
+            unsafe { ::redefmt_args::identifier::AnyIdentifier<'static>::new_unchecked(true, "x") }
+        };
+
+        crate::quote_utils::assert_tokens(input, expected);
     }
 }
