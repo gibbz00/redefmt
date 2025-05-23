@@ -30,4 +30,8 @@ pub(crate) use provided_args::*;
 mod integer;
 pub(crate) use integer::Integer;
 
+#[cfg(feature = "serde")]
 mod serde_utils;
+
+#[cfg(feature = "quote")]
+mod quote_utils;

@@ -7,7 +7,7 @@ pub fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     t == &T::default()
 }
 
-#[cfg(all(test, feature = "serde"))]
+#[cfg(test)]
 pub mod assert {
     use serde::{Deserialize, Serialize};
 
