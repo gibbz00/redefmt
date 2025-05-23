@@ -5,6 +5,7 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatStringSegment<'a> {
+    // IMPROVEMENT: wrap in newtype with the invariant that the str contains no unescaped braces
     Literal(Cow<'a, str>),
     #[cfg_attr(feature = "serde", serde(borrow))]
     Format(FormatSegment<'a>),
@@ -19,13 +20,13 @@ impl FormatStringSegment<'_> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, derive_getters::Getters)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FormatSegment<'a> {
     #[cfg_attr(feature = "serde", serde(default, borrow, skip_serializing_if = "Option::is_none"))]
-    pub(crate) argument: Option<FormatArgument<'a>>,
+    pub argument: Option<FormatArgument<'a>>,
     #[cfg_attr(feature = "serde", serde(borrow))]
-    pub(crate) options: FormatOptions<'a>,
+    pub options: FormatOptions<'a>,
 }
 
 impl<'a> FormatSegment<'a> {
