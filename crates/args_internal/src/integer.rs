@@ -1,26 +1,20 @@
 use crate::*;
 
 /// Decimal integer that may contain leading zeroes, and must fit into an usize
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Integer(usize);
 
 impl Integer {
-    pub const fn new(inner: usize) -> Self {
-        Self(inner)
-    }
-
     pub(crate) fn inner(&self) -> usize {
         self.0
     }
 }
 
 impl Integer {
-    pub(crate) fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &str) -> Result<Self, FormatStringParseError> {
         str.parse::<usize>()
             .map(Self)
-            .map_err(|err| ParseError::new(offset, 0..str.len(), err))
+            .map_err(|err| FormatStringParseError::new(offset, 0..str.len(), err))
     }
 }
 
@@ -43,7 +37,7 @@ mod tests {
 
         let expected_error = {
             let parse_int_error = invalid.parse::<usize>().unwrap_err();
-            ParseError::new(mock_offset, 0..invalid.len(), parse_int_error)
+            FormatStringParseError::new(mock_offset, 0..invalid.len(), parse_int_error)
         };
 
         let actual_error = Integer::parse(mock_offset, invalid).unwrap_err();

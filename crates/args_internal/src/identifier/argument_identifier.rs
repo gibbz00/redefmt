@@ -28,11 +28,11 @@ impl<'a> ArgumentIdentifier<'a> {
         AnyIdentifier { raw: false, inner: self.inner }
     }
 
-    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
+    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, FormatStringParseError> {
         let cow_str = cow_str.into();
 
         if cow_str.is_empty() {
-            return Err(ParseError::new(0, 0..0, IdentifierParseError::Empty));
+            return Err(FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty));
         }
 
         Self::parse_impl(0, cow_str)
@@ -40,11 +40,11 @@ impl<'a> ArgumentIdentifier<'a> {
 
     /// Context from `Argument::parse`:
     /// - `str` not empty
-    pub(crate) fn parse_impl(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
+    pub(crate) fn parse_impl(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, FormatStringParseError> {
         let cow_str = cow_str.into();
 
         if cow_str.starts_with(super::utils::RAW_START) {
-            return Err(ParseError::new(
+            return Err(FormatStringParseError::new(
                 offset,
                 0..super::utils::RAW_START.len(),
                 IdentifierParseError::RawIdent,
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn raw_identifier_error() {
-        let expected_error = ParseError::new(0, 0..2, IdentifierParseError::RawIdent);
+        let expected_error = FormatStringParseError::new(0, 0..2, IdentifierParseError::RawIdent);
         let actual_error = ArgumentIdentifier::parse("r#x").unwrap_err();
         assert_eq!(expected_error, actual_error);
     }
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn empty_error() {
-        let expected = ParseError::new(0, 0..0, IdentifierParseError::Empty);
+        let expected = FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty);
         let actual = ArgumentIdentifier::parse("").unwrap_err();
         assert_eq!(expected, actual);
     }

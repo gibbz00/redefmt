@@ -3,7 +3,7 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatArgument<'a> {
-    Index(Integer),
+    Index(usize),
     #[cfg_attr(feature = "serde", serde(borrow))]
     Identifier(ArgumentIdentifier<'a>),
 }
@@ -11,9 +11,9 @@ pub enum FormatArgument<'a> {
 impl<'a> FormatArgument<'a> {
     /// Context from `FormatSegment::parse`:
     /// - `str` not empty
-    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, FormatStringParseError> {
         match str.starts_with(|ch: char| ch.is_ascii_digit()) {
-            true => Integer::parse(offset, str).map(FormatArgument::Index),
+            true => Integer::parse(offset, str).map(|integer| FormatArgument::Index(integer.inner())),
             false => ArgumentIdentifier::parse_impl(offset, str).map(FormatArgument::Identifier),
         }
     }
@@ -34,7 +34,7 @@ impl<'a> FormatArgument<'a> {
 
     pub(crate) fn matches_index(&self, index: usize) -> bool {
         match self {
-            FormatArgument::Index(argument_index) => argument_index.inner() == index,
+            FormatArgument::Index(argument_index) => *argument_index == index,
             FormatArgument::Identifier(_) => false,
         }
     }
@@ -50,7 +50,7 @@ mod tests {
 
         let expected_argument = {
             let integer = Integer::parse(0, str).unwrap();
-            FormatArgument::Index(integer)
+            FormatArgument::Index(integer.inner())
         };
 
         let actual_argument = FormatArgument::parse(0, str).unwrap();

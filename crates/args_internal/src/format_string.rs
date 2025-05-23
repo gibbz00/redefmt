@@ -10,16 +10,8 @@ pub struct FormatString<'a> {
     pub segments: Vec<FormatStringSegment<'a>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
-pub enum FormatStringParseError {
-    #[error("no '{{' found for before '}}'")]
-    UnmatchedClose,
-    #[error("no '}}' found for after '{{'")]
-    UnmatchedOpen,
-}
-
 impl<'a> FormatString<'a> {
-    pub fn parse(str: &'a str) -> Result<Self, ParseError> {
+    pub fn parse(str: &'a str) -> Result<Self, FormatStringParseError> {
         Self::parse_impl(0, str)
     }
 
@@ -42,7 +34,7 @@ impl<'a> FormatString<'a> {
                 let arg = format_segment.argument.get_or_insert_with(|| {
                     let current_index = next_index;
                     next_index += 1;
-                    FormatArgument::Index(Integer::new(current_index))
+                    FormatArgument::Index(current_index)
                 });
 
                 format_string_args.push(arg);
@@ -62,7 +54,7 @@ impl<'a> FormatString<'a> {
         format_string_args
     }
 
-    fn parse_impl(offset: usize, str: &'a str) -> Result<Self, ParseError> {
+    fn parse_impl(offset: usize, str: &'a str) -> Result<Self, FormatStringParseError> {
         const OPENING_BRACE: char = '{';
         const CLOSING_BRACE: char = '}';
 
@@ -75,9 +67,9 @@ impl<'a> FormatString<'a> {
             match char {
                 OPENING_BRACE => {
                     let Some((next_char_index, next_char)) = char_iter.next() else {
-                        return Err(ParseError::new_char(
+                        return Err(FormatStringParseError::new_char(
                             offset + char_index,
-                            FormatStringParseError::UnmatchedOpen,
+                            FormatStringSegmentError::UnmatchedOpen,
                         ));
                     };
 
@@ -106,18 +98,18 @@ impl<'a> FormatString<'a> {
                             last_segment_end = Some(argument_end_index + 1);
                         }
                         None => {
-                            return Err(ParseError::new_char(
+                            return Err(FormatStringParseError::new_char(
                                 offset + char_index,
-                                FormatStringParseError::UnmatchedOpen,
+                                FormatStringSegmentError::UnmatchedOpen,
                             ));
                         }
                     }
                 }
                 CLOSING_BRACE => {
                     if char_iter.next().is_none_or(|(_, next_char)| next_char != CLOSING_BRACE) {
-                        return Err(ParseError::new_char(
+                        return Err(FormatStringParseError::new_char(
                             offset + char_index,
-                            FormatStringParseError::UnmatchedClose,
+                            FormatStringSegmentError::UnmatchedClose,
                         ));
                     }
                 }
@@ -241,7 +233,8 @@ mod tests {
         assert_close_error("x}");
 
         fn assert_close_error(str: &str) {
-            let expected_error = ParseError::new(0, str.len() - 1..str.len(), FormatStringParseError::UnmatchedClose);
+            let expected_error =
+                FormatStringParseError::new(0, str.len() - 1..str.len(), FormatStringSegmentError::UnmatchedClose);
             let actual_error = FormatString::parse(str).unwrap_err();
 
             assert_eq!(expected_error, actual_error);
@@ -254,7 +247,7 @@ mod tests {
         assert_open_error("{x");
 
         fn assert_open_error(str: &str) {
-            let expected_error = ParseError::new_char(0, FormatStringParseError::UnmatchedOpen);
+            let expected_error = FormatStringParseError::new_char(0, FormatStringSegmentError::UnmatchedOpen);
             let actual_error = FormatString::parse(str).unwrap_err();
 
             assert_eq!(expected_error, actual_error);

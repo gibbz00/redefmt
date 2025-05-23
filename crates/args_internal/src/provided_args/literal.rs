@@ -2,7 +2,7 @@ use alloc::{ffi::CString, string::String, vec::Vec};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum ProvidedLiteral {
+pub enum ProvidedArgLiteral {
     Str(String),
     ByteStr(Vec<u8>),
     CStr(CString),
@@ -21,7 +21,7 @@ mod syn {
 
     use super::*;
 
-    impl ProvidedLiteral {
+    impl ProvidedArgLiteral {
         fn from_syn(syn_lit: ::syn::Lit) -> Self {
             match syn_lit {
                 ::syn::Lit::Str(lit) => Self::Str(lit.value()),
@@ -39,7 +39,7 @@ mod syn {
         }
     }
 
-    impl ::syn::parse::Parse for ProvidedLiteral {
+    impl ::syn::parse::Parse for ProvidedArgLiteral {
         fn parse(input: ::syn::parse::ParseStream) -> ::syn::Result<Self> {
             input.parse().map(Self::from_syn)
         }

@@ -9,7 +9,7 @@ pub enum FormatCountParseError {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatCount<'a> {
-    Integer(Integer),
+    Integer(usize),
     #[cfg_attr(feature = "serde", serde(borrow))]
     Argument(FormatArgument<'a>),
 }
