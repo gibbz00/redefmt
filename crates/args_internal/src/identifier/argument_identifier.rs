@@ -28,9 +28,19 @@ impl<'a> ArgumentIdentifier<'a> {
         AnyIdentifier { raw: false, inner: self.inner }
     }
 
+    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
+        let cow_str = cow_str.into();
+
+        if cow_str.is_empty() {
+            return Err(ParseError::new(0, 0..0, IdentifierParseError::Empty));
+        }
+
+        Self::parse_impl(0, cow_str)
+    }
+
     /// Context from `Argument::parse`:
     /// - `str` not empty
-    pub(crate) fn parse(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
+    pub(crate) fn parse_impl(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
         let cow_str = cow_str.into();
 
         if cow_str.starts_with(super::utils::RAW_START) {
@@ -80,7 +90,7 @@ mod serde {
             D: ::serde::Deserializer<'de>,
         {
             let cow_str = Cow::<'a, str>::deserialize(deserializer)?;
-            Self::parse(0, cow_str).map_err(|err| ::serde::de::Error::custom(err.kind()))
+            Self::parse(cow_str).map_err(|err| ::serde::de::Error::custom(err.kind()))
         }
     }
 }
@@ -91,27 +101,34 @@ mod tests {
 
     #[test]
     fn parse() {
-        let result = ArgumentIdentifier::parse(0, "x");
+        let result = ArgumentIdentifier::parse("x");
         assert!(result.is_ok());
     }
 
     #[test]
     fn raw_identifier_error() {
         let expected_error = ParseError::new(0, 0..2, IdentifierParseError::RawIdent);
-        let actual_error = ArgumentIdentifier::parse(0, "r#x").unwrap_err();
+        let actual_error = ArgumentIdentifier::parse("r#x").unwrap_err();
         assert_eq!(expected_error, actual_error);
     }
 
     #[test]
     fn display() {
         let expected = "x";
-        let actual = ArgumentIdentifier::parse(0, expected).unwrap().to_string();
+        let actual = ArgumentIdentifier::parse(expected).unwrap().to_string();
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn serialization() {
-        let identifier = ArgumentIdentifier::parse(0, "x").unwrap();
+        let identifier = ArgumentIdentifier::parse("x").unwrap();
         serde_utils::assert::borrowed_bijective_serialization("\"x\"", &identifier);
+    }
+
+    #[test]
+    fn empty_error() {
+        let expected = ParseError::new(0, 0..0, IdentifierParseError::Empty);
+        let actual = ArgumentIdentifier::parse("").unwrap_err();
+        assert_eq!(expected, actual);
     }
 }
