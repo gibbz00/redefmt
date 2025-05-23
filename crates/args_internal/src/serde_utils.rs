@@ -9,11 +9,29 @@ pub fn is_default<T: Default + PartialEq>(t: &T) -> bool {
 
 #[cfg(all(test, feature = "serde"))]
 pub mod assert {
-    use serde::{Serialize, de::DeserializeOwned};
+    use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
     pub fn bijective_serialization<T: Serialize + DeserializeOwned + core::fmt::Debug + PartialEq>(initial: T) {
         let json_string = serde_json::to_string(&initial).unwrap();
         let r#final = serde_json::from_str(&json_string).unwrap();
         assert_eq!(initial, r#final)
+    }
+
+    pub fn borrowed_bijective_serialization<'a, T: Serialize + Deserialize<'a> + core::fmt::Debug + PartialEq>(
+        json_str: &'a str,
+        t: &T,
+    ) {
+        serialize(t, json_str);
+        deserialize(json_str, t);
+    }
+
+    pub fn serialize<T: Serialize + core::fmt::Debug + PartialEq>(initial: &T, expected_json_str: &str) {
+        let actual_json_str = serde_json::to_string(initial).unwrap();
+        assert_eq!(expected_json_str, actual_json_str)
+    }
+
+    pub fn deserialize<'a, T: Deserialize<'a> + core::fmt::Debug + PartialEq>(json_str: &'a str, expected: &T) {
+        let actual = serde_json::from_str(json_str).unwrap();
+        assert_eq!(expected, &actual)
     }
 }
