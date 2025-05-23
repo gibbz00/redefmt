@@ -14,7 +14,7 @@ impl<'a> FormatArgument<'a> {
     pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
         match str.starts_with(|ch: char| ch.is_ascii_digit()) {
             true => Integer::parse(offset, str).map(FormatArgument::Index),
-            false => ArgumentIdentifier::parse(offset, str).map(FormatArgument::Identifier),
+            false => ArgumentIdentifier::parse_impl(offset, str).map(FormatArgument::Identifier),
         }
     }
 
@@ -63,7 +63,7 @@ mod tests {
         let str = "x";
 
         let expected_argument = {
-            let identifier = ArgumentIdentifier::parse(0, str).unwrap();
+            let identifier = ArgumentIdentifier::parse(str).unwrap();
             FormatArgument::Identifier(identifier)
         };
 
