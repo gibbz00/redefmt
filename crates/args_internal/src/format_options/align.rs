@@ -57,13 +57,17 @@ impl quote::ToTokens for Alignment {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::quote;
 
-        let alignment_tokens = match self {
-            Alignment::Left => quote! { ::redefmt_args::format_options::Alignment::Left },
-            Alignment::Center => quote! { ::redefmt_args::format_options::Alignment::Center },
-            Alignment::Right => quote! { ::redefmt_args::format_options::Alignment::Right },
+        let variant_name = match self {
+            Alignment::Left => quote! { Left },
+            Alignment::Center => quote! { Center },
+            Alignment::Right => quote! { Right },
         };
 
-        tokens.extend(alignment_tokens);
+        let align_tokens = quote! {
+            ::redefmt_args::format_options::Alignment::#variant_name
+        };
+
+        tokens.extend(align_tokens);
     }
 }
 
