@@ -25,29 +25,29 @@ pub mod hidden_export {
 mod macros {
     #[macro_export]
     macro_rules! print {
-    ($($arg:tt)*) => {
-        $crate::hidden_export::print((file!(), module_path!(), line!()), $($arg:tt)*)
-    };
-}
+        ($($arg:tt)*) => {
+            $crate::hidden_export::print((file!(), module_path!(), line!()), $($arg:tt)*)
+        };
+    }
 
     #[macro_export]
     macro_rules! println {
-    ($($arg:tt)*) => {
-        $crate::hidden_export::print((file!(), module_path!(), line!()), $($arg:tt)*)
-    };
-}
+        ($($arg:tt)*) => {
+            $crate::hidden_export::print((file!(), module_path!(), line!()), $($arg:tt)*)
+        };
+    }
 
     #[macro_export]
     macro_rules! write {
-    ($($arg:tt)*) => {
-        $crate::hidden_export::write($($arg:tt)*)
-    };
-}
+        ($($arg:tt)*) => {
+            $crate::hidden_export::write($($arg:tt)*)
+        };
+    }
 
     #[macro_export]
     macro_rules! writeln {
-    ($($arg:tt)*) => {
-        $crate::hidden_export::writeln($($arg:tt)*)
-    };
-}
+        ($($arg:tt)*) => {
+            $crate::hidden_export::writeln($($arg:tt)*)
+        };
+    }
 }
