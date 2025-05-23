@@ -10,7 +10,6 @@ repository.workspace = true
 version.workspace = true
 
 [features]
-builder = ["dep:bon"]
 format-string-syn = ["dep:syn"]
 provided-args = [
   "dep:check_keyword",
@@ -31,9 +30,6 @@ hashbrown = { version = "0.15", default-features = false, features = ["default-h
 thiserror = { version = "2.0", default-features = false }
 unicode-xid = "0.2"
 
-# feature: builder
-bon = { version = "3.6", default-features = false, optional = true }
-
 # feature: serde
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
 
@@ -48,5 +44,5 @@ proc-macro2 = { version = "1.0", optional = true }
 syn-serde = { version = "0.3", optional = true }
 
 [dev-dependencies]
-redefmt-args-internal = { path = ".", features = ["builder", "format-string-syn", "provided-args", "provided-args-serde", "serde"] }
+redefmt-args-internal = { path = ".", features = ["format-string-syn", "provided-args", "provided-args-serde", "serde"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
