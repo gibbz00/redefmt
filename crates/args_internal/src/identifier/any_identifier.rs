@@ -23,12 +23,12 @@ impl<'a> AnyIdentifier<'a> {
         ArgumentIdentifier { inner: self.inner }
     }
 
-    pub(crate) fn parse(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
+    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
         let cow_str = cow_str.into();
 
         let (offset, ident, raw) = match cow_str.strip_prefix(RAW_START) {
-            Some(raw_ident) => (offset + RAW_START.len(), raw_ident, true),
-            None => (offset, cow_str.as_ref(), false),
+            Some(raw_ident) => (RAW_START.len(), raw_ident, true),
+            None => (0, cow_str.as_ref(), false),
         };
 
         super::utils::assert_xid_chars(offset, ident)?;
@@ -98,7 +98,7 @@ mod serde {
             D: ::serde::Deserializer<'de>,
         {
             let cow_str = Cow::<'a, str>::deserialize(deserializer)?;
-            Self::parse(0, cow_str).map_err(|err| ::serde::de::Error::custom(err.kind()))
+            Self::parse(cow_str).map_err(|err| ::serde::de::Error::custom(err.kind()))
         }
     }
 }
@@ -111,7 +111,7 @@ impl syn::parse::Parse for AnyIdentifier<'static> {
         let ident = input.call(syn::Ident::parse_any)?;
 
         // WORKAROUND: for syn::Ident not exposing `ident.is_raw()` and `ident.sym()`
-        let any_identifier = AnyIdentifier::parse(0, ident.to_string())
+        let any_identifier = AnyIdentifier::parse(ident.to_string())
             .expect("syn parse differs from internal parse")
             .owned();
 
@@ -125,10 +125,10 @@ mod tests {
 
     #[test]
     fn parse() {
-        let non_raw_result = AnyIdentifier::parse(0, "x");
+        let non_raw_result = AnyIdentifier::parse("x");
         assert!(non_raw_result.is_ok());
 
-        let raw_result = AnyIdentifier::parse(0, "r#x");
+        let raw_result = AnyIdentifier::parse("r#x");
         assert!(raw_result.is_ok());
     }
 
@@ -138,17 +138,17 @@ mod tests {
         assert_display("r#x");
 
         fn assert_display(expected: &str) {
-            let actual = AnyIdentifier::parse(0, expected).unwrap().to_string();
+            let actual = AnyIdentifier::parse(expected).unwrap().to_string();
             assert_eq!(expected, actual);
         }
     }
 
     #[test]
     fn serialization() {
-        let non_raw_identifier = AnyIdentifier::parse(0, "x").unwrap();
+        let non_raw_identifier = AnyIdentifier::parse("x").unwrap();
         serde_utils::assert::borrowed_bijective_serialization("\"x\"", &non_raw_identifier);
 
-        let raw_identifier = AnyIdentifier::parse(0, "r#x").unwrap();
+        let raw_identifier = AnyIdentifier::parse("r#x").unwrap();
         serde_utils::assert::borrowed_bijective_serialization("\"r#x\"", &raw_identifier);
     }
 }
