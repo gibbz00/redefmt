@@ -166,8 +166,8 @@ mod tests {
 
     fn mock_named() -> ProvidedNamedArgsMap<'static> {
         let inner = [
-            (AnyIdentifier::parse(0, "x").unwrap(), parse_quote!(10)),
-            (AnyIdentifier::parse(0, "match").unwrap(), parse_quote!(y)),
+            (AnyIdentifier::parse("x").unwrap(), parse_quote!(10)),
+            (AnyIdentifier::parse("match").unwrap(), parse_quote!(y)),
         ]
         .into_iter()
         .collect();
