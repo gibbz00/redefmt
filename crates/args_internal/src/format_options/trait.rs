@@ -38,7 +38,7 @@ pub enum FormatTraitParseError {
 impl FormatTrait {
     /// Context from `FormatOptions::parse`:
     /// - `str` not empty
-    pub(crate) fn parse(offset: usize, str: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &str) -> Result<Self, FormatStringParseError> {
         let format_trait = match str {
             "?" => FormatTrait::Debug,
             "x?" => FormatTrait::DebugLowerHex,
@@ -50,7 +50,7 @@ impl FormatTrait {
             "b" => FormatTrait::Binary,
             "e" => FormatTrait::LowerExp,
             "E" => FormatTrait::UpperExp,
-            _ => return Err(ParseError::new(offset, 0..str.len(), FormatTraitParseError::Unknown)),
+            _ => return Err(FormatStringParseError::new(offset, 0..str.len(), FormatTraitParseError::Unknown)),
         };
 
         Ok(format_trait)
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        let expected_error = ParseError::new(0, 0..2, FormatTraitParseError::Unknown);
+        let expected_error = FormatStringParseError::new(0, 0..2, FormatTraitParseError::Unknown);
 
         let actual_error = FormatTrait::parse(0, "xx").unwrap_err();
 

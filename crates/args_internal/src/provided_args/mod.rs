@@ -2,7 +2,7 @@ mod core;
 pub use core::ProvidedArgs;
 
 mod literal;
-pub(crate) use literal::ProvidedLiteral;
+pub(crate) use literal::ProvidedArgLiteral;
 
 mod value;
 pub use value::ProvidedArgValue;

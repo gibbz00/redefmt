@@ -4,7 +4,7 @@ use crate::*;
 
 pub(crate) const RAW_START: &str = "r#";
 
-pub(crate) fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseError> {
+pub(crate) fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), FormatStringParseError> {
     const ZERO_WIDTH_NON_JOINER: char = '\u{200C}';
     const ZERO_WIDTH_JOINER: char = '\u{200D}';
 
@@ -28,7 +28,7 @@ pub(crate) fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseEr
         };
 
         if let Some(error) = first_char_error {
-            return Err(ParseError::new_char(offset, error));
+            return Err(FormatStringParseError::new_char(offset, error));
         }
     }
 
@@ -46,8 +46,8 @@ pub(crate) fn assert_xid_chars(offset: usize, ident: &str) -> Result<(), ParseEr
         offset: usize,
         char_index: usize,
         parse_error: IdentifierParseError,
-    ) -> Result<(), ParseError> {
-        Err(ParseError::new_char(offset + char_index, parse_error))
+    ) -> Result<(), FormatStringParseError> {
+        Err(FormatStringParseError::new_char(offset + char_index, parse_error))
     }
 }
 
@@ -94,7 +94,7 @@ mod tests {
     fn assert_error(str: &str, expected_range: Range<usize>, expected_kind: IdentifierParseError) {
         let mock_offset = 10;
 
-        let expected_error = ParseError::new(mock_offset, expected_range, expected_kind);
+        let expected_error = FormatStringParseError::new(mock_offset, expected_range, expected_kind);
 
         let actual_error = assert_xid_chars(mock_offset, str).unwrap_err();
 

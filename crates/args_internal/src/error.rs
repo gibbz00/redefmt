@@ -3,7 +3,7 @@ use core::ops::Range;
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
-pub enum ParseErrorKind {
+pub enum FormatStringParseErrorKind {
     #[error("failed to parse integer")]
     Integer(#[from] core::num::ParseIntError),
     #[error("failed to parse identifier")]
@@ -15,27 +15,27 @@ pub enum ParseErrorKind {
     #[error("failed to parse format trait")]
     Trait(#[from] FormatTraitParseError),
     #[error("found unclosed format strings arguments")]
-    String(#[from] FormatStringParseError),
+    String(#[from] FormatStringSegmentError),
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ParseError {
+pub struct FormatStringParseError {
     // NOTE: character indices, not byte
     range: Range<usize>,
-    kind: ParseErrorKind,
+    kind: FormatStringParseErrorKind,
 }
 
-impl ParseError {
-    pub fn kind(&self) -> &ParseErrorKind {
+impl FormatStringParseError {
+    pub fn kind(&self) -> &FormatStringParseErrorKind {
         &self.kind
     }
 
-    pub(crate) fn new(offset: usize, range: Range<usize>, kind: impl Into<ParseErrorKind>) -> Self {
+    pub(crate) fn new(offset: usize, range: Range<usize>, kind: impl Into<FormatStringParseErrorKind>) -> Self {
         let range = offset + range.start..offset + range.end;
         Self { range, kind: kind.into() }
     }
 
-    pub(crate) fn new_char(offset: usize, kind: impl Into<ParseErrorKind>) -> Self {
+    pub(crate) fn new_char(offset: usize, kind: impl Into<FormatStringParseErrorKind>) -> Self {
         Self::new(offset, 0..1, kind)
     }
 
