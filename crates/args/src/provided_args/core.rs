@@ -16,6 +16,19 @@ pub struct ProvidedArgs {
 }
 
 impl ProvidedArgs {
+    /// Count the number of dynamic arguments in positional and named
+    ///
+    /// Static arguments would in this case be literals, and dynamic those bound
+    /// from variables in scope.
+    pub fn dynamic_count(&self) -> usize {
+        let positional_iter = self.positional.iter();
+        let named_iter = self.named.iter().map(|(_, arg)| arg);
+
+        positional_iter
+            .chain(named_iter)
+            .fold(0, |count, arg| if arg.is_dynamic() { count + 1 } else { count })
+    }
+
     pub(crate) fn collect_named_set(&self) -> HashSet<String> {
         self.named
             .iter()
@@ -87,6 +100,15 @@ mod tests {
     fn serialization() {
         let args = parse_quote!(1, "x", x = y, y = false);
         serde_utils::assert::bijective_serialization::<ProvidedArgs>(args);
+    }
+
+    #[test]
+    fn dynamic_count() {
+        let args: ProvidedArgs = parse_quote!(1, y = false);
+        assert_eq!(0, args.dynamic_count());
+
+        let args: ProvidedArgs = parse_quote!(x, y = y);
+        assert_eq!(2, args.dynamic_count());
     }
 
     #[test]
