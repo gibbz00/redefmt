@@ -100,6 +100,22 @@ mod serde {
     }
 }
 
+#[cfg(feature = "quote")]
+impl quote::ToTokens for ArgumentIdentifier<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let inner = self.inner.as_ref();
+
+        const DOC_MESSAGE: &str = "SAFETY: provided inner str provided from a validated `ArgumentIdentifier`";
+
+        let identifier_tokens = quote::quote! {
+            #[doc = #DOC_MESSAGE]
+            unsafe { ::redefmt_args::identifier::ArgumentIdentifier<'static>::new_unchecked(#inner) }
+        };
+
+        tokens.extend(identifier_tokens);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,6 +134,13 @@ mod tests {
     }
 
     #[test]
+    fn empty_error() {
+        let expected = FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty);
+        let actual = ArgumentIdentifier::parse("").unwrap_err();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn display() {
         let expected = "x";
         let actual = ArgumentIdentifier::parse(expected).unwrap().to_string();
@@ -131,9 +154,16 @@ mod tests {
     }
 
     #[test]
-    fn empty_error() {
-        let expected = FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty);
-        let actual = ArgumentIdentifier::parse("").unwrap_err();
-        assert_eq!(expected, actual);
+    fn to_tokens() {
+        let inner = "x";
+
+        let input = ArgumentIdentifier::parse(inner).unwrap();
+
+        let expected = quote::quote! {
+            #[doc = "SAFETY: provided inner str provided from a validated `ArgumentIdentifier`"]
+            unsafe { ::redefmt_args::identifier::ArgumentIdentifier<'static>::new_unchecked(#inner) }
+        };
+
+        crate::quote_utils::assert_tokens(input, expected);
     }
 }
