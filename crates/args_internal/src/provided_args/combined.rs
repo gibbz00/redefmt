@@ -114,7 +114,7 @@ struct Mediator<'a, 'aa> {
 impl<'a, 'aa> Mediator<'a, 'aa> {
     fn capture_and_validate_format_arguments(
         self,
-        provided_named_str_set: &HashSet<String>,
+        provided_named_str_set: &HashSet<ArgumentIdentifier>,
     ) -> Result<Self, CombineArgsError> {
         let Self { mut format_string_args, mut provided_args } = self;
 
@@ -135,14 +135,14 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
                             ));
                         };
 
-                        **format_string_arg = FormatArgument::Identifier(arg_name.unraw().owned());
+                        **format_string_arg = FormatArgument::Identifier(arg_name.clone().unraw());
                     }
                 }
                 FormatArgument::Identifier(identifier) => {
                     // capture missing arguments
-                    if !provided_named_str_set.contains(identifier.as_ref()) {
-                        let captured_name = identifier.as_any().owned();
-                        let captured_variable = ProvidedArgValue::Variable(identifier.as_safe_any().owned());
+                    if !provided_named_str_set.contains(identifier) {
+                        let captured_name = identifier.clone().into_any();
+                        let captured_variable = ProvidedArgValue::Variable(identifier.clone().into_safe_any());
 
                         provided_args.named.push((captured_name, captured_variable));
                     };
@@ -172,19 +172,22 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
         Ok(Self { format_string_args, provided_args })
     }
 
-    fn check_unused_provided_named(self, provided_named_str_set: &HashSet<String>) -> Result<Self, CombineArgsError> {
+    fn check_unused_provided_named(
+        self,
+        provided_named_str_set: &HashSet<ArgumentIdentifier>,
+    ) -> Result<Self, CombineArgsError> {
         let Self { format_string_args, provided_args } = self;
 
         let format_args_named_set = format_string_args
             .iter()
             .filter_map(|arg| match arg {
-                FormatArgument::Identifier(identifier) => Some(identifier.as_ref()),
+                FormatArgument::Identifier(identifier) => Some(identifier),
                 FormatArgument::Index(_) => None,
             })
             .collect::<HashSet<_>>();
 
         for provided_named_str in provided_named_str_set {
-            if !format_args_named_set.contains(provided_named_str.as_str()) {
+            if !format_args_named_set.contains(provided_named_str) {
                 return Err(CombineArgsError::UnusedNamed(provided_named_str.to_string()));
             }
         }
@@ -206,8 +209,8 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
                     .any(|(key, value)| key == variable_value && value != current_value);
 
                 if inlined {
-                    let redundant_identifier = current_name.unraw().owned();
-                    let replacing_identifier = variable_value.unraw().owned();
+                    let redundant_identifier = current_name.clone().unraw();
+                    let replacing_identifier = variable_value.clone().unraw();
 
                     provided_args.named.swap_remove(current_index);
 
@@ -262,8 +265,8 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
                     .expect("out of bounds indexes, `j` not less than `i`");
 
                 if current_value == other_value {
-                    let replacing_name = other_name.unraw().owned();
-                    let matching_name = current_name.unraw().owned();
+                    let replacing_name = other_name.clone().unraw();
+                    let matching_name = current_name.clone().unraw();
 
                     provided_args.named.swap_remove(i);
 
@@ -293,7 +296,7 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
             if let Some(name) = maybe_name {
                 provided_args.positional.swap_remove(positional_index);
 
-                let replacing_ident = name.unraw().owned();
+                let replacing_ident = name.clone().unraw();
 
                 for format_string_arg in format_string_args.iter_mut() {
                     if format_string_arg.matches_index(positional_index) {
