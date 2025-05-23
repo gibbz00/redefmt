@@ -88,17 +88,21 @@ mod tests {
         }
 
         fn mock() -> Self {
-            let format_string = FormatString::parse("x").unwrap();
-            let provided_args = ProvidedArgs::default();
-            let combined = CombinedFormatString::combine(format_string, provided_args).unwrap();
+            let combined = {
+                let format_string = FormatString::parse("x").unwrap();
+                let provided_args = ProvidedArgs::default();
+                CombinedFormatString::combine(format_string, provided_args).unwrap()
+            };
 
             PrintStatement::new(mock_print_info(), combined)
         }
 
         fn mock_other() -> Self {
-            let format_string = FormatString::parse("y").unwrap();
-            let provided_args = ProvidedArgs::default();
-            let combined = CombinedFormatString::combine(format_string, provided_args).unwrap();
+            let combined = {
+                let format_string = FormatString::parse("y").unwrap();
+                let provided_args = ProvidedArgs::default();
+                CombinedFormatString::combine(format_string, provided_args).unwrap()
+            };
 
             PrintStatement::new(mock_print_info(), combined)
         }
