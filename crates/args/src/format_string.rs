@@ -11,7 +11,6 @@ pub struct FormatString<'a> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
-#[error("found unclosed format strings arguments")]
 pub enum FormatStringParseError {
     #[error("no '{{' found for before '}}'")]
     UnmatchedClose,
@@ -172,6 +171,21 @@ impl<'a> FormatString<'a> {
                 }
             }
         }
+    }
+}
+
+#[cfg(feature = "format-string-syn")]
+impl ::syn::parse::Parse for FormatString<'static> {
+    fn parse(input: ::syn::parse::ParseStream) -> ::syn::Result<Self> {
+        let lit_str = input.parse::<syn::LitStr>()?;
+        let raw_format_string = lit_str.value();
+
+        FormatString::parse(&raw_format_string)
+            .map(|value| value.owned())
+            .map_err(|error| {
+                let pretty_error = error.pretty_print(&raw_format_string);
+                ::syn::Error::new(lit_str.span(), pretty_error)
+            })
     }
 }
 
