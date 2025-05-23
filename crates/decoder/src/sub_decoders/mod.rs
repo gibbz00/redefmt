@@ -1,5 +1,5 @@
 mod segment;
-pub(crate) use segment::{DecodedSegment, SegmentsDecoder};
+pub(crate) use segment::SegmentsDecoder;
 
 mod value;
 pub(crate) use value::ValueDecoder;

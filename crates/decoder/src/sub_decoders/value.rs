@@ -222,11 +222,11 @@ impl<'cache> ValueDecoder<'cache> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::FormatOptions;
+    use redefmt_args::{FormatString, provided_args::CombinedFormatString};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
-        statement_table::{Segment, write::WriteStatement},
+        statement_table::write::WriteStatement,
     };
     use redefmt_internal::codec::encoding::{SimpleTestDispatcher, WriteValue};
 
@@ -370,15 +370,21 @@ mod tests {
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         // input
+        let combined_format_string = {
+            let format_string = FormatString::parse("x = {}").unwrap();
+            let provided_args = syn::parse_quote!(x = x);
+            CombinedFormatString::combine(format_string, provided_args).unwrap()
+        };
+
         let arg_value = true;
-        let arg_format = FormatOptions::default();
-        let write_statement =
-            WriteStatement::FormatString(vec![Segment::Str("x".into()), Segment::Arg(arg_format.clone())]);
+
+        let write_statement = WriteStatement::FormatString(combined_format_string.clone());
+
         // expected
-        let expected_value = ComplexValue::Segments(vec![
-            DecodedSegment::Str("x"),
-            DecodedSegment::Value(ComplexValue::Value(Value::Boolean(arg_value)), &arg_format),
-        ]);
+        let expected_value = ComplexValue::NestedFormatString(
+            &combined_format_string,
+            vec![ComplexValue::Value(Value::Boolean(arg_value))],
+        );
 
         // seed crate and write statement
         let write_id = {
