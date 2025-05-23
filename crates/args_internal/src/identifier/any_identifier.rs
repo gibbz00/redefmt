@@ -9,14 +9,18 @@ use crate::*;
 /// Not allowed in format strings.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AnyIdentifier<'a> {
-    raw: bool,
-    inner: Cow<'a, str>,
+    pub(super) raw: bool,
+    pub(super) inner: Cow<'a, str>,
 }
 
 impl<'a> AnyIdentifier<'a> {
     pub(crate) fn owned(&self) -> AnyIdentifier<'static> {
         let AnyIdentifier { raw, inner } = self;
         AnyIdentifier { raw: *raw, inner: Cow::Owned(inner.to_string()) }
+    }
+
+    pub(crate) fn unraw<'b, 'c: 'b>(&'c self) -> ArgumentIdentifier<'b> {
+        ArgumentIdentifier { inner: Cow::Borrowed(&self.inner) }
     }
 
     pub(crate) fn parse(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
@@ -96,6 +100,22 @@ mod serde {
             let cow_str = Cow::<'a, str>::deserialize(deserializer)?;
             Self::parse(0, cow_str).map_err(|err| ::serde::de::Error::custom(err.kind()))
         }
+    }
+}
+
+#[cfg(feature = "syn")]
+impl syn::parse::Parse for AnyIdentifier<'static> {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::ext::IdentExt;
+
+        let ident = input.call(syn::Ident::parse_any)?;
+
+        // WORKAROUND: for syn::Ident not exposing `ident.is_raw()` and `ident.sym()`
+        let any_identifier = AnyIdentifier::parse(0, ident.to_string())
+            .expect("syn parse differs from internal parse")
+            .owned();
+
+        Ok(any_identifier)
     }
 }
 

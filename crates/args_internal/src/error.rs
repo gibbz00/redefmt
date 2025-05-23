@@ -40,7 +40,7 @@ impl ParseError {
     }
 
     // A bit hacky, but ok for now.
-    #[cfg(feature = "format-string-syn")]
+    #[cfg(feature = "syn")]
     pub(crate) fn pretty_print(&self, format_str: &str) -> alloc::string::String {
         use alloc::string::{String, ToString};
         use core::error::Error;

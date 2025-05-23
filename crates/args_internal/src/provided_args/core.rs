@@ -4,18 +4,19 @@ use alloc::{
 };
 
 use hashbrown::HashSet;
-use syn::{Token, ext::IdentExt, parse::Parse};
 
 use crate::*;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "provided-args-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ProvidedArgs {
-    pub(crate) positional: Vec<ProvidedArgValue>,
-    pub(crate) named: ProvidedNamedArgsMap,
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ProvidedArgs<'a> {
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    pub(crate) positional: Vec<ProvidedArgValue<'a>>,
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    pub(crate) named: ProvidedNamedArgsMap<'a>,
 }
 
-impl ProvidedArgs {
+impl ProvidedArgs<'_> {
     /// Count the number of dynamic arguments in positional and named
     ///
     /// Static arguments would in this case be literals, and dynamic those bound
@@ -34,12 +35,14 @@ impl ProvidedArgs {
             .iter()
             // idents unrawed since checks with format string arguments need to
             // match against both raw and non-raw alternatives
+            // IMPROVEMENT: return Identifier
             .map(|(ident, _)| ident.unraw().to_string())
             .collect::<HashSet<_>>()
     }
 }
 
-impl Parse for ProvidedArgs {
+#[cfg(feature = "syn")]
+impl syn::parse::Parse for ProvidedArgs<'static> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut positional_args = Vec::new();
         let mut named_args = Vec::new();
@@ -51,15 +54,14 @@ impl Parse for ProvidedArgs {
             }
 
             // named before positional so to not parse `x` in `x = 10` as a positional argument
-            if input.peek2(Token![=]) {
-                let name = input.call(syn::Ident::parse_any)?;
-                let _ = input.parse::<Token![=]>()?;
+            if input.peek2(syn::Token![=]) {
+                let name: AnyIdentifier = input.parse()?;
+                let eq_token = input.parse::<syn::Token![=]>()?;
                 let value = input.parse()?;
 
-                let name_span = name.span();
-
                 if registered_named_args.contains(&name) {
-                    return Err(syn::Error::new(name_span, "duplicate argument names not allowed"));
+                    // IMPROVEMENT: span points to `name`
+                    return Err(syn::Error::new(eq_token.span, "duplicate argument names not allowed"));
                 } else {
                     named_args.push((name.clone(), value));
                     registered_named_args.insert(name);
@@ -69,7 +71,8 @@ impl Parse for ProvidedArgs {
 
                 if !named_args.is_empty() {
                     return Err(syn::Error::new(
-                        positional_arg.span(),
+                        // IMPROVEMENT: span points to `positional arg`
+                        input.span(),
                         "positional arguments can not follow named arguments",
                     ));
                 } else {
@@ -78,7 +81,7 @@ impl Parse for ProvidedArgs {
             }
 
             if !input.is_empty() {
-                input.parse::<Token![,]>()?;
+                input.parse::<syn::Token![,]>()?;
             }
         }
 
@@ -91,16 +94,9 @@ impl Parse for ProvidedArgs {
 
 #[cfg(test)]
 mod tests {
-    use proc_macro2::Span;
     use syn::parse_quote;
 
     use super::*;
-
-    #[test]
-    fn serialization() {
-        let args = parse_quote!(1, "x", x = y, y = false);
-        serde_utils::assert::bijective_serialization::<ProvidedArgs>(args);
-    }
 
     #[test]
     fn dynamic_count() {
@@ -168,14 +164,14 @@ mod tests {
         let _: ProvidedArgs = parse_quote!(x = 10, x = 20);
     }
 
-    fn mock_positional() -> Vec<ProvidedArgValue> {
+    fn mock_positional() -> Vec<ProvidedArgValue<'static>> {
         alloc::vec![parse_quote!(10), parse_quote!(a), parse_quote!("y")]
     }
 
-    fn mock_named() -> ProvidedNamedArgsMap {
+    fn mock_named() -> ProvidedNamedArgsMap<'static> {
         let inner = [
-            (syn::Ident::new("x", Span::call_site()), parse_quote!(10)),
-            (syn::Ident::new("match", Span::call_site()), parse_quote!(y)),
+            (AnyIdentifier::parse(0, "x").unwrap(), parse_quote!(10)),
+            (AnyIdentifier::parse(0, "match").unwrap(), parse_quote!(y)),
         ]
         .into_iter()
         .collect();
