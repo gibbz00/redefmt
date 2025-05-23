@@ -13,7 +13,7 @@ mod integer;
 pub(crate) use integer::Integer;
 
 mod identifier;
-pub(crate) use identifier::{Identifier, IdentifierParseError};
+pub(crate) use identifier::*;
 
 mod format_argument;
 pub(crate) use format_argument::FormatArgument;
