@@ -13,12 +13,15 @@ pub struct SegmentsDecoder<'cache> {
     expected_arg_count: usize,
     pointer_width: PointerWidth,
     current_value: Option<SegmentValueContext<'cache>>,
-    pub(crate) combined_format_string: &'cache CombinedFormatString<'static>,
+    pub(crate) combined_format_string: &'cache CombinedFormatString<'static, 'static>,
     pub(crate) decoded_args: Vec<ComplexValue<'cache>>,
 }
 
 impl<'cache> SegmentsDecoder<'cache> {
-    pub fn new(pointer_width: PointerWidth, combined_format_string: &'cache CombinedFormatString<'static>) -> Self {
+    pub fn new(
+        pointer_width: PointerWidth,
+        combined_format_string: &'cache CombinedFormatString<'static, 'static>,
+    ) -> Self {
         let expected_arg_count = combined_format_string.provided_args().dynamic_count();
         let decoded_args = Vec::with_capacity(expected_arg_count);
 

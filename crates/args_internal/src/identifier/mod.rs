@@ -1,5 +1,5 @@
-mod identifier;
-pub(crate) use identifier::Identifier;
+mod argument_identifier;
+pub(crate) use argument_identifier::ArgumentIdentifier;
 
 mod any_identifier;
 pub(crate) use any_identifier::AnyIdentifier;

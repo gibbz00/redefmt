@@ -1,17 +1,19 @@
-use alloc::string::{String, ToString};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 
-use check_keyword::CheckKeyword;
 use hashbrown::HashSet;
-use proc_macro2::Span;
 
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_getters::Getters)]
-#[cfg_attr(feature = "provided-args-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CombinedFormatString<'a> {
-    #[serde(borrow)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct CombinedFormatString<'a, 'b> {
+    #[cfg_attr(feature = "serde", serde(borrow))]
     format_string: FormatString<'a>,
-    provided_args: ProvidedArgs,
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    provided_args: ProvidedArgs<'b>,
 }
 
 #[derive(Debug, PartialEq, thiserror::Error)]
@@ -24,13 +26,13 @@ pub enum CombineArgsError {
     UnusedNamed(String),
 }
 
-impl<'a> CombinedFormatString<'a> {
+impl<'a, 'b> CombinedFormatString<'a, 'b> {
     /// Combine provided args with those in [`FormatString`]
     ///
     /// Performs a variety of context dependant checks, optimizations and
     /// disambiguations on both argument sources. Some provide functional
     /// parity with Rust's `format_args!`--notably [format argument
-    /// capturing](format_args_capture)--, whilst others improve the efficiency of
+    /// capturing][format_args_capture]--, whilst others improve the efficiency of
     /// `redefmt`'s codec and printing.
     ///
     /// # Deduplication of Provided Values
@@ -77,35 +79,41 @@ impl<'a> CombinedFormatString<'a> {
     /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
     pub fn combine(
         mut format_string: FormatString<'a>,
-        mut provided_args: ProvidedArgs,
+        provided_args: ProvidedArgs<'b>,
     ) -> Result<Self, CombineArgsError> {
-        let mut format_string_args = format_string.collect_args_mut();
-
         let provided_named_str_set = provided_args.collect_named_set();
 
-        // preparation and validation
-        Self::capture_and_validate_format_arguments(
-            &mut provided_args,
-            &mut format_string_args,
-            &provided_named_str_set,
-        )?;
-        Self::check_unused_provided_named(&format_string_args, &provided_named_str_set)?;
-        Self::check_unused_provided_positionals(&provided_args, &format_string_args)?;
+        let mediator = Mediator { format_string_args: format_string.collect_args_mut(), provided_args };
 
-        // deduplication steps
-        Self::inline_named(&mut provided_args, &mut format_string_args);
-        Self::merge_positional(&mut provided_args, &mut format_string_args);
-        Self::merge_named(&mut provided_args, &mut format_string_args);
-        Self::reuse_named_in_positional(&mut provided_args, &mut format_string_args);
+        // preparation and validation
+        let mediator = mediator
+            .capture_and_validate_format_arguments(&provided_named_str_set)?
+            .check_unused_provided_named(&provided_named_str_set)?
+            .check_unused_provided_positionals()?
+            // deduplication steps
+            .inline_named()
+            .merge_positional()
+            .merge_named()
+            .reuse_named_in_positional();
+
+        let Mediator { provided_args, .. } = mediator;
 
         Ok(Self { format_string, provided_args })
     }
+}
 
+struct Mediator<'a, 'b, 'aa> {
+    format_string_args: Vec<&'aa mut FormatArgument<'a>>,
+    provided_args: ProvidedArgs<'b>,
+}
+
+impl<'a, 'b, 'aa> Mediator<'a, 'b, 'aa> {
     fn capture_and_validate_format_arguments(
-        provided_args: &mut ProvidedArgs,
-        format_string_args: &mut [&mut FormatArgument],
+        self,
         provided_named_str_set: &HashSet<String>,
-    ) -> Result<(), CombineArgsError> {
+    ) -> Result<Self, CombineArgsError> {
+        let Self { mut format_string_args, mut provided_args } = self;
+
         for format_string_arg in format_string_args.iter_mut() {
             match &format_string_arg {
                 FormatArgument::Index(argument_index) => {
@@ -123,26 +131,14 @@ impl<'a> CombinedFormatString<'a> {
                             ));
                         };
 
-                        **format_string_arg = FormatArgument::Identifier(Identifier::from_provided(arg_name));
+                        **format_string_arg = FormatArgument::Identifier(arg_name.unraw().owned());
                     }
                 }
                 FormatArgument::Identifier(identifier) => {
                     // capture missing arguments
                     if !provided_named_str_set.contains(identifier.as_ref()) {
-                        let captured_name = syn::Ident::new(identifier.as_ref(), Span::call_site());
-
-                        let captured_variable = {
-                            let ident_str = identifier.as_ref();
-
-                            let call_site = Span::call_site();
-
-                            let ident = match identifier.is_keyword() {
-                                true => syn::Ident::new_raw(ident_str, call_site),
-                                false => syn::Ident::new(ident_str, call_site),
-                            };
-
-                            ProvidedArgValue::Variable(ident)
-                        };
+                        let captured_name = identifier.as_any().owned();
+                        let captured_variable = ProvidedArgValue::Variable(identifier.as_safe_any().owned());
 
                         provided_args.named.push((captured_name, captured_variable));
                     };
@@ -150,13 +146,12 @@ impl<'a> CombinedFormatString<'a> {
             }
         }
 
-        Ok(())
+        Ok(Self { format_string_args, provided_args })
     }
 
-    fn check_unused_provided_positionals(
-        provided_args: &ProvidedArgs,
-        format_string_args: &[&mut FormatArgument],
-    ) -> Result<(), CombineArgsError> {
+    fn check_unused_provided_positionals(self) -> Result<Self, CombineArgsError> {
+        let Self { format_string_args, provided_args } = self;
+
         let format_string_positional_count = format_string_args
             .iter()
             .filter(|arg| matches!(arg, FormatArgument::Index(_)))
@@ -170,13 +165,12 @@ impl<'a> CombinedFormatString<'a> {
             ));
         }
 
-        Ok(())
+        Ok(Self { format_string_args, provided_args })
     }
 
-    fn check_unused_provided_named(
-        format_string_args: &[&mut FormatArgument],
-        provided_named_str_set: &HashSet<String>,
-    ) -> Result<(), CombineArgsError> {
+    fn check_unused_provided_named(self, provided_named_str_set: &HashSet<String>) -> Result<Self, CombineArgsError> {
+        let Self { format_string_args, provided_args } = self;
+
         let format_args_named_set = format_string_args
             .iter()
             .filter_map(|arg| match arg {
@@ -191,10 +185,14 @@ impl<'a> CombinedFormatString<'a> {
             }
         }
 
-        Ok(())
+        drop(format_args_named_set);
+
+        Ok(Self { format_string_args, provided_args })
     }
 
-    fn inline_named(provided_args: &mut ProvidedArgs, format_string_args: &mut [&mut FormatArgument]) {
+    fn inline_named(self) -> Self {
+        let Self { mut format_string_args, mut provided_args } = self;
+
         for current_index in (0..provided_args.named.len()).rev() {
             let (current_name, current_value) = provided_args.named.get(current_index).expect("index out of bounds");
             if let ProvidedArgValue::Variable(variable_value) = current_value {
@@ -204,8 +202,8 @@ impl<'a> CombinedFormatString<'a> {
                     .any(|(key, value)| key == variable_value && value != current_value);
 
                 if inlined {
-                    let redundant_identifier = Identifier::from_provided(current_name);
-                    let replacing_identifier = Identifier::from_provided(variable_value);
+                    let redundant_identifier = current_name.unraw().owned();
+                    let replacing_identifier = variable_value.unraw().owned();
 
                     provided_args.named.swap_remove(current_index);
 
@@ -217,9 +215,13 @@ impl<'a> CombinedFormatString<'a> {
                 }
             }
         }
+
+        Self { format_string_args, provided_args }
     }
 
-    fn merge_positional(provided_args: &mut ProvidedArgs, format_string_args: &mut [&mut FormatArgument]) {
+    fn merge_positional(self) -> Self {
+        let Self { mut format_string_args, mut provided_args } = self;
+
         for (i, j) in Self::reversed_combinations(provided_args.positional.len()) {
             // None if element in index `i` was removed in a previous iteration
             if let Some(current_positional) = provided_args.positional.get(i) {
@@ -236,9 +238,13 @@ impl<'a> CombinedFormatString<'a> {
                 }
             }
         }
+
+        Self { format_string_args, provided_args }
     }
 
-    fn merge_named(provided_args: &mut ProvidedArgs, format_string_args: &mut [&mut FormatArgument]) {
+    fn merge_named(self) -> Self {
+        let Self { mut format_string_args, mut provided_args } = self;
+
         let combinations = Self::reversed_combinations(provided_args.named.len());
 
         for (i, j) in combinations {
@@ -252,8 +258,8 @@ impl<'a> CombinedFormatString<'a> {
                     .expect("out of bounds indexes, `j` not less than `i`");
 
                 if current_value == other_value {
-                    let replacing_name = Identifier::from_provided(other_name);
-                    let matching_name = Identifier::from_provided(current_name);
+                    let replacing_name = other_name.unraw().owned();
+                    let matching_name = current_name.unraw().owned();
 
                     provided_args.named.swap_remove(i);
 
@@ -267,9 +273,12 @@ impl<'a> CombinedFormatString<'a> {
                 }
             }
         }
+
+        Self { format_string_args, provided_args }
     }
 
-    fn reuse_named_in_positional(provided_args: &mut ProvidedArgs, format_string_args: &mut [&mut FormatArgument]) {
+    fn reuse_named_in_positional(self) -> Self {
+        let Self { mut format_string_args, mut provided_args } = self;
         for positional_index in (0..provided_args.positional.len()).rev() {
             // Values which appear again in other named arguments are merged
             // in `merge_value`.
@@ -280,7 +289,7 @@ impl<'a> CombinedFormatString<'a> {
             if let Some(name) = maybe_name {
                 provided_args.positional.swap_remove(positional_index);
 
-                let replacing_ident = Identifier::from_provided(name);
+                let replacing_ident = name.unraw().owned();
 
                 for format_string_arg in format_string_args.iter_mut() {
                     if format_string_arg.matches_index(positional_index) {
@@ -289,6 +298,8 @@ impl<'a> CombinedFormatString<'a> {
                 }
             }
         }
+
+        Self { format_string_args, provided_args }
     }
 
     /// Returns all unique index combinations for a collection of a given length.
@@ -313,7 +324,7 @@ mod tests {
     #[test]
     fn reversed_combinations() {
         let expected = alloc::vec![(2, 1), (2, 0), (1, 0)];
-        let actual = CombinedFormatString::reversed_combinations(3).collect::<Vec<_>>();
+        let actual = Mediator::reversed_combinations(3).collect::<Vec<_>>();
         assert_eq!(expected, actual);
     }
 
