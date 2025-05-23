@@ -1,7 +1,4 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::vec::Vec;
 
 use hashbrown::HashSet;
 
@@ -30,13 +27,12 @@ impl ProvidedArgs<'_> {
             .fold(0, |count, arg| if arg.is_dynamic() { count + 1 } else { count })
     }
 
-    pub(crate) fn collect_named_set(&self) -> HashSet<String> {
+    pub(crate) fn collect_named_set(&self) -> HashSet<ArgumentIdentifier<'static>> {
         self.named
             .iter()
             // idents unrawed since checks with format string arguments need to
             // match against both raw and non-raw alternatives
-            // IMPROVEMENT: return Identifier
-            .map(|(ident, _)| ident.unraw().to_string())
+            .map(|(ident, _)| ident.clone().unraw().owned())
             .collect::<HashSet<_>>()
     }
 }
