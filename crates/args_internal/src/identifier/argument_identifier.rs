@@ -20,12 +20,12 @@ impl<'a> ArgumentIdentifier<'a> {
     }
 
     /// Makes `AnyIdentifier` raw is the identifier is a keyword
-    pub(crate) fn as_safe_any<'b: 'c, 'c>(&'b self) -> AnyIdentifier<'c> {
-        AnyIdentifier { raw: self.is_keyword(), inner: Cow::Borrowed(&self.inner) }
+    pub(crate) fn into_safe_any(self) -> AnyIdentifier<'a> {
+        AnyIdentifier { raw: self.is_keyword(), inner: self.inner }
     }
 
-    pub(crate) fn as_any<'b: 'c, 'c>(&'b self) -> AnyIdentifier<'c> {
-        AnyIdentifier { raw: false, inner: Cow::Borrowed(&self.inner) }
+    pub(crate) fn into_any(self) -> AnyIdentifier<'a> {
+        AnyIdentifier { raw: false, inner: self.inner }
     }
 
     /// Context from `Argument::parse`:

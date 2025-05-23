@@ -19,8 +19,8 @@ impl<'a> AnyIdentifier<'a> {
         AnyIdentifier { raw: *raw, inner: Cow::Owned(inner.to_string()) }
     }
 
-    pub(crate) fn unraw<'b, 'c: 'b>(&'c self) -> ArgumentIdentifier<'b> {
-        ArgumentIdentifier { inner: Cow::Borrowed(&self.inner) }
+    pub(crate) fn unraw(self) -> ArgumentIdentifier<'a> {
+        ArgumentIdentifier { inner: self.inner }
     }
 
     pub(crate) fn parse(offset: usize, cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
