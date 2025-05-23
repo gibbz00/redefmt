@@ -7,15 +7,6 @@ use hashbrown::HashSet;
 
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CombinedFormatString<'a> {
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    pub format_string: FormatString<'a>,
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    pub provided_args: ProvidedArgs<'a>,
-}
-
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum CombineArgsError {
     #[error("invalid positional argument {0}, provided {1}, positional argument are zero-based")]
@@ -26,7 +17,24 @@ pub enum CombineArgsError {
     UnusedNamed(String),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct CombinedFormatString<'a> {
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    format_string: FormatString<'a>,
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    provided_args: ProvidedArgs<'a>,
+}
+
 impl<'a> CombinedFormatString<'a> {
+    pub fn format_string(&self) -> &FormatString {
+        &self.format_string
+    }
+
+    pub fn provided_args(&self) -> &ProvidedArgs {
+        &self.provided_args
+    }
+
     /// Combine provided args with those in [`FormatString`]
     ///
     /// Performs a variety of context dependant checks, optimizations and
@@ -121,16 +129,15 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
         for format_string_arg in format_string_args.iter_mut() {
             match &format_string_arg {
                 FormatArgument::Index(argument_index) => {
-                    let argument_index = argument_index.inner();
                     let positional_len = provided_args.positional.len();
 
                     // check argument index within bounds and disambiguate indexed with named
-                    if argument_index >= positional_len {
+                    if *argument_index >= positional_len {
                         let named_index = argument_index - positional_len;
 
                         let Some((arg_name, _)) = provided_args.named.get(named_index) else {
                             return Err(CombineArgsError::InvalidStringPositional(
-                                argument_index,
+                                *argument_index,
                                 positional_len + provided_args.named.len(),
                             ));
                         };
@@ -239,7 +246,7 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
 
                     for format_string_arg in format_string_args.iter_mut() {
                         if format_string_arg.matches_index(i) {
-                            **format_string_arg = FormatArgument::Index(Integer::new(j));
+                            **format_string_arg = FormatArgument::Index(j);
                         }
                     }
                 }

@@ -29,7 +29,7 @@ impl<'a> FormatOptions<'a> {
     /// - Does not include semicolon.
     /// - `str` may be empty.
     /// - Contains no trailing whitespace.
-    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, FormatStringParseError> {
         let mut format_options = FormatOptions::default();
         let mut str_iter = str.char_indices().peekable();
 
@@ -66,7 +66,7 @@ fn parse_from_align<'a>(
     initial_str: &'a str,
     str_iter: &mut StrIter<'a>,
     format_options: &mut FormatOptions<'a>,
-) -> Result<(), ParseError> {
+) -> Result<(), FormatStringParseError> {
     let Some((ch_index, ch)) = str_iter.next() else {
         return Ok(());
     };
@@ -105,7 +105,7 @@ fn parse_from_sign<'a>(
     initial_str: &'a str,
     str_iter: &mut StrIter<'a>,
     format_options: &mut FormatOptions<'a>,
-) -> Result<(), ParseError> {
+) -> Result<(), FormatStringParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
     };
@@ -131,7 +131,7 @@ fn parse_from_alternate_form<'a>(
     initial_str: &'a str,
     str_iter: &mut StrIter<'a>,
     format_options: &mut FormatOptions<'a>,
-) -> Result<(), ParseError> {
+) -> Result<(), FormatStringParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
     };
@@ -155,7 +155,7 @@ fn parse_from_zero_padding<'a>(
     initial_str: &'a str,
     str_iter: &mut StrIter<'a>,
     format_options: &mut FormatOptions<'a>,
-) -> Result<(), ParseError> {
+) -> Result<(), FormatStringParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
     };
@@ -179,7 +179,7 @@ fn parse_from_width<'a>(
     initial_str: &'a str,
     str_iter: &mut StrIter<'a>,
     format_options: &mut FormatOptions<'a>,
-) -> Result<(), ParseError> {
+) -> Result<(), FormatStringParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
     };
@@ -188,7 +188,7 @@ fn parse_from_width<'a>(
 
     if has_width_argument && ch == '$' && format_options.use_zero_padding {
         format_options.use_zero_padding = false;
-        format_options.width = Some(FormatCount::Argument(FormatArgument::Index(Integer::new(0))));
+        format_options.width = Some(FormatCount::Argument(FormatArgument::Index(0)));
     } else if ch.is_ascii_digit() || has_width_argument {
         format_options.width = Some(parse_count(offset, ch, ch_index, initial_str, str_iter)?);
     }
@@ -217,7 +217,7 @@ fn parse_from_precision<'a>(
     initial_str: &'a str,
     str_iter: &mut StrIter<'a>,
     format_options: &mut FormatOptions<'a>,
-) -> Result<(), ParseError> {
+) -> Result<(), FormatStringParseError> {
     let Some((ch_index, ch)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
     };
@@ -238,9 +238,9 @@ fn parse_from_precision<'a>(
         dot_index: usize,
         initial_str: &'a str,
         str_iter: &mut StrIter<'a>,
-    ) -> Result<FormatPrecision<'a>, ParseError> {
+    ) -> Result<FormatPrecision<'a>, FormatStringParseError> {
         let Some((first_char_index, first_char)) = str_iter.next() else {
-            return Err(ParseError::new_char(
+            return Err(FormatStringParseError::new_char(
                 offset + dot_index,
                 FormatPrecisionParseError::Empty,
             ));
@@ -259,7 +259,7 @@ fn parse_from_format_trait(
     initial_str: &str,
     str_iter: &mut StrIter,
     format_options: &mut FormatOptions,
-) -> Result<(), ParseError> {
+) -> Result<(), FormatStringParseError> {
     let Some((ch_index, _)) = prev_char.or_else(|| str_iter.next()) else {
         return Ok(());
     };
@@ -276,7 +276,7 @@ fn parse_count<'a>(
     first_char_index: usize,
     initial_str: &'a str,
     str_iter: &mut StrIter<'a>,
-) -> Result<FormatCount<'a>, ParseError> {
+) -> Result<FormatCount<'a>, FormatStringParseError> {
     // count integer or count index argument
     if let Some(first_digit) = first_char.to_digit(10) {
         let mut number = first_digit;
@@ -294,16 +294,14 @@ fn parse_count<'a>(
             if *next_char == '$' {
                 str_iter.next();
 
-                return Ok(FormatCount::Argument(FormatArgument::Index(Integer::new(
-                    number as usize,
-                ))));
+                return Ok(FormatCount::Argument(FormatArgument::Index(number as usize)));
             } else {
-                return Ok(FormatCount::Integer(Integer::new(number as usize)));
+                return Ok(FormatCount::Integer(number as usize));
             }
         }
 
         // Reached end of string
-        Ok(FormatCount::Integer(Integer::new(number as usize)))
+        Ok(FormatCount::Integer(number as usize))
     }
     // count named argument
     else {
@@ -314,7 +312,7 @@ fn parse_count<'a>(
 
                 Ok(FormatCount::Argument(FormatArgument::Identifier(identifier)))
             }
-            None => Err(ParseError::new(
+            None => Err(FormatStringParseError::new(
                 offset,
                 first_char_index..initial_str.len(),
                 FormatCountParseError::UnclosedArgument,
@@ -378,10 +376,7 @@ mod tests {
 
     #[test]
     fn parse_width_count_literal() {
-        let expected = FormatOptions {
-            width: Some(FormatCount::Integer(Integer::new(1))),
-            ..Default::default()
-        };
+        let expected = FormatOptions { width: Some(FormatCount::Integer(1)), ..Default::default() };
 
         assert_format_options("1", expected);
     }
@@ -389,7 +384,7 @@ mod tests {
     #[test]
     fn parse_width_count_index_argument() {
         let expected = FormatOptions {
-            width: Some(FormatCount::Argument(FormatArgument::Index(Integer::new(1)))),
+            width: Some(FormatCount::Argument(FormatArgument::Index(1))),
             ..Default::default()
         };
 
@@ -399,7 +394,7 @@ mod tests {
     // assert that this isn't parsed as zero padding with an unclosed width argument
     #[test]
     fn parse_width_count_zero_index_argument() {
-        let count = FormatCount::Argument(FormatArgument::Index(Integer::new(0)));
+        let count = FormatCount::Argument(FormatArgument::Index(0));
 
         let expected = FormatOptions { width: Some(count.clone()), ..Default::default() };
         assert_format_options("0$", expected);
@@ -433,7 +428,7 @@ mod tests {
     #[test]
     fn parse_precision_count_literal() {
         let expected = FormatOptions {
-            precision: Some(FormatPrecision::Count(FormatCount::Integer(Integer::new(1)))),
+            precision: Some(FormatPrecision::Count(FormatCount::Integer(1))),
             ..Default::default()
         };
         assert_format_options(".01", expected);
@@ -465,7 +460,7 @@ mod tests {
 
     #[test]
     fn precision_empty_error() {
-        let expected = ParseError::new_char(2, FormatPrecisionParseError::Empty);
+        let expected = FormatStringParseError::new_char(2, FormatPrecisionParseError::Empty);
         let actual = FormatOptions::parse(0, "00.").unwrap_err();
 
         assert_eq!(expected, actual);
@@ -473,7 +468,7 @@ mod tests {
 
     #[test]
     fn count_eof_error() {
-        let expected = ParseError::new(3, 0..3, FormatCountParseError::UnclosedArgument);
+        let expected = FormatStringParseError::new(3, 0..3, FormatCountParseError::UnclosedArgument);
         let actual = FormatOptions::parse(0, "00.xxx").unwrap_err();
 
         assert_eq!(expected, actual);

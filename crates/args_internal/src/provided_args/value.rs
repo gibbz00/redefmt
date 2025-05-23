@@ -3,7 +3,7 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ProvidedArgValue<'a> {
-    Literal(ProvidedLiteral),
+    Literal(ProvidedArgLiteral),
     Variable(#[cfg_attr(feature = "serde", serde(borrow))] AnyIdentifier<'a>),
 }
 

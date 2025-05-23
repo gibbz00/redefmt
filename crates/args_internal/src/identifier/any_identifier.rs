@@ -23,11 +23,11 @@ impl<'a> AnyIdentifier<'a> {
         ArgumentIdentifier { inner: self.inner }
     }
 
-    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, ParseError> {
+    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, FormatStringParseError> {
         let cow_str = cow_str.into();
 
         if cow_str.is_empty() {
-            return Err(ParseError::new(0, 0..0, IdentifierParseError::Empty));
+            return Err(FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty));
         }
 
         let (offset, ident, raw) = match cow_str.strip_prefix(RAW_START) {
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn empty_error() {
-        let expected = ParseError::new(0, 0..0, IdentifierParseError::Empty);
+        let expected = FormatStringParseError::new(0, 0..0, IdentifierParseError::Empty);
         let actual = AnyIdentifier::parse("").unwrap_err();
         assert_eq!(expected, actual);
     }

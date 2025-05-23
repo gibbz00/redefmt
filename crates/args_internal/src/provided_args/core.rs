@@ -8,9 +8,9 @@ use crate::*;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProvidedArgs<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
-    pub(crate) positional: Vec<ProvidedArgValue<'a>>,
+    pub positional: Vec<ProvidedArgValue<'a>>,
     #[cfg_attr(feature = "serde", serde(borrow))]
-    pub(crate) named: ProvidedNamedArgsMap<'a>,
+    pub named: ProvidedNamedArgsMap<'a>,
 }
 
 impl ProvidedArgs<'_> {

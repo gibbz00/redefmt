@@ -20,6 +20,14 @@ impl FormatStringSegment<'_> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
+pub enum FormatStringSegmentError {
+    #[error("no '{{' found for before '}}'")]
+    UnmatchedClose,
+    #[error("no '}}' found for after '{{'")]
+    UnmatchedOpen,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FormatSegment<'a> {
@@ -33,7 +41,7 @@ impl<'a> FormatSegment<'a> {
     /// Context from `FormatString::parse`:
     /// - Does not contain opening and closing braces.
     /// - `str` not empty.
-    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(offset: usize, str: &'a str) -> Result<Self, FormatStringParseError> {
         let format_segment = match str.find(':') {
             Some(split_index) => {
                 let argument_str = &str[0..split_index];
