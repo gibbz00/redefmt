@@ -30,10 +30,7 @@ pub enum ComplexValue<'cache> {
     List(Vec<ComplexValue<'cache>>),
     Tuple(Vec<ComplexValue<'cache>>),
     Type(Type<'cache>),
-    NestedFormatString(
-        &'cache CombinedFormatString<'static, 'static>,
-        Vec<ComplexValue<'cache>>,
-    ),
+    NestedFormatString(&'cache CombinedFormatString<'static>, Vec<ComplexValue<'cache>>),
     // TODO:
     // Set(Vec<Value>),
     // Map(Vec<(Value, Value)>),
