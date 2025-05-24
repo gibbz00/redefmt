@@ -13,7 +13,7 @@ pub struct ProvidedArgs<'a> {
     pub named: ProvidedNamedArgsMap<'a>,
 }
 
-impl ProvidedArgs<'_> {
+impl<'a> ProvidedArgs<'a> {
     /// Count the number of dynamic arguments in positional and named
     ///
     /// Static arguments would in this case be literals, and dynamic those bound
@@ -25,6 +25,16 @@ impl ProvidedArgs<'_> {
         positional_iter
             .chain(named_iter)
             .fold(0, |count, arg| if arg.is_dynamic() { count + 1 } else { count })
+    }
+
+    pub fn dynamic_args(&self) -> impl Iterator<Item = &AnyIdentifier<'a>> {
+        let positional_iter = self.positional.iter();
+        let named_iter = self.named.iter().map(|(_, arg)| arg);
+
+        positional_iter.chain(named_iter).filter_map(|arg| match arg {
+            ProvidedArgValue::Literal(_) => None,
+            ProvidedArgValue::Variable(identifier) => Some(identifier),
+        })
     }
 
     pub(crate) fn collect_named_set(&self) -> HashSet<ArgumentIdentifier<'static>> {
