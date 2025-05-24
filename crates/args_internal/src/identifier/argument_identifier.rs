@@ -15,8 +15,8 @@ pub struct ArgumentIdentifier<'a> {
 
 impl<'a> ArgumentIdentifier<'a> {
     #[doc(hidden)]
-    pub unsafe fn new_unchecked(inner: Cow<'a, str>) -> Self {
-        Self { inner }
+    pub const unsafe fn new_unchecked(inner: &'a str) -> Self {
+        Self { inner: Cow::Borrowed(inner) }
     }
 
     pub(crate) fn owned(&self) -> ArgumentIdentifier<'static> {
@@ -109,7 +109,7 @@ impl quote::ToTokens for ArgumentIdentifier<'_> {
 
         let identifier_tokens = quote::quote! {
             #[doc = #DOC_MESSAGE]
-            unsafe { ::redefmt_args::identifier::ArgumentIdentifier<'static>::new_unchecked(#inner) }
+            unsafe { ::redefmt_args::identifier::ArgumentIdentifier::new_unchecked(#inner) }
         };
 
         tokens.extend(identifier_tokens);
@@ -161,7 +161,7 @@ mod tests {
 
         let expected = quote::quote! {
             #[doc = "SAFETY: provided inner str provided from a validated `ArgumentIdentifier`"]
-            unsafe { ::redefmt_args::identifier::ArgumentIdentifier<'static>::new_unchecked(#inner) }
+            unsafe { ::redefmt_args::identifier::ArgumentIdentifier::new_unchecked(#inner) }
         };
 
         crate::quote_utils::assert_tokens(input, expected);
