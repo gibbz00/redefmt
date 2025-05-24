@@ -10,6 +10,7 @@ repository.workspace = true
 version.workspace = true
 
 [features]
+macros = ["dep:redefmt-args-macros"]
 serde = ["redefmt-args-internal/serde"]
 
 [lints]
@@ -18,4 +19,11 @@ workspace = true
 [dependencies]
 redefmt-args-internal.workspace = true
 
+# feature: macros
+redefmt-args-macros = { workspace = true, optional = true }
+
 [dev-dependencies]
+redefmt-args = { path = ".", features = ["macros"] }
+
+# External
+trybuild = "1"

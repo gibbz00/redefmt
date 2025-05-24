@@ -18,6 +18,6 @@ pub enum RedefmtMacroError {
 
 impl RedefmtMacroError {
     pub fn as_compiler_error(&self, span: Span) -> TokenStream {
-        syn::Error::new(span, self.to_string()).into_compile_error().into()
+        syn::Error::new(span, self).into_compile_error().into()
     }
 }

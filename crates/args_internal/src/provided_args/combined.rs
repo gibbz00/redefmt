@@ -332,6 +332,17 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
     }
 }
 
+#[cfg(feature = "syn")]
+impl syn::parse::Parse for CombinedFormatString<'static> {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let format_string = input.parse()?;
+        let _ = input.parse::<syn::Token![,]>()?;
+        let provided_args = input.parse()?;
+
+        Self::combine(format_string, provided_args).map_err(|error| syn::Error::new(input.span(), error))
+    }
+}
+
 #[cfg(feature = "quote")]
 impl quote::ToTokens for CombinedFormatString<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
