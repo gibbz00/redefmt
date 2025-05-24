@@ -488,6 +488,7 @@ version = "0.1.0"
 dependencies = [
  "check_keyword",
  "hashbrown",
+ "num-traits",
  "proc-macro2",
  "quote",
  "redefmt-args-internal",
