@@ -13,7 +13,6 @@ pub trait WriteValue {
 
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher);
 }
-
 #[sealed::sealed]
 impl<T: WriteValue> WriteValue for &T {
     fn hint(&self) -> TypeHint {
@@ -74,6 +73,7 @@ num_impl!(
     (i16, TypeHint::I16),
     (i32, TypeHint::I32),
     (i64, TypeHint::I64),
+    (i128, TypeHint::I128),
     (usize, TypeHint::Usize),
     (u8, TypeHint::U8),
     (u16, TypeHint::U16),
@@ -243,6 +243,7 @@ mod tests {
         assert_num::<i16>(TypeHint::I16);
         assert_num::<i32>(TypeHint::I32);
         assert_num::<i64>(TypeHint::I64);
+        assert_num::<i128>(TypeHint::I128);
         assert_num::<usize>(TypeHint::Usize);
         assert_num::<u8>(TypeHint::U8);
         assert_num::<u16>(TypeHint::U16);
