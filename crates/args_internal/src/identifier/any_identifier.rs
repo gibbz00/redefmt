@@ -14,6 +14,10 @@ pub struct AnyIdentifier<'a> {
 }
 
 impl<'a> AnyIdentifier<'a> {
+    pub fn raw(&self) -> bool {
+        self.raw
+    }
+
     #[doc(hidden)]
     pub const unsafe fn new_unchecked(raw: bool, inner: &'a str) -> Self {
         Self { raw, inner: Cow::Borrowed(inner) }
@@ -58,6 +62,12 @@ impl<'a> AnyIdentifier<'a> {
         };
 
         Ok(AnyIdentifier { raw, inner })
+    }
+}
+
+impl AsRef<str> for AnyIdentifier<'_> {
+    fn as_ref(&self) -> &str {
+        &self.inner
     }
 }
 

@@ -1,11 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use redefmt_db::{
-    Table,
-    statement_table::write::{StructVariant, TypeStructure, TypeStructureVariant, WriteStatement},
-};
-use redefmt_internal::identifiers::{CrateId, WriteStatementId};
+use redefmt_db::statement_table::write::{StructVariant, TypeStructure, TypeStructureVariant, WriteStatement};
 use syn::{
     Data, DataEnum, DataStruct, DeriveInput, Fields, Ident, TypeParamBound, parse_macro_input, spanned::Spanned,
 };
@@ -15,10 +11,7 @@ use crate::*;
 pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
     let type_definition = parse_macro_input!(token_stream as DeriveInput);
 
-    let db_clients = match DbClients::new() {
-        Ok(clients) => clients,
-        Err(err) => return err.as_compiler_error(type_definition.span()),
-    };
+    let db_clients = db_clients!(type_definition.span());
 
     let ident = type_definition.ident;
 
@@ -36,15 +29,8 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
     };
 
     let write_statement = WriteStatement::TypeStructure(TypeStructure { name: ident.to_string(), variant });
-    let register_result = db_clients.crate_db.insert(&write_statement);
 
-    let write_id = match register_result {
-        Ok(statement_id) => gen_write_id(db_clients.crate_id, statement_id),
-        Err(err) => {
-            let macro_error = RedefmtMacroError::from(err);
-            return macro_error.as_compiler_error(ident.span());
-        }
-    };
+    let write_id_expr = register_write_statement!(&db_clients, &write_statement, format_ident!("f"), ident.span());
 
     let mut generics = type_definition.generics;
     let (impl_generics, type_generics, where_clause) = {
@@ -60,7 +46,7 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
     quote! {
         impl #impl_generics ::redefmt::Format for #ident #type_generics #where_clause {
             fn fmt(&self, f: &mut ::redefmt::Formatter) {
-                f.write(#write_id);
+                #write_id_expr;
                 #impl_body
             }
         }
@@ -166,17 +152,5 @@ fn struct_variant(fields: &Fields) -> StructVariant {
         }
         Fields::Unnamed(fields_unnamed) => StructVariant::Tuple(fields_unnamed.unnamed.len() as u8),
         Fields::Unit => StructVariant::Unit,
-    }
-}
-
-fn gen_write_id(crate_id: CrateId, write_statement_id: WriteStatementId) -> TokenStream2 {
-    let crate_id_inner = *crate_id.as_ref();
-    let statement_id_inner = *write_statement_id.as_ref();
-
-    quote! {
-        (
-            ::redefmt::identifiers::CrateId::new(#crate_id_inner),
-            ::redefmt::identifiers::WriteStatementId::new(#statement_id_inner)
-        )
     }
 }
