@@ -15,8 +15,8 @@ pub struct AnyIdentifier<'a> {
 
 impl<'a> AnyIdentifier<'a> {
     #[doc(hidden)]
-    pub unsafe fn new_unchecked(raw: bool, inner: Cow<'a, str>) -> Self {
-        Self { raw, inner }
+    pub const unsafe fn new_unchecked(raw: bool, inner: &'a str) -> Self {
+        Self { raw, inner: Cow::Borrowed(inner) }
     }
 
     pub(crate) fn owned(&self) -> AnyIdentifier<'static> {
@@ -138,7 +138,7 @@ impl quote::ToTokens for AnyIdentifier<'_> {
 
         let identifier_tokens = quote::quote! {
             #[doc = #DOC_MESSAGE]
-            unsafe { ::redefmt_args::identifier::AnyIdentifier<'static>::new_unchecked(#raw, #inner) }
+            unsafe { ::redefmt_args::identifier::AnyIdentifier::new_unchecked(#raw, #inner) }
         };
 
         tokens.extend(identifier_tokens);
@@ -193,7 +193,7 @@ mod tests {
 
         let expected = quote::quote! {
             #[doc = "SAFETY: provided inner str provided from a validated `AnyIdentifier`"]
-            unsafe { ::redefmt_args::identifier::AnyIdentifier<'static>::new_unchecked(true, "x") }
+            unsafe { ::redefmt_args::identifier::AnyIdentifier::new_unchecked(true, "x") }
         };
 
         crate::quote_utils::assert_tokens(input, expected);

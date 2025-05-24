@@ -18,6 +18,9 @@ pub(crate) use format_segment::{FormatSegment, FormatStringSegment, FormatString
 pub mod format_argument;
 pub(crate) use format_argument::FormatArgument;
 
+pub mod format_literal;
+pub(crate) use format_literal::FormatLiteral;
+
 pub mod format_options;
 pub(crate) use format_options::*;
 
