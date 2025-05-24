@@ -223,7 +223,7 @@ impl<'cache> ValueDecoder<'cache> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{FormatString, provided_args::CombinedFormatString};
+    use redefmt_args::combined_format_string;
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
@@ -372,11 +372,7 @@ mod tests {
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         // input
-        let combined_format_string = {
-            let format_string = FormatString::parse("x = {}").unwrap();
-            let provided_args = syn::parse_quote!(x = x);
-            CombinedFormatString::combine(format_string, provided_args).unwrap()
-        };
+        let combined_format_string = combined_format_string!("x = {}", x = x);
 
         let arg_value = true;
 

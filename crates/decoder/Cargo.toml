@@ -25,6 +25,7 @@ thiserror = "2.0"
 tokio-util = { version = "0.7", features = ["codec"] }
 
 [dev-dependencies]
+redefmt-args = { workspace = true, features = ["macros"] }
 redefmt-internal = { workspace = true, features = ["testing"] }
 syn = { version = "2.0", default-features = false, features = ["parsing"] }
 

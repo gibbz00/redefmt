@@ -368,8 +368,8 @@ impl quote::ToTokens for CombinedFormatString<'_> {
         const DOC_MESSAGE: &str = "SAFETY: values provided from a validated `CombinedFormatString`";
 
         let combined_format_string_tokens = quote::quote! {
-            #[doc = #DOC_MESSAGE]
             unsafe {
+                #[doc = #DOC_MESSAGE]
                 ::redefmt_args::provided_args::CombinedFormatString::new_unchecked(
                     #format_string,
                     #provided_args
