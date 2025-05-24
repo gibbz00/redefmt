@@ -187,6 +187,21 @@ impl ::syn::parse::Parse for FormatString<'static> {
     }
 }
 
+#[cfg(feature = "quote")]
+impl quote::ToTokens for FormatString<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let segments = self.segments.iter();
+
+        let format_string_tokens = quote::quote! {
+            ::redefmt_args::FormatString {
+                segments: [#(#segments),*].into_iter().collect()
+            }
+        };
+
+        tokens.extend(format_string_tokens);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::vec;
