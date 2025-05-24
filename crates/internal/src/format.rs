@@ -19,7 +19,7 @@ impl<'a> Formatter<'a> {
         Self { dispatcher }
     }
 
-    // Monomorphization should be ok since `WriteValue` is sealed
+    // Monomorphization should be ok here since `WriteValue` is sealed
     pub fn write(&mut self, value: impl WriteValue) {
         value.write_value(self.dispatcher);
     }

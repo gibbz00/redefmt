@@ -38,3 +38,38 @@ impl DbClients {
         Ok(crate_name)
     }
 }
+
+macro_rules! db_clients {
+    ($span:expr) => {
+        match $crate::DbClients::new() {
+            Ok(clients) => clients,
+            Err(err) => return err.as_compiler_error($span),
+        }
+    };
+}
+pub(crate) use db_clients;
+
+macro_rules! register_write_statement {
+    ($db:expr, $write_statement:expr, $formatter_ident:expr, $span:expr) => {{
+        use ::redefmt_db::Table as _;
+        match $db.crate_db.insert($write_statement) {
+            Ok(statement_id) => {
+                let crate_id_inner = $db.crate_id.as_ref();
+                let statement_id_inner = statement_id.as_ref();
+                let formatter_ident = $formatter_ident;
+
+                ::quote::quote! {
+                    #formatter_ident.write((
+                        ::redefmt::identifiers::CrateId::new(#crate_id_inner),
+                        ::redefmt::identifiers::WriteStatementId::new(#statement_id_inner)
+                    ))
+                }
+            }
+            Err(err) => {
+                let macro_error = $crate::RedefmtMacroError::from(err);
+                return macro_error.as_compiler_error($span);
+            }
+        }
+    }};
+}
+pub(crate) use register_write_statement;

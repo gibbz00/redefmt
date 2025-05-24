@@ -12,6 +12,7 @@ version.workspace = true
 [features]
 macros = ["dep:redefmt-args-macros"]
 serde = ["redefmt-args-internal/serde"]
+syn = ["redefmt-args-internal/syn"]
 
 [lints]
 workspace = true

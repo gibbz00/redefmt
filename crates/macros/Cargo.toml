@@ -17,7 +17,7 @@ workspace = true
 
 [dependencies]
 # Internal
-redefmt-args.workspace = true
+redefmt-args = { workspace = true, features = ["syn"] }
 redefmt-db.workspace = true
 redefmt-internal.workspace = true
 
