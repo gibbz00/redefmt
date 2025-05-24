@@ -88,6 +88,25 @@ impl syn::parse::Parse for ProvidedArgs<'static> {
     }
 }
 
+#[cfg(feature = "quote")]
+impl quote::ToTokens for ProvidedArgs<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        let positional_elements = self.positional.iter();
+        let named = &self.named;
+
+        let provided_args_tokens = quote! {
+            ::redefmt_args::provided_args::ProvidedArgs {
+                positional: [#(#positional_elements),*].into_iter().collect(),
+                named: #named,
+            }
+        };
+
+        tokens.extend(provided_args_tokens);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use syn::parse_quote;
