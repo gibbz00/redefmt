@@ -1,12 +1,9 @@
-use alloc::{borrow::Cow, string::ToString};
-
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FormatStringSegment<'a> {
-    // IMPROVEMENT: wrap in newtype with the invariant that the str contains no unescaped braces
-    Literal(Cow<'a, str>),
+    Literal(FormatLiteral<'a>),
     #[cfg_attr(feature = "serde", serde(borrow))]
     Format(FormatSegment<'a>),
 }
@@ -14,7 +11,7 @@ pub enum FormatStringSegment<'a> {
 impl FormatStringSegment<'_> {
     pub(crate) fn owned(&self) -> FormatStringSegment<'static> {
         match self {
-            FormatStringSegment::Literal(cow) => FormatStringSegment::Literal(Cow::Owned(cow.to_string())),
+            FormatStringSegment::Literal(literal) => FormatStringSegment::Literal(literal.owned()),
             FormatStringSegment::Format(segment) => FormatStringSegment::Format(segment.owned()),
         }
     }
@@ -71,6 +68,44 @@ impl<'a> FormatSegment<'a> {
         FormatSegment {
             argument: argument.as_ref().map(|arg| arg.owned()),
             options: options.owned(),
+        }
+    }
+}
+
+#[cfg(feature = "quote")]
+mod quote {
+    use ::quote::{ToTokens, quote};
+
+    use crate::*;
+
+    impl ToTokens for FormatStringSegment<'_> {
+        fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+            let variant_tokens = match self {
+                FormatStringSegment::Literal(literal) => quote! { Literal(#literal) },
+                FormatStringSegment::Format(format_segment) => quote! { Format(#format_segment) },
+            };
+
+            let segment_tokens = quote! {
+                ::redefmt_args::format_segment::FormatStringSegment::#variant_tokens
+            };
+
+            tokens.extend(segment_tokens);
+        }
+    }
+
+    impl ToTokens for FormatSegment<'_> {
+        fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+            let argument = quote_utils::PrintOption::new(&self.argument);
+            let options = &self.options;
+
+            let segment_tokens = quote! {
+                ::redefmt_args::format_segment::FormatSegment {
+                    argument: #argument,
+                    options: #options,
+                }
+            };
+
+            tokens.extend(segment_tokens);
         }
     }
 }

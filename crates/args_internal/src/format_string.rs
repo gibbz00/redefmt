@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, vec::Vec};
+use alloc::vec::Vec;
 
 use crate::*;
 
@@ -121,12 +121,16 @@ impl<'a> FormatString<'a> {
         match last_segment_end {
             Some(last_end) => {
                 if last_end != str.len() {
-                    segments.push(FormatStringSegment::Literal(Cow::Borrowed(&str[last_end..])));
+                    // SAFETY: remaining segment contains no braces
+                    let literal = unsafe { FormatLiteral::new_unchecked(&str[last_end..]) };
+                    segments.push(FormatStringSegment::Literal(literal));
                 }
             }
             None => {
                 if !str.is_empty() {
-                    segments.push(FormatStringSegment::Literal(Cow::Borrowed(str)));
+                    // SAFETY: remaining segment contains no braces
+                    let literal = unsafe { FormatLiteral::new_unchecked(str) };
+                    segments.push(FormatStringSegment::Literal(literal));
                 }
             }
         }
@@ -148,16 +152,19 @@ impl<'a> FormatString<'a> {
                         .expect("registered last segment end without pushing to segments buffer");
 
                     if matches!(last_segment, FormatStringSegment::Format(_)) && segment_end != current_char_index {
-                        segments.push(FormatStringSegment::Literal(Cow::Borrowed(
-                            &initial_str[segment_end..current_char_index],
-                        )));
+                        // SAFETY: remaining segment contains no braces
+                        let literal =
+                            unsafe { FormatLiteral::new_unchecked(&initial_str[segment_end..current_char_index]) };
+
+                        segments.push(FormatStringSegment::Literal(literal));
                     }
                 }
                 None => {
                     if current_char_index != 0 {
-                        segments.push(FormatStringSegment::Literal(Cow::Borrowed(
-                            &initial_str[0..current_char_index],
-                        )));
+                        // SAFETY: remaining segment contains no braces
+                        let literal = unsafe { FormatLiteral::new_unchecked(&initial_str[0..current_char_index]) };
+
+                        segments.push(FormatStringSegment::Literal(literal));
                     }
                 }
             }
@@ -267,7 +274,7 @@ mod tests {
     }
 
     fn str_literal_segment(str: &str) -> FormatStringSegment<'_> {
-        FormatStringSegment::Literal(Cow::Borrowed(str))
+        FormatStringSegment::Literal(FormatLiteral::new(str).unwrap())
     }
 
     fn empty_arg_segment() -> FormatStringSegment<'static> {
