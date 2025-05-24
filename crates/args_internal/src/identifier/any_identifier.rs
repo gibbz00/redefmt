@@ -134,7 +134,7 @@ impl quote::ToTokens for AnyIdentifier<'_> {
         let raw = self.raw;
         let inner = self.inner.as_ref();
 
-        const DOC_MESSAGE: &str = "SAFETY: provided inner str provided from a validated `AnyIdentifier`";
+        const DOC_MESSAGE: &str = "SAFETY: values provided from a validated `AnyIdentifier`";
 
         let identifier_tokens = quote::quote! {
             #[doc = #DOC_MESSAGE]
