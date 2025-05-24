@@ -161,3 +161,45 @@ mod syn {
         }
     }
 }
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for ProvidedArgLiteral {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        let variant_tokens = match self {
+            ProvidedArgLiteral::Str(lit) => quote! { Str(#lit) },
+            ProvidedArgLiteral::ByteStr(lit) => {
+                // Not ideal, breaks const compatibility
+                quote! { ByteStr([#(#lit),*].into_iter().collect()) }
+            }
+            ProvidedArgLiteral::CStr(lit) => quote! { CStr(#lit) },
+            ProvidedArgLiteral::Byte(lit) => quote! { Byte(#lit) },
+            ProvidedArgLiteral::Char(lit) => quote! { Char(#lit) },
+            ProvidedArgLiteral::Boolean(lit) => quote! { Boolean(#lit) },
+            ProvidedArgLiteral::Usize(lit) => quote! { Usize(#lit) },
+            ProvidedArgLiteral::U8(lit) => quote! { U8(#lit) },
+            ProvidedArgLiteral::U16(lit) => quote! { U16(#lit) },
+            ProvidedArgLiteral::U32(lit) => quote! { U32(#lit) },
+            ProvidedArgLiteral::U64(lit) => quote! { U64(#lit) },
+            ProvidedArgLiteral::U128(lit) => quote! { U128(#lit) },
+            ProvidedArgLiteral::UnknownUint(lit) => quote! { UnknownUint(#lit) },
+            ProvidedArgLiteral::Isize(lit) => quote! { Isize(#lit) },
+            ProvidedArgLiteral::I8(lit) => quote! { I8(#lit) },
+            ProvidedArgLiteral::I16(lit) => quote! { I16(#lit) },
+            ProvidedArgLiteral::I32(lit) => quote! { I32(#lit) },
+            ProvidedArgLiteral::I64(lit) => quote! { I64(#lit) },
+            ProvidedArgLiteral::I128(lit) => quote! { I128(#lit) },
+            ProvidedArgLiteral::UnknownInt(lit) => quote! { UnknownInt(#lit) },
+            ProvidedArgLiteral::F32(lit) => quote! { F32([#(#lit),*]) },
+            ProvidedArgLiteral::F64(lit) => quote! { F64([#(#lit),*]) },
+            ProvidedArgLiteral::UnknownFloat(lit) => quote! { UnknownFloat([#(#lit),*]) },
+        };
+
+        let provided_literal_tokens = quote! {
+            ::redefmt_args::provided_args::ProvidedArgLiteral::#variant_tokens
+        };
+
+        tokens.extend(provided_literal_tokens);
+    }
+}
