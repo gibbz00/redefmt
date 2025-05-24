@@ -40,6 +40,24 @@ impl<'a> FormatArgument<'a> {
     }
 }
 
+#[cfg(feature = "quote")]
+impl quote::ToTokens for FormatArgument<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        let variant_tokens = match self {
+            FormatArgument::Index(index) => quote! { Index(#index) },
+            FormatArgument::Identifier(argument_identifier) => quote! { Identifier(#argument_identifier) },
+        };
+
+        let argument_tokens = quote! {
+            ::redefmt_args::format_argument::FormatArgument::#variant_tokens
+        };
+
+        tokens.extend(argument_tokens);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

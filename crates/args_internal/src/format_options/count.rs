@@ -22,3 +22,21 @@ impl FormatCount<'_> {
         }
     }
 }
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for FormatCount<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        let variant_tokens = match self {
+            FormatCount::Integer(integer) => quote! { Integer(#integer) },
+            FormatCount::Argument(format_argument) => quote! { Argument(#format_argument) },
+        };
+
+        let count_tokens = quote! {
+            ::redefmt_args::format_options::FormatCount::#variant_tokens
+        };
+
+        tokens.extend(count_tokens);
+    }
+}
