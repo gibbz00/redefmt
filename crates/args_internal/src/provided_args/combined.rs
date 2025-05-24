@@ -35,6 +35,11 @@ impl<'a> CombinedFormatString<'a> {
         &self.provided_args
     }
 
+    #[doc(hidden)]
+    pub unsafe fn new_unchecked(format_string: FormatString<'a>, provided_args: ProvidedArgs<'a>) -> Self {
+        Self { format_string, provided_args }
+    }
+
     /// Combine provided args with those in [`FormatString`]
     ///
     /// Performs a variety of context dependant checks, optimizations and
@@ -324,6 +329,28 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
     /// an element at index `i` during iteration.
     fn reversed_combinations(len: usize) -> impl Iterator<Item = (usize, usize)> {
         (0..len).flat_map(move |j| (j + 1..len).map(move |i| (i, j))).rev()
+    }
+}
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for CombinedFormatString<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let format_string = &self.format_string;
+        let provided_args = &self.provided_args;
+
+        const DOC_MESSAGE: &str = "SAFETY: values provided from a validated `CombinedFormatString`";
+
+        let combined_format_string_tokens = quote::quote! {
+            #[doc = #DOC_MESSAGE]
+            unsafe {
+                ::redefmt_args::provided_args::CombinedFormatString::new_unchecked(
+                    #format_string,
+                    #provided_args
+                )
+            }
+        };
+
+        tokens.extend(combined_format_string_tokens);
     }
 }
 
