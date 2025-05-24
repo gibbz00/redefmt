@@ -33,7 +33,7 @@ impl<'a> ArgumentIdentifier<'a> {
         AnyIdentifier { raw: false, inner: self.inner }
     }
 
-    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, FormatStringParseError> {
+    pub fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, FormatStringParseError> {
         let cow_str = cow_str.into();
 
         if cow_str.is_empty() {

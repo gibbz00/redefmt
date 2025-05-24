@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, string::ToString};
+use alloc::borrow::Cow;
 use core::fmt::{Debug, Display};
 
 use super::utils::RAW_START;
@@ -19,16 +19,11 @@ impl<'a> AnyIdentifier<'a> {
         Self { raw, inner: Cow::Borrowed(inner) }
     }
 
-    pub(crate) fn owned(&self) -> AnyIdentifier<'static> {
-        let AnyIdentifier { raw, inner } = self;
-        AnyIdentifier { raw: *raw, inner: Cow::Owned(inner.to_string()) }
-    }
-
     pub(crate) fn unraw(self) -> ArgumentIdentifier<'a> {
         ArgumentIdentifier { inner: self.inner }
     }
 
-    pub(crate) fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, FormatStringParseError> {
+    pub fn parse(cow_str: impl Into<Cow<'a, str>>) -> Result<Self, FormatStringParseError> {
         let cow_str = cow_str.into();
 
         if cow_str.is_empty() {
@@ -115,16 +110,17 @@ mod serde {
 #[cfg(feature = "syn")]
 impl syn::parse::Parse for AnyIdentifier<'static> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use alloc::string::ToString;
+
         use syn::ext::IdentExt;
 
         let ident = input.call(syn::Ident::parse_any)?;
 
         // WORKAROUND: for syn::Ident not exposing `ident.is_raw()` and `ident.sym()`
-        let any_identifier = AnyIdentifier::parse(ident.to_string())
-            .expect("syn parse differs from internal parse")
-            .owned();
+        let Self { raw, inner } =
+            AnyIdentifier::parse(ident.to_string()).expect("syn parse differs from internal parse");
 
-        Ok(any_identifier)
+        Ok(Self { raw, inner: Cow::Owned(inner.to_string()) })
     }
 }
 
@@ -147,6 +143,8 @@ impl quote::ToTokens for AnyIdentifier<'_> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use super::*;
 
     #[test]
@@ -192,7 +190,7 @@ mod tests {
         let input = AnyIdentifier::parse(inner).unwrap();
 
         let expected = quote::quote! {
-            #[doc = "SAFETY: provided inner str provided from a validated `AnyIdentifier`"]
+            #[doc = "SAFETY: values provided from a validated `AnyIdentifier`"]
             unsafe { ::redefmt_args::identifier::AnyIdentifier::new_unchecked(true, "x") }
         };
 

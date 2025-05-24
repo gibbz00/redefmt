@@ -14,6 +14,7 @@ version = "0.1.0"
 [workspace.dependencies]
 redefmt-args = { path = "crates/args" }
 redefmt-args-internal = { path = "crates/args_internal" }
+redefmt-args-macros = { path = "crates/args_macros" }
 redefmt-db = { path = "crates/db" }
 redefmt-internal = { path = "crates/internal" }
 redefmt-internal-macros = { path = "crates/internal_macros" }

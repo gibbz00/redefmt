@@ -479,7 +479,10 @@ dependencies = [
 name = "redefmt-args"
 version = "0.1.0"
 dependencies = [
+ "redefmt-args",
  "redefmt-args-internal",
+ "redefmt-args-macros",
+ "trybuild",
 ]
 
 [[package]]
@@ -497,6 +500,16 @@ dependencies = [
  "syn",
  "thiserror",
  "unicode-xid",
+]
+
+[[package]]
+name = "redefmt-args-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "redefmt-args-internal",
+ "syn",
 ]
 
 [[package]]
