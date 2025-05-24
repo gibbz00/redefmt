@@ -41,6 +41,7 @@ impl<'cache> ValueDecoder<'cache> {
             TypeHint::I16 => src.try_get_i16().ok().map(Value::I16),
             TypeHint::I32 => src.try_get_i32().ok().map(Value::I32),
             TypeHint::I64 => src.try_get_i64().ok().map(Value::I64),
+            TypeHint::I128 => src.try_get_i128().ok().map(Value::I128),
             TypeHint::F32 => src.try_get_f32().ok().map(Value::F32),
             TypeHint::F64 => src.try_get_f64().ok().map(Value::F64),
             TypeHint::Usize => DecoderUtils::get_target_usize(src, self.pointer_width).map(Value::Usize),
@@ -264,6 +265,7 @@ mod tests {
         test_decode_int::<i16>(TypeHint::I16, Value::I16);
         test_decode_int::<i32>(TypeHint::I32, Value::I32);
         test_decode_int::<i64>(TypeHint::I64, Value::I64);
+        test_decode_int::<i128>(TypeHint::I128, Value::I128);
         test_decode_int::<f32>(TypeHint::F32, Value::F32);
         test_decode_int::<f64>(TypeHint::F64, Value::F64);
 

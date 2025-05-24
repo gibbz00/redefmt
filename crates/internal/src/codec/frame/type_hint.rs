@@ -14,6 +14,7 @@ pub enum TypeHint {
     I16 = 22,
     I32 = 23,
     I64 = 24,
+    I128 = 25,
     // Gives space for fsize, mini (F8), and half (F16) floating
     // precision types, if introduced later on.
     F32 = 33,
