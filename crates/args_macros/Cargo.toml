@@ -1,0 +1,25 @@
+[package]
+name = "redefmt-args-macros"
+
+authors.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[lib]
+proc-macro = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Internal
+redefmt-args-internal = { workspace = true, features = ["quote", "syn"] }
+
+# External
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", default-features = false, features = ["parsing"] }
