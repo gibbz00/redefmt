@@ -131,7 +131,7 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{FormatString, provided_args::CombinedFormatString};
+    use redefmt_args::combined_format_string;
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
@@ -348,13 +348,9 @@ mod tests {
     fn mock_print_statement() -> PrintStatement<'static> {
         let print_info = PrintInfo::new(Some(LogLevel::Debug), location!());
 
-        let combined_format_string = {
-            // NOTE: Two format arguments, but only one provided. Implicitly
-            // ensures that it only needs to be encoded and decoded once
-            let format_string = FormatString::parse("{0} {0}").unwrap();
-            let provided_args = syn::parse_quote!(y = y);
-            CombinedFormatString::combine(format_string, provided_args).unwrap()
-        };
+        // NOTE: Two format arguments, but only one provided. Implicitly
+        // ensures that it only needs to be encoded and decoded once
+        let combined_format_string = combined_format_string!("{0} {0}", y = y);
 
         PrintStatement::new(print_info, combined_format_string)
     }

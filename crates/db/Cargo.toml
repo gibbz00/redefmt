@@ -29,5 +29,6 @@ uuid = { version = "1.16", default-features = false }
 xdg = "2.5"
 
 [dev-dependencies]
+redefmt-args = { workspace = true, features = ["macros"] }
 serial_test = { version = "3.2", default-features = false }
 tempfile = "3.19"
