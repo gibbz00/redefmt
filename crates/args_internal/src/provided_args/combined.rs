@@ -335,9 +335,25 @@ impl<'a, 'aa> Mediator<'a, 'aa> {
 #[cfg(feature = "syn")]
 impl syn::parse::Parse for CombinedFormatString<'static> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let comma = syn::Token![,];
         let format_string = input.parse()?;
-        let _ = input.parse::<syn::Token![,]>()?;
-        let provided_args = input.parse()?;
+
+        let provided_args = match input.peek(comma) {
+            true => {
+                let _ = input.parse::<syn::Token![,]>()?;
+                input.parse()?
+            }
+            false => {
+                if !input.is_empty() {
+                    return Err(syn::Error::new(
+                        input.span(),
+                        "provided args tokens not separated by comma",
+                    ));
+                }
+
+                Default::default()
+            }
+        };
 
         Self::combine(format_string, provided_args).map_err(|error| syn::Error::new(input.span(), error))
     }
