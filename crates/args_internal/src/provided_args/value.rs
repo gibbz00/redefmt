@@ -31,6 +31,24 @@ impl syn::parse::Parse for ProvidedArgValue<'static> {
     }
 }
 
+#[cfg(feature = "quote")]
+impl quote::ToTokens for ProvidedArgValue<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        let variant_tokens = match self {
+            ProvidedArgValue::Literal(provided_arg_literal) => quote! { Literal(#provided_arg_literal) },
+            ProvidedArgValue::Variable(any_identifier) => quote! { Variable(#any_identifier) },
+        };
+
+        let provided_arg_value_tokens = quote! {
+            ::redefmt_args::provided_args::ProvidedArgValue::#variant_tokens
+        };
+
+        tokens.extend(provided_arg_value_tokens);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use syn::parse_quote;
