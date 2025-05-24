@@ -321,6 +321,37 @@ fn parse_count<'a>(
     }
 }
 
+#[cfg(feature = "quote")]
+impl quote::ToTokens for FormatOptions<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        use crate::quote_utils::PrintOption;
+
+        let align = PrintOption::new(&self.align);
+        let sign = PrintOption::new(&self.sign);
+        let use_alternate_form = &self.use_alternate_form;
+        let use_zero_padding = &self.use_zero_padding;
+        let width = PrintOption::new(&self.width);
+        let precision = PrintOption::new(&self.precision);
+        let format_trait = &self.format_trait;
+
+        let format_options_tokens = quote! {
+            ::redefmt_args::format_options::FormatOptions {
+                align: #align,
+                sign: #sign,
+                use_alternate_form: #use_alternate_form,
+                use_zero_padding: #use_zero_padding,
+                width: #width,
+                precision: #precision,
+                format_trait: #format_trait,
+            }
+        };
+
+        tokens.extend(format_options_tokens);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

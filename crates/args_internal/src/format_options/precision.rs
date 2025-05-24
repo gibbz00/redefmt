@@ -24,3 +24,21 @@ impl FormatPrecision<'_> {
         }
     }
 }
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for FormatPrecision<'_> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        let variant_tokens = match self {
+            FormatPrecision::Count(format_count) => quote! { Count(#format_count) },
+            FormatPrecision::NextArgument => quote! { NextArgument },
+        };
+
+        let precision_tokens = quote! {
+            ::redefmt_args::format_options::FormatPrecision::#variant_tokens
+        };
+
+        tokens.extend(precision_tokens);
+    }
+}

@@ -50,10 +50,43 @@ impl FormatTrait {
             "b" => FormatTrait::Binary,
             "e" => FormatTrait::LowerExp,
             "E" => FormatTrait::UpperExp,
-            _ => return Err(FormatStringParseError::new(offset, 0..str.len(), FormatTraitParseError::Unknown)),
+            _ => {
+                return Err(FormatStringParseError::new(
+                    offset,
+                    0..str.len(),
+                    FormatTraitParseError::Unknown,
+                ));
+            }
         };
 
         Ok(format_trait)
+    }
+}
+
+#[cfg(feature = "quote")]
+impl quote::ToTokens for FormatTrait {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use quote::quote;
+
+        let variant_tokens = match self {
+            FormatTrait::Display => quote! { Display },
+            FormatTrait::Debug => quote! { Debug },
+            FormatTrait::DebugLowerHex => quote! { DebugLowerHex },
+            FormatTrait::DebugUpperHex => quote! { DebugUpperHex },
+            FormatTrait::Octal => quote! { Octal },
+            FormatTrait::LowerHex => quote! { LowerHex },
+            FormatTrait::UpperHex => quote! { UpperHex },
+            FormatTrait::Pointer => quote! { Pointer },
+            FormatTrait::Binary => quote! { Binary },
+            FormatTrait::LowerExp => quote! { LowerExp },
+            FormatTrait::UpperExp => quote! { UpperExp },
+        };
+
+        let trait_tokens = quote! {
+            ::redefmt_args::format_options::FormatTrait::#variant_tokens
+        };
+
+        tokens.extend(trait_tokens);
     }
 }
 
