@@ -76,7 +76,7 @@ macro_rules! location {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{FormatString, provided_args::ProvidedArgs};
+    use redefmt_args::combined_format_string;
 
     use super::*;
 
@@ -88,23 +88,11 @@ mod tests {
         }
 
         fn mock() -> Self {
-            let combined = {
-                let format_string = FormatString::parse("x").unwrap();
-                let provided_args = ProvidedArgs::default();
-                CombinedFormatString::combine(format_string, provided_args).unwrap()
-            };
-
-            PrintStatement::new(mock_print_info(), combined)
+            PrintStatement::new(mock_print_info(), combined_format_string!("x"))
         }
 
         fn mock_other() -> Self {
-            let combined = {
-                let format_string = FormatString::parse("y").unwrap();
-                let provided_args = ProvidedArgs::default();
-                CombinedFormatString::combine(format_string, provided_args).unwrap()
-            };
-
-            PrintStatement::new(mock_print_info(), combined)
+            PrintStatement::new(mock_print_info(), combined_format_string!("y"))
         }
     }
 

@@ -25,31 +25,27 @@ mod timestamp {
 pub(crate) use timestamp::{Timestamp, TimestampPrecision};
 
 mod counter {
-    use redefmt_args::{FormatString, FormatStringParseError};
+    use redefmt_args::provided_args::CombinedFormatString;
 
     // TODO: integrate with thiserror
     #[derive(Debug, PartialEq)]
     pub enum CounterNewError {
-        Format(FormatStringParseError),
-        /// Counter format string expects one and only one unnamed argument.
+        /// Counter format string expects one and only one provided argument.
         ArgCount,
     }
 
     #[derive(Debug)]
     pub struct Counter {
-        format_string: FormatString<'static>,
+        combined_format_string: CombinedFormatString<'static>,
     }
 
     impl Counter {
-        pub fn new(format_string: &str) -> Result<Self, CounterNewError> {
-            let mut format_string = FormatString::parse(format_string)
-                .map_err(CounterNewError::Format)?
-                .owned();
+        pub fn new(combined_format_string: CombinedFormatString<'static>) -> Result<Self, CounterNewError> {
+            if combined_format_string.provided_args().dynamic_count() != 1 {
+                return Err(CounterNewError::ArgCount);
+            }
 
-            // TEMP:
-            panic!("fixme: format string validation should accept only one argument, which may be named counter");
-
-            Ok(Counter { format_string })
+            Ok(Counter { combined_format_string })
         }
     }
 }
