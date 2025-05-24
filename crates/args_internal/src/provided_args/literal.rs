@@ -169,10 +169,7 @@ impl quote::ToTokens for ProvidedArgLiteral {
 
         let variant_tokens = match self {
             ProvidedArgLiteral::Str(lit) => quote! { Str(#lit) },
-            ProvidedArgLiteral::ByteStr(lit) => {
-                // Not ideal, breaks const compatibility
-                quote! { ByteStr([#(#lit),*].into_iter().collect()) }
-            }
+            ProvidedArgLiteral::ByteStr(lit) => quote! { ByteStr([#(#lit),*].into_iter().collect()) },
             ProvidedArgLiteral::CStr(lit) => quote! { CStr(#lit) },
             ProvidedArgLiteral::Byte(lit) => quote! { Byte(#lit) },
             ProvidedArgLiteral::Char(lit) => quote! { Char(#lit) },

@@ -83,7 +83,7 @@ impl syn::parse::Parse for ProvidedArgs<'static> {
 
         Ok(Self {
             positional: positional_args,
-            named: ProvidedNamedArgsMap::from_inner(named_args),
+            named: ProvidedNamedArgsMap::new(named_args),
         })
     }
 }
@@ -172,6 +172,6 @@ mod tests {
         .into_iter()
         .collect();
 
-        ProvidedNamedArgsMap::from_inner(inner)
+        ProvidedNamedArgsMap::new(inner)
     }
 }
