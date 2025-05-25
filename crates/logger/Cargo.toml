@@ -10,7 +10,7 @@ repository.workspace = true
 version.workspace = true
 
 [features]
-alloc = []
+alloc = ["redefmt-internal/alloc"]
 
 [lints]
 workspace = true

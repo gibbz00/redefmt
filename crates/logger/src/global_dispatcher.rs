@@ -22,28 +22,23 @@ const INITIALIZED: u8 = 2;
 
 pub struct GlobalDispatcher;
 
-#[derive(Debug)]
-pub enum GlobalDispatcherError {
-    AlreadyInitialized,
-}
-
 impl GlobalDispatcher {
     #[cfg(feature = "alloc")]
-    pub fn init(dispatcher: impl Dispatcher + Send + Sync + 'static) -> Result<(), GlobalDispatcherError> {
+    pub fn init_alloc(dispatcher: impl Dispatcher + Send + Sync + 'static) -> Result<(), GlobalLoggerError> {
         let kind =
             GlobalDispatcherKind::Boxed(Mutex::new(core::cell::RefCell::new(alloc::boxed::Box::new(dispatcher))));
         Self::init_impl(kind)
     }
 
-    pub fn init_static(dispatcher: &'static mut dyn Dispatcher) -> Result<(), GlobalDispatcherError> {
+    pub fn init_static(dispatcher: &'static mut dyn Dispatcher) -> Result<(), GlobalLoggerError> {
         let kind = GlobalDispatcherKind::Static(dispatcher);
         Self::init_impl(kind)
     }
 
-    fn init_impl(dispatcher: GlobalDispatcherKind) -> Result<(), GlobalDispatcherError> {
+    fn init_impl(dispatcher: GlobalDispatcherKind) -> Result<(), GlobalLoggerError> {
         GLOBAL_DISPATCHER_STATE
             .compare_exchange(UNINITIALIZED, INITIALIZING, Ordering::SeqCst, Ordering::SeqCst)
-            .map_err(|_| GlobalDispatcherError::AlreadyInitialized)?;
+            .map_err(|_| GlobalLoggerError::LoggerAlreadyInitialized)?;
 
         // SAFETY: static not yet initialized, check and initializing flag is
         // atomic and sequentially consistent
@@ -131,7 +126,7 @@ mod tests {
         let bytes = [1, 2, 3];
         let shared_dispatcher = SharedTestDispatcher::new();
 
-        GlobalDispatcher::init(shared_dispatcher.clone()).unwrap();
+        GlobalDispatcher::init_alloc(shared_dispatcher.clone()).unwrap();
 
         shared_dispatcher.assert_bytes(&[]);
 
@@ -139,6 +134,6 @@ mod tests {
 
         shared_dispatcher.assert_bytes(&bytes);
 
-        assert!(GlobalDispatcher::init(shared_dispatcher).is_err());
+        assert!(GlobalDispatcher::init_alloc(shared_dispatcher).is_err());
     }
 }
