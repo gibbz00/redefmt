@@ -40,18 +40,12 @@ impl GlobalLogger {
         GlobalDispatcher::init_static(dispatcher)
     }
 
+    // Acquires global dispatcher
+    //
     // Hidden because it should only be used by print proc-macros
     #[doc(hidden)]
-    pub fn acquire() -> Self {
-        let handle = GlobalDispatcher::global_dispatcher();
-
-        Self { handle }
-    }
-
-    // Hidden because it should only be used by print proc-macros
-    #[doc(hidden)]
-    pub fn write_start(&mut self, print_id: (CrateId, PrintStatementId)) {
-        let handle = &mut self.handle;
+    pub fn write_start(print_id: (CrateId, PrintStatementId)) -> Self {
+        let mut handle = GlobalDispatcher::global_dispatcher();
 
         let stamper = GlobalStamper::stamper();
 
@@ -66,6 +60,8 @@ impl GlobalLogger {
 
         handle.get(|dispatcher| dispatcher.write(&crate_id.as_ref().to_be_bytes()));
         handle.get(|dispatcher| dispatcher.write(&print_statement_id.as_ref().to_be_bytes()));
+
+        Self { handle }
     }
 
     // Dynamic dispatch on `format` to reduce code monoporphization
@@ -77,5 +73,13 @@ impl GlobalLogger {
             let mut formatter = Formatter::new(dispatcher);
             format.fmt(&mut formatter);
         });
+    }
+
+    // Releases global dispatcher
+    //
+    // Hidden because it should only be used by print proc-macros
+    #[doc(hidden)]
+    pub fn write_end(self) {
+        drop(self)
     }
 }

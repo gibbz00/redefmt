@@ -50,7 +50,7 @@ impl GlobalDispatcher {
     }
 
     // TODO: document how this function is locking to ensure that statement writes don't get
-    // intertwined, and how write no ops is done if not set
+    // intertwined, and how write no ops are done if none is set
     pub(crate) fn global_dispatcher() -> GlobalDispatcherHandle {
         match GLOBAL_DISPATCHER_STATE.load(Ordering::Acquire) == INITIALIZED {
             true => {

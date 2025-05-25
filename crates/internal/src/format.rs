@@ -4,9 +4,9 @@ pub trait Format {
     fn fmt(&self, f: &mut Formatter);
 }
 
-impl<T: WriteValue> Format for T {
+impl<T: Format> Format for &T {
     fn fmt(&self, f: &mut Formatter) {
-        f.write(self);
+        <T as Format>::fmt(self, f);
     }
 }
 
