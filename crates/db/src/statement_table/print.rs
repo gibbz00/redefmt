@@ -47,30 +47,19 @@ pub enum LogLevel {
 
 /// Print statement call site location
 ///
-/// Constructed with the [`location!`] macro.
+/// Crate could be inferred the crate database itself.
 ///
-/// Crate inferred could be inferred the crate database itself, or by "parsing" the module path.
+/// Module path currently not saved since there isn't a reliable way to extract it from proc macros.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Location<'a> {
-    /// Usually retrieved by `file!()`
     file: Cow<'a, str>,
-    /// Usually retrieved by `module_path!()`
-    module: Cow<'a, str>,
-    /// Usually retrieved by `line!()`
     line: u32,
 }
 
 impl<'a> Location<'a> {
-    pub fn new(file: Cow<'a, str>, module: Cow<'a, str>, line: u32) -> Self {
-        Self { file, module, line }
+    pub fn new(file: impl Into<Cow<'a, str>>, line: u32) -> Self {
+        Self { file: file.into(), line }
     }
-}
-
-#[macro_export]
-macro_rules! location {
-    () => {
-        $crate::statement_table::print::Location::new(file!().into(), module_path!().into(), line!())
-    };
 }
 
 #[cfg(test)]
@@ -102,6 +91,9 @@ mod tests {
     }
 
     fn mock_print_info() -> PrintInfo<'static> {
-        PrintInfo { level: Some(LogLevel::Debug), location: location!() }
+        PrintInfo {
+            level: Some(LogLevel::Debug),
+            location: Location { file: "file.rs".into(), line: 1 },
+        }
     }
 }

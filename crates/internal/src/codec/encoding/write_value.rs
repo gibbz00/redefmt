@@ -13,6 +13,40 @@ pub trait WriteValue {
 
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher);
 }
+
+// Can't do blanket implementation `impl<T: WriteValue> Format for T`
+// as it will conflict with `impl<T: Format> Format for &T`, hence the manual
+// impls.
+macro_rules! body {
+    () => {
+        fn fmt(&self, f: &mut Formatter) {
+            f.write(self);
+        }
+    };
+}
+macro_rules! impl_format {
+    ($t:ty) => {
+        impl Format for $t {
+            body!();
+        }
+    };
+    (T, $t:ty) => {
+        impl<T: WriteValue> Format for $t {
+            body!();
+        }
+    };
+    (N, $t:ty) => {
+        impl<const N: usize> Format for $t {
+            body!();
+        }
+    };
+    (T, N, $t:ty) => {
+        impl<T: WriteValue, const N: usize> Format for $t {
+            body!();
+        }
+    };
+}
+
 #[sealed::sealed]
 impl<T: WriteValue> WriteValue for &T {
     fn hint(&self) -> TypeHint {
@@ -63,6 +97,8 @@ macro_rules! num_impl {
                     dispatcher.write(&self.to_be_bytes());
                 }
             }
+
+            impl_format!($type);
         )*
     };
 }
@@ -84,6 +120,7 @@ num_impl!(
     (f64, TypeHint::F64),
 );
 
+impl_format!(bool);
 #[sealed::sealed]
 impl WriteValue for bool {
     fn hint(&self) -> TypeHint {
@@ -95,6 +132,7 @@ impl WriteValue for bool {
     }
 }
 
+impl_format!(char);
 #[sealed::sealed]
 impl WriteValue for char {
     fn hint(&self) -> TypeHint {
@@ -110,6 +148,7 @@ impl WriteValue for char {
     }
 }
 
+impl_format!(&str);
 #[sealed::sealed]
 impl WriteValue for &str {
     fn hint(&self) -> TypeHint {
@@ -122,6 +161,7 @@ impl WriteValue for &str {
     }
 }
 
+impl_format!(T, &[T]);
 #[sealed::sealed]
 impl<T: WriteValue> WriteValue for &[T] {
     fn hint(&self) -> TypeHint {
@@ -144,6 +184,7 @@ impl<T: WriteValue> WriteValue for &[T] {
     }
 }
 
+impl_format!(T, N, [T; N]);
 #[sealed::sealed]
 impl<T: WriteValue, const N: usize> WriteValue for [T; N] {
     fn hint(&self) -> TypeHint {
@@ -155,6 +196,7 @@ impl<T: WriteValue, const N: usize> WriteValue for [T; N] {
     }
 }
 
+impl_format!(&[&dyn WriteValue]);
 #[sealed::sealed]
 impl WriteValue for &[&dyn WriteValue] {
     fn hint(&self) -> TypeHint {
@@ -171,6 +213,7 @@ impl WriteValue for &[&dyn WriteValue] {
     }
 }
 
+impl_format!(N, [&dyn WriteValue; N]);
 #[sealed::sealed]
 impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
     fn hint(&self) -> TypeHint {
@@ -183,6 +226,8 @@ impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
 }
 
 #[cfg(feature = "alloc")]
+impl_format!(T, alloc::vec::Vec<T>);
+#[cfg(feature = "alloc")]
 #[sealed::sealed]
 impl<T: WriteValue> WriteValue for alloc::vec::Vec<T> {
     fn hint(&self) -> TypeHint {
@@ -194,6 +239,8 @@ impl<T: WriteValue> WriteValue for alloc::vec::Vec<T> {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl_format!(alloc::vec::Vec<&dyn WriteValue>);
 #[cfg(feature = "alloc")]
 #[sealed::sealed]
 impl WriteValue for alloc::vec::Vec<&dyn WriteValue> {

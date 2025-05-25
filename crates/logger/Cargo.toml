@@ -18,10 +18,15 @@ workspace = true
 [dependencies]
 # Internal
 redefmt-internal.workspace = true
+redefmt-macros = { workspace = true, features = ["logger"] }
 
 # External
 critical-section = "1.2"
 
 [dev-dependencies]
+redefmt = { workspace = true, features = ["macros"] }
 redefmt-internal = { workspace = true, features = ["testing"] }
 redefmt-logger = { path = ".", features = ["alloc"] }
+
+# External
+trybuild = "1"

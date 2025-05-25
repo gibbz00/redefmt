@@ -83,9 +83,12 @@ fn generate_permutations(trait_name: &Ident, tuple_length: u8, trait_impl_buffer
 
         let tuple_indexes = (0..tuple_length as usize).map(syn::Index::from);
 
+        let tuple_type = quote! { (#(#tuple_type_indexes),*) };
+        let generic_params_list = quote! { <#(#generic_params: WriteValue),*> };
+
         let trait_impl = quote! {
             #[::sealed::sealed]
-            impl<#(#generic_params: WriteValue),*> WriteValue for (#(#tuple_type_indexes),*) {
+            impl #generic_params_list WriteValue for #tuple_type {
                 fn hint(&self) -> TypeHint {
                     TypeHint::Tuple
                 }
@@ -96,6 +99,12 @@ fn generate_permutations(trait_name: &Ident, tuple_length: u8, trait_impl_buffer
                     #(
                         self. #tuple_indexes .write_value(dispatcher);
                     )*
+                }
+            }
+
+            impl #generic_params_list Format for #tuple_type {
+                fn fmt(&self, f: &mut Formatter) {
+                    f.write(self);
                 }
             }
         };
