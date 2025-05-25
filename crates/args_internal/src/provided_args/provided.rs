@@ -45,12 +45,15 @@ impl syn::parse::Parse for ProvidedArgs<'static> {
                 let eq_token = input.parse::<syn::Token![=]>()?;
                 let value = input.parse()?;
 
-                if registered_named_args.contains(&name) {
+                // unraw because `x = 10, r#x = 20` should count as duplicate identifiers
+                let unrawed_name = name.clone().unraw();
+
+                if registered_named_args.contains(&unrawed_name) {
                     // IMPROVEMENT: span points to `name`
                     return Err(syn::Error::new(eq_token.span, "duplicate argument names not allowed"));
                 } else {
-                    named.push((name.clone(), value));
-                    registered_named_args.insert(name);
+                    named.push((name, value));
+                    registered_named_args.insert(unrawed_name);
                 }
             } else {
                 let positional_arg = input.parse()?;
@@ -136,6 +139,12 @@ mod tests {
     #[should_panic]
     fn duplicate_name_error() {
         let _: ProvidedArgs = parse_quote!(x = 10, x = 20);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_name_error_when_raw() {
+        let _: ProvidedArgs = parse_quote!(x = 10, r#x = 20);
     }
 
     fn mock_positional() -> Vec<syn::Expr> {
