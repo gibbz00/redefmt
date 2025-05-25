@@ -1,4 +1,3 @@
-use redefmt_args::MappedFormatExpression;
 use redefmt_internal::identifiers::WriteStatementId;
 
 use crate::*;
@@ -16,7 +15,7 @@ pub enum WriteStatement<'a> {
     TypeStructure(TypeStructure),
     // Often from manual implementations
     #[serde(borrow)]
-    FormatExpression(MappedFormatExpression<'a>),
+    FormatExpression(StoredFormatExpression<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -53,11 +52,11 @@ mod tests {
         }
 
         fn mock() -> Self {
-            WriteStatement::FormatExpression(mapped_format_expression!("x"))
+            WriteStatement::FormatExpression(StoredFormatExpression::new(mapped_format_expression!("x"), false))
         }
 
         fn mock_other() -> Self {
-            WriteStatement::FormatExpression(mapped_format_expression!("y"))
+            WriteStatement::FormatExpression(StoredFormatExpression::new(mapped_format_expression!("y"), false))
         }
     }
 }

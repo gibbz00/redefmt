@@ -227,7 +227,7 @@ mod tests {
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
-        statement_table::write::WriteStatement,
+        statement_table::{stored_format_expression::StoredFormatExpression, write::WriteStatement},
     };
     use redefmt_internal::codec::encoding::{SimpleTestDispatcher, WriteValue};
 
@@ -376,11 +376,12 @@ mod tests {
 
         let arg_value = true;
 
-        let write_statement = WriteStatement::FormatExpression(format_expression.clone());
+        let stored_expression = StoredFormatExpression::new(format_expression, false);
+        let write_statement = WriteStatement::FormatExpression(stored_expression.clone());
 
         // expected
         let expected_value = ComplexValue::NestedFormatExpression(
-            &format_expression,
+            &stored_expression,
             vec![ComplexValue::Value(Value::Boolean(arg_value))],
         );
 

@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use redefmt_args::MappedFormatExpression;
 use redefmt_internal::identifiers::PrintStatementId;
 
 use crate::*;
@@ -15,11 +14,11 @@ impl StatementTable for PrintStatement<'_> {
 pub struct PrintStatement<'a> {
     info: PrintInfo<'a>,
     #[serde(borrow)]
-    format_expression: MappedFormatExpression<'a>,
+    format_expression: StoredFormatExpression<'a>,
 }
 
 impl<'a> PrintStatement<'a> {
-    pub fn new(info: PrintInfo<'a>, format_expression: MappedFormatExpression<'a>) -> Self {
+    pub fn new(info: PrintInfo<'a>, format_expression: StoredFormatExpression<'a>) -> Self {
         Self { info, format_expression }
     }
 }
@@ -88,11 +87,17 @@ mod tests {
         }
 
         fn mock() -> Self {
-            PrintStatement::new(mock_print_info(), mapped_format_expression!("x"))
+            PrintStatement::new(
+                mock_print_info(),
+                StoredFormatExpression::new(mapped_format_expression!("x"), false),
+            )
         }
 
         fn mock_other() -> Self {
-            PrintStatement::new(mock_print_info(), mapped_format_expression!("y"))
+            PrintStatement::new(
+                mock_print_info(),
+                StoredFormatExpression::new(mapped_format_expression!("y"), false),
+            )
         }
     }
 
