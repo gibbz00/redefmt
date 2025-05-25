@@ -25,13 +25,6 @@ impl<'a> FormatArgument<'a> {
         }
     }
 
-    pub(crate) fn matches_name(&self, identifier: &ArgumentIdentifier) -> bool {
-        match self {
-            FormatArgument::Index(_) => false,
-            FormatArgument::Identifier(argument_identifier) => argument_identifier == identifier,
-        }
-    }
-
     pub(crate) fn matches_index(&self, index: usize) -> bool {
         match self {
             FormatArgument::Index(argument_index) => *argument_index == index,

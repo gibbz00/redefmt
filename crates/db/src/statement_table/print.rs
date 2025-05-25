@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use redefmt_args::provided_args::CombinedFormatString;
+use redefmt_args::MappedFormatExpression;
 use redefmt_internal::identifiers::PrintStatementId;
 
 use crate::*;
@@ -15,12 +15,12 @@ impl StatementTable for PrintStatement<'_> {
 pub struct PrintStatement<'a> {
     info: PrintInfo<'a>,
     #[serde(borrow)]
-    combined_format_string: CombinedFormatString<'a>,
+    format_expression: MappedFormatExpression<'a>,
 }
 
 impl<'a> PrintStatement<'a> {
-    pub fn new(info: PrintInfo<'a>, combined_format_string: CombinedFormatString<'a>) -> Self {
-        Self { info, combined_format_string }
+    pub fn new(info: PrintInfo<'a>, format_expression: MappedFormatExpression<'a>) -> Self {
+        Self { info, format_expression }
     }
 }
 
@@ -76,7 +76,7 @@ macro_rules! location {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::combined_format_string;
+    use redefmt_args::mapped_format_expression;
 
     use super::*;
 
@@ -88,11 +88,11 @@ mod tests {
         }
 
         fn mock() -> Self {
-            PrintStatement::new(mock_print_info(), combined_format_string!("x"))
+            PrintStatement::new(mock_print_info(), mapped_format_expression!("x"))
         }
 
         fn mock_other() -> Self {
-            PrintStatement::new(mock_print_info(), combined_format_string!("y"))
+            PrintStatement::new(mock_print_info(), mapped_format_expression!("y"))
         }
     }
 

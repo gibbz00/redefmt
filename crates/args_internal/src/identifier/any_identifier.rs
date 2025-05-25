@@ -134,6 +134,16 @@ impl syn::parse::Parse for AnyIdentifier<'static> {
     }
 }
 
+#[cfg(feature = "syn")]
+impl<'a> From<AnyIdentifier<'a>> for syn::Ident {
+    fn from(arg: AnyIdentifier<'a>) -> Self {
+        match arg.raw() {
+            true => syn::Ident::new_raw(arg.as_ref(), proc_macro2::Span::call_site()),
+            false => syn::Ident::new(arg.as_ref(), proc_macro2::Span::call_site()),
+        }
+    }
+}
+
 #[cfg(feature = "quote")]
 impl quote::ToTokens for AnyIdentifier<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {

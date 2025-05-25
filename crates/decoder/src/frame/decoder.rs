@@ -131,7 +131,7 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::combined_format_string;
+    use redefmt_args::mapped_format_expression;
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
@@ -265,12 +265,12 @@ mod tests {
 
         assert!(cached_print_statement.is_some());
 
-        let expected_combined_format_string = print_statement.combined_format_string();
+        let expected_format_expression = print_statement.format_expression();
 
         match decoder.stage {
             FrameDecoderWants::PrintStatement(stage) => {
-                let actual_combined_format_string = stage.segment_decoder.combined_format_string;
-                assert_eq!(expected_combined_format_string, actual_combined_format_string);
+                let actual_format_expression = stage.segment_decoder.format_expression;
+                assert_eq!(expected_format_expression, actual_format_expression);
             }
             _ => panic!("unexpected stage"),
         }
@@ -350,9 +350,9 @@ mod tests {
 
         // NOTE: Two format arguments, but only one provided. Implicitly
         // ensures that it only needs to be encoded and decoded once
-        let combined_format_string = combined_format_string!("{0} {0}", y = y);
+        let format_expression = mapped_format_expression!("{0} {0}", y = y);
 
-        PrintStatement::new(print_info, combined_format_string)
+        PrintStatement::new(print_info, format_expression)
     }
 
     fn put_and_decode_print_crate_id(decoder: &mut RedefmtDecoder, crate_id: CrateId) {
