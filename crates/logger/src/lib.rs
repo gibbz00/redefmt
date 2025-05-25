@@ -19,4 +19,4 @@ mod global_dispatcher;
 pub use global_dispatcher::{GlobalDispatcher, GlobalDispatcherHandle};
 
 mod global_logger;
-pub use global_logger::GlobalLogger;
+pub use global_logger::{GlobalLogger, GlobalLoggerError};

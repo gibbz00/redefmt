@@ -12,16 +12,11 @@ const INITIALIZED: u8 = 2;
 
 pub struct GlobalStamper;
 
-#[derive(Debug)]
-pub enum GlobalStamperError {
-    AlreadyInitialized,
-}
-
 impl GlobalStamper {
-    pub fn init(stamper: &'static dyn Stamper) -> Result<(), GlobalStamperError> {
+    pub fn init(stamper: &'static dyn Stamper) -> Result<(), GlobalLoggerError> {
         GLOBAL_STAMPER_STATE
             .compare_exchange(UNINITIALIZED, INITIALIZING, Ordering::SeqCst, Ordering::SeqCst)
-            .map_err(|_| GlobalStamperError::AlreadyInitialized)?;
+            .map_err(|_| GlobalLoggerError::StamperAlreadyInitialized)?;
 
         // SAFETY: static not yet initialized, check and initializing flag is
         // atomic and sequentially consistent
