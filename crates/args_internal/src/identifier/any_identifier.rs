@@ -65,12 +65,6 @@ impl<'a> AnyIdentifier<'a> {
     }
 }
 
-impl AsRef<str> for AnyIdentifier<'_> {
-    fn as_ref(&self) -> &str {
-        &self.inner
-    }
-}
-
 impl Display for AnyIdentifier<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if self.raw {
@@ -138,8 +132,8 @@ impl syn::parse::Parse for AnyIdentifier<'static> {
 impl<'a> From<AnyIdentifier<'a>> for syn::Ident {
     fn from(arg: AnyIdentifier<'a>) -> Self {
         match arg.raw() {
-            true => syn::Ident::new_raw(arg.as_ref(), proc_macro2::Span::call_site()),
-            false => syn::Ident::new(arg.as_ref(), proc_macro2::Span::call_site()),
+            true => syn::Ident::new_raw(&arg.inner, proc_macro2::Span::call_site()),
+            false => syn::Ident::new(&arg.inner, proc_macro2::Span::call_site()),
         }
     }
 }
