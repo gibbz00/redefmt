@@ -30,6 +30,14 @@ pub(crate) use identifier::*;
 pub mod provided_args;
 pub(crate) use provided_args::*;
 
+#[cfg(feature = "syn")]
+mod format_expression;
+#[cfg(feature = "syn")]
+pub use format_expression::FormatExpression;
+
+mod mapped_format_expression;
+pub use mapped_format_expression::MappedFormatExpression;
+
 mod integer;
 pub(crate) use integer::Integer;
 

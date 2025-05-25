@@ -25,7 +25,7 @@ mod timestamp {
 pub(crate) use timestamp::{Timestamp, TimestampPrecision};
 
 mod counter {
-    use redefmt_args::provided_args::CombinedFormatString;
+    use redefmt_args::MappedFormatExpression;
 
     // TODO: integrate with thiserror
     #[derive(Debug, PartialEq)]
@@ -36,16 +36,16 @@ mod counter {
 
     #[derive(Debug)]
     pub struct Counter {
-        combined_format_string: CombinedFormatString<'static>,
+        format_expression: MappedFormatExpression<'static>,
     }
 
     impl Counter {
-        pub fn new(combined_format_string: CombinedFormatString<'static>) -> Result<Self, CounterNewError> {
-            if combined_format_string.provided_args().dynamic_count() != 1 {
+        pub fn new(format_expression: MappedFormatExpression<'static>) -> Result<Self, CounterNewError> {
+            if format_expression.provided_args().count() != 1 {
                 return Err(CounterNewError::ArgCount);
             }
 
-            Ok(Counter { combined_format_string })
+            Ok(Counter { format_expression })
         }
     }
 }

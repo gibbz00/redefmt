@@ -1,0 +1,7 @@
+error: provided named argument y not used in format string
+ --> tests/ui/fail/mapped_format_expression.rs:3:5
+  |
+3 |     redefmt_args::mapped_format_expression!("{}", 1, y = true);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `redefmt_args::mapped_format_expression` (in Nightly builds, run with -Z macro-backtrace for more info)

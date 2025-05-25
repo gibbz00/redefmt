@@ -223,7 +223,7 @@ impl<'cache> ValueDecoder<'cache> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::combined_format_string;
+    use redefmt_args::mapped_format_expression;
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
@@ -372,15 +372,15 @@ mod tests {
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         // input
-        let combined_format_string = combined_format_string!("x = {}", x = x);
+        let format_expression = mapped_format_expression!("x = {}", x = x);
 
         let arg_value = true;
 
-        let write_statement = WriteStatement::FormatString(combined_format_string.clone());
+        let write_statement = WriteStatement::FormatExpression(format_expression.clone());
 
         // expected
-        let expected_value = ComplexValue::NestedFormatString(
-            &combined_format_string,
+        let expected_value = ComplexValue::NestedFormatExpression(
+            &format_expression,
             vec![ComplexValue::Value(Value::Boolean(arg_value))],
         );
 

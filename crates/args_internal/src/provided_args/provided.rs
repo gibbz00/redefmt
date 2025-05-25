@@ -4,54 +4,34 @@ use hashbrown::HashSet;
 
 use crate::*;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct ProvidedArgs<'a> {
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    pub positional: Vec<ProvidedArgValue<'a>>,
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    pub named: ProvidedNamedArgsMap<'a>,
+    pub positional: Vec<syn::Expr>,
+    pub named: Vec<(AnyIdentifier<'a>, syn::Expr)>,
 }
 
-impl<'a> ProvidedArgs<'a> {
-    /// Count the number of dynamic arguments in positional and named
-    ///
-    /// Static arguments would in this case be literals, and dynamic those bound
-    /// from variables in scope.
-    pub fn dynamic_count(&self) -> usize {
-        let positional_iter = self.positional.iter();
-        let named_iter = self.named.iter().map(|(_, arg)| arg);
-
-        positional_iter
-            .chain(named_iter)
-            .fold(0, |count, arg| if arg.is_dynamic() { count + 1 } else { count })
-    }
-
-    pub fn dynamic_args(&self) -> impl Iterator<Item = &AnyIdentifier<'a>> {
-        let positional_iter = self.positional.iter();
-        let named_iter = self.named.iter().map(|(_, arg)| arg);
-
-        positional_iter.chain(named_iter).filter_map(|arg| match arg {
-            ProvidedArgValue::Literal(_) => None,
-            ProvidedArgValue::Variable(identifier) => Some(identifier),
-        })
-    }
-
-    pub(crate) fn collect_named_set(&self) -> HashSet<ArgumentIdentifier<'static>> {
-        self.named
-            .iter()
-            // idents unrawed since checks with format string arguments need to
-            // match against both raw and non-raw alternatives
-            .map(|(ident, _)| ident.clone().unraw().owned())
-            .collect::<HashSet<_>>()
+impl<'a> From<ProvidedArgs<'a>> for ProvidedArgsMapping<'a> {
+    fn from(args: ProvidedArgs<'a>) -> Self {
+        Self {
+            positional: args.positional.len(),
+            named: args.named.into_iter().map(|(name, _)| name).collect(),
+        }
     }
 }
 
-#[cfg(feature = "syn")]
+impl ProvidedArgs<'_> {
+    pub fn expressions(&self) -> impl Iterator<Item = &syn::Expr> {
+        let positional_iter = self.positional.iter();
+        let named_iter = self.named.iter().map(|(_, expr)| expr);
+
+        positional_iter.chain(named_iter)
+    }
+}
+
 impl syn::parse::Parse for ProvidedArgs<'static> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut positional_args = Vec::new();
-        let mut named_args = Vec::new();
+        let mut named = Vec::new();
         let mut registered_named_args = HashSet::new();
 
         loop {
@@ -69,13 +49,13 @@ impl syn::parse::Parse for ProvidedArgs<'static> {
                     // IMPROVEMENT: span points to `name`
                     return Err(syn::Error::new(eq_token.span, "duplicate argument names not allowed"));
                 } else {
-                    named_args.push((name.clone(), value));
+                    named.push((name.clone(), value));
                     registered_named_args.insert(name);
                 }
             } else {
-                let positional_arg: ProvidedArgValue = input.parse()?;
+                let positional_arg = input.parse()?;
 
-                if !named_args.is_empty() {
+                if !named.is_empty() {
                     return Err(syn::Error::new(
                         // IMPROVEMENT: span points to `positional arg`
                         input.span(),
@@ -91,29 +71,7 @@ impl syn::parse::Parse for ProvidedArgs<'static> {
             }
         }
 
-        Ok(Self {
-            positional: positional_args,
-            named: ProvidedNamedArgsMap::new(named_args),
-        })
-    }
-}
-
-#[cfg(feature = "quote")]
-impl quote::ToTokens for ProvidedArgs<'_> {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use quote::quote;
-
-        let positional_elements = self.positional.iter();
-        let named = &self.named;
-
-        let provided_args_tokens = quote! {
-            ::redefmt_args::provided_args::ProvidedArgs {
-                positional: [#(#positional_elements),*].into_iter().collect(),
-                named: #named,
-            }
-        };
-
-        tokens.extend(provided_args_tokens);
+        Ok(Self { positional: positional_args, named })
     }
 }
 
@@ -122,15 +80,6 @@ mod tests {
     use syn::parse_quote;
 
     use super::*;
-
-    #[test]
-    fn dynamic_count() {
-        let args: ProvidedArgs = parse_quote!(1, y = false);
-        assert_eq!(0, args.dynamic_count());
-
-        let args: ProvidedArgs = parse_quote!(x, y = y);
-        assert_eq!(2, args.dynamic_count());
-    }
 
     #[test]
     fn parse_empty() {
@@ -189,18 +138,16 @@ mod tests {
         let _: ProvidedArgs = parse_quote!(x = 10, x = 20);
     }
 
-    fn mock_positional() -> Vec<ProvidedArgValue<'static>> {
+    fn mock_positional() -> Vec<syn::Expr> {
         alloc::vec![parse_quote!(10), parse_quote!(a), parse_quote!("y")]
     }
 
-    fn mock_named() -> ProvidedNamedArgsMap<'static> {
-        let inner = [
+    fn mock_named() -> Vec<(AnyIdentifier<'static>, syn::Expr)> {
+        [
             (AnyIdentifier::parse("x").unwrap(), parse_quote!(10)),
             (AnyIdentifier::parse("match").unwrap(), parse_quote!(y)),
         ]
         .into_iter()
-        .collect();
-
-        ProvidedNamedArgsMap::new(inner)
+        .collect()
     }
 }

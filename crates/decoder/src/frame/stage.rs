@@ -40,7 +40,7 @@ impl<'cache> WantsPrintStatementIdStage<'cache> {
     pub fn next(self, print_statement: &'cache PrintStatement<'static>) -> FrameDecoderWants<'cache> {
         let Self { header, stamp, .. } = self;
 
-        let segment_decoder = SegmentsDecoder::new(header.pointer_width(), print_statement.combined_format_string());
+        let segment_decoder = SegmentsDecoder::new(header.pointer_width(), print_statement.format_expression());
 
         FrameDecoderWants::PrintStatement(WantsPrintStatementStage { stamp, print_statement, segment_decoder })
     }

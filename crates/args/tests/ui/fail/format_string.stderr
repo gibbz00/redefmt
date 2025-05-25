@@ -1,0 +1,9 @@
+error: Invalid format string:
+
+       '{r#x}'
+         ^^^
+       Failed to parse identifier, caused by: raw identifiers are not allowed in format strings.
+ --> tests/ui/fail/format_string.rs:3:34
+  |
+3 |     redefmt_args::format_string!("{r#x}");
+  |                                  ^^^^^^^

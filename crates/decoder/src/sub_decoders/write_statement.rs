@@ -41,8 +41,8 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     .get_or_insert(write_statement_id, self.write_crate)?;
 
                 match write_statement {
-                    WriteStatement::FormatString(combined_format_string) => {
-                        let segment_decoder = SegmentsDecoder::new(self.pointer_width, combined_format_string);
+                    WriteStatement::FormatExpression(format_expression) => {
+                        let segment_decoder = SegmentsDecoder::new(self.pointer_width, format_expression);
                         self.stage = WriteStatementDecoderStage::Segments(Box::new(segment_decoder));
                         self.decode(stores, src)
                     }
@@ -55,8 +55,8 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     return Ok(None);
                 }
 
-                Ok(Some(ComplexValue::NestedFormatString(
-                    segment_decoder.combined_format_string,
+                Ok(Some(ComplexValue::NestedFormatExpression(
+                    segment_decoder.format_expression,
                     segment_decoder.decoded_args,
                 )))
             }
