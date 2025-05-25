@@ -11,6 +11,9 @@ mod gen_tests;
 #[cfg(test)]
 pub(crate) use gen_tests::{StatementTableTest, statement_table_tests};
 
+pub mod stored_format_expression;
+pub(crate) use stored_format_expression::StoredFormatExpression;
+
 pub mod write;
 pub(crate) use write::WriteStatement;
 

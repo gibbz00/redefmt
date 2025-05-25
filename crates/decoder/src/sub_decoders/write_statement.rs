@@ -56,7 +56,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
                 }
 
                 Ok(Some(ComplexValue::NestedFormatExpression(
-                    segment_decoder.format_expression,
+                    segment_decoder.stored_expression,
                     segment_decoder.decoded_args,
                 )))
             }
