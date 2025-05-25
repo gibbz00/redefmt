@@ -578,8 +578,11 @@ name = "redefmt-logger"
 version = "0.1.0"
 dependencies = [
  "critical-section",
+ "redefmt",
  "redefmt-internal",
  "redefmt-logger",
+ "redefmt-macros",
+ "trybuild",
 ]
 
 [[package]]

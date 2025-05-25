@@ -12,7 +12,7 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
 
     let db_clients = db_clients!(span);
 
-    let dynamic_arg_idents = format_expression
+    let format_argument_expressions = format_expression
         .provided_args()
         .expressions()
         .cloned()
@@ -31,7 +31,7 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
             #[allow(unused_must_use)]
             {
                 #(
-                  #dynamic_arg_idents.fmt(#formatter_ident);
+                  #format_argument_expressions.fmt(#formatter_ident);
                 )*
             }
         }

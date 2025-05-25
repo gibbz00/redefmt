@@ -135,9 +135,8 @@ mod tests {
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
-        location,
         statement_table::{
-            print::{LogLevel, PrintInfo, PrintStatement},
+            print::{Location, LogLevel, PrintInfo, PrintStatement},
             stored_format_expression::StoredFormatExpression,
         },
     };
@@ -349,7 +348,7 @@ mod tests {
     }
 
     fn mock_print_statement() -> PrintStatement<'static> {
-        let print_info = PrintInfo::new(Some(LogLevel::Debug), location!());
+        let print_info = PrintInfo::new(Some(LogLevel::Debug), Location::new("file.rs", 1));
 
         // NOTE: Two format arguments, but only one provided. Implicitly
         // ensures that it only needs to be encoded and decoded once
