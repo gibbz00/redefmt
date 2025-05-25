@@ -1,4 +1,4 @@
-use redefmt_args::provided_args::CombinedFormatString;
+use redefmt_args::MappedFormatExpression;
 use redefmt_internal::identifiers::WriteStatementId;
 
 use crate::*;
@@ -16,7 +16,7 @@ pub enum WriteStatement<'a> {
     TypeStructure(TypeStructure),
     // Often from manual implementations
     #[serde(borrow)]
-    FormatString(CombinedFormatString<'a>),
+    FormatExpression(MappedFormatExpression<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -41,7 +41,7 @@ pub enum StructVariant {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::combined_format_string;
+    use redefmt_args::mapped_format_expression;
 
     use super::*;
 
@@ -53,11 +53,11 @@ mod tests {
         }
 
         fn mock() -> Self {
-            WriteStatement::FormatString(combined_format_string!("x"))
+            WriteStatement::FormatExpression(mapped_format_expression!("x"))
         }
 
         fn mock_other() -> Self {
-            WriteStatement::FormatString(combined_format_string!("y"))
+            WriteStatement::FormatExpression(mapped_format_expression!("y"))
         }
     }
 }

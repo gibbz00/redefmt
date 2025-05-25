@@ -1,4 +1,4 @@
-use redefmt_args::provided_args::CombinedFormatString;
+use redefmt_args::MappedFormatExpression;
 use redefmt_internal::codec::frame::{PointerWidth, TypeHint};
 use tokio_util::bytes::{Buf, BytesMut};
 
@@ -13,17 +13,17 @@ pub struct SegmentsDecoder<'cache> {
     expected_arg_count: usize,
     pointer_width: PointerWidth,
     current_value: Option<SegmentValueContext<'cache>>,
-    pub(crate) combined_format_string: &'cache CombinedFormatString<'static>,
+    pub(crate) format_expression: &'cache MappedFormatExpression<'static>,
     pub(crate) decoded_args: Vec<ComplexValue<'cache>>,
 }
 
 impl<'cache> SegmentsDecoder<'cache> {
-    pub fn new(pointer_width: PointerWidth, combined_format_string: &'cache CombinedFormatString<'static>) -> Self {
-        let expected_arg_count = combined_format_string.provided_args().dynamic_count();
+    pub fn new(pointer_width: PointerWidth, format_expression: &'cache MappedFormatExpression<'static>) -> Self {
+        let expected_arg_count = format_expression.provided_args().count();
         let decoded_args = Vec::with_capacity(expected_arg_count);
 
         Self {
-            combined_format_string,
+            format_expression,
             expected_arg_count,
             pointer_width,
             current_value: None,

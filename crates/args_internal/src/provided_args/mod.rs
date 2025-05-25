@@ -1,14 +1,12 @@
-mod core;
-pub use core::ProvidedArgs;
+#[cfg(feature = "syn")]
+mod provided;
+#[cfg(feature = "syn")]
+pub use provided::ProvidedArgs;
 
-mod literal;
-pub use literal::ProvidedArgLiteral;
+mod mapping;
+pub use mapping::ProvidedArgsMapping;
 
-mod value;
-pub use value::ProvidedArgValue;
-
-mod named_map;
-pub use named_map::ProvidedNamedArgsMap;
-
-mod combined;
-pub use combined::{CombineArgsError, CombinedFormatString};
+#[cfg(feature = "syn")]
+mod resolver;
+#[cfg(feature = "syn")]
+pub(crate) use resolver::{ArgumentResolver, ResolveArgsError};
