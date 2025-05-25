@@ -136,7 +136,10 @@ mod tests {
         Table,
         crate_table::{Crate, CrateName},
         location,
-        statement_table::print::{LogLevel, PrintInfo, PrintStatement},
+        statement_table::{
+            print::{LogLevel, PrintInfo, PrintStatement},
+            stored_format_expression::StoredFormatExpression,
+        },
     };
     use redefmt_internal::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use tokio_util::{bytes::BufMut, codec::Decoder};
@@ -269,7 +272,7 @@ mod tests {
 
         match decoder.stage {
             FrameDecoderWants::PrintStatement(stage) => {
-                let actual_format_expression = stage.segment_decoder.format_expression;
+                let actual_format_expression = stage.segment_decoder.stored_expression;
                 assert_eq!(expected_format_expression, actual_format_expression);
             }
             _ => panic!("unexpected stage"),
@@ -350,7 +353,7 @@ mod tests {
 
         // NOTE: Two format arguments, but only one provided. Implicitly
         // ensures that it only needs to be encoded and decoded once
-        let format_expression = mapped_format_expression!("{0} {0}", y = y);
+        let format_expression = StoredFormatExpression::new(mapped_format_expression!("{0} {0}", y = y), false);
 
         PrintStatement::new(print_info, format_expression)
     }
