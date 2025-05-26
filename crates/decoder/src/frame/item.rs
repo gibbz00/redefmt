@@ -1,5 +1,5 @@
+use redefmt_core::codec::frame::{Level, Stamp};
 use redefmt_db::statement_table::print::PrintStatement;
-use redefmt_core::codec::frame::Stamp;
 
 use crate::*;
 
@@ -14,6 +14,7 @@ use crate::*;
 /// ```
 #[derive(Debug, PartialEq)]
 pub struct RedefmtFrame<'cache> {
+    pub(crate) level: Option<Level>,
     pub(crate) stamp: Option<Stamp>,
     pub(crate) print_statement: &'cache PrintStatement<'static>,
     pub(crate) decoded_values: Vec<ComplexValue<'cache>>,

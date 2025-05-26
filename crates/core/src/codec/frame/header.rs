@@ -2,9 +2,11 @@ use bitflags::bitflags;
 
 use crate::*;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Header(u8);
+
 bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    pub struct Header: u8 {
+    impl Header: u8 {
         const PLUS_16_WIDTH = 0b00000001;
         const PLUS_32_WIDTH = 0b00000010;
         const LEVEL_TRACE = 0b01000000;
@@ -62,5 +64,42 @@ impl Header {
         } else {
             return PointerWidth::U16;
         }
+    }
+
+    pub fn level(&self) -> Option<Level> {
+        let level_bits = self.bits() & 0b01110000;
+
+        let level = match level_bits {
+            bits if bits == Header::LEVEL_TRACE.bits() => Level::Trace,
+            bits if bits == Header::LEVEL_DEBUG.bits() => Level::Debug,
+            bits if bits == Header::LEVEL_INFO.bits() => Level::Info,
+            bits if bits == Header::LEVEL_WARN.bits() => Level::Warn,
+            bits if bits == Header::LEVEL_ERROR.bits() => Level::Error,
+            _ => return None,
+        };
+
+        Some(level)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn level() {
+        let mut header = Header::empty();
+
+        assert!(header.level().is_none());
+
+        header |= Header::STAMP;
+        header |= Header::PLUS_16_WIDTH;
+        header |= Header::PLUS_32_WIDTH;
+
+        assert!(header.level().is_none());
+
+        header |= Header::LEVEL_INFO;
+
+        assert!(header.level().is_none_or(|header| header == Level::Info));
     }
 }
