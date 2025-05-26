@@ -7,6 +7,11 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "logger")]
+pub mod logger;
+#[cfg(feature = "logger")]
+pub(crate) use logger::*;
+
 pub mod codec;
 pub(crate) use codec::*;
 

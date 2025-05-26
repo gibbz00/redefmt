@@ -43,9 +43,9 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
 
     quote! {
         {
-            let mut global_logger_handle = ::redefmt_logger::GlobalLogger::write_start((
-                ::redefmt_logger::CrateId::new(#crate_id_inner),
-                ::redefmt_logger::PrintStatementId::new(#statement_id_inner)
+            let mut global_logger_handle = ::redefmt::logger::GlobalLogger::write_start((
+                ::redefmt::identifiers::CrateId::new(#crate_id_inner),
+                ::redefmt::identifiers::PrintStatementId::new(#statement_id_inner)
             ));
             #(
                 global_logger_handle.write_format(&#format_argument_expressions);
