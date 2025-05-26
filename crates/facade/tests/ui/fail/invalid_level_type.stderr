@@ -1,0 +1,33 @@
+error[E0308]: mismatched types
+ --> tests/ui/fail/invalid_level_type.rs:7:19
+  |
+7 |     redefmt::log!(Level::Info, "");
+  |     --------------^^^^^^^^^^^-----
+  |     |             |
+  |     |             expected `redefmt::Level`, found `Level`
+  |     arguments to this enum variant are incorrect
+  |
+  = note: `Level` and `redefmt::Level` have similar names, but are actually distinct types
+note: `Level` is defined in the current crate
+ --> tests/ui/fail/invalid_level_type.rs:1:1
+  |
+1 | enum Level {
+  | ^^^^^^^^^^
+note: `redefmt::Level` is defined in crate `redefmt_core`
+ --> $WORKSPACE/crates/core/src/codec/frame/level.rs
+  |
+  | pub enum Level {
+  | ^^^^^^^^^^^^^^
+help: the type constructed contains `Level` due to the type of the argument passed
+ --> tests/ui/fail/invalid_level_type.rs:7:5
+  |
+7 |     redefmt::log!(Level::Info, "");
+  |     ^^^^^^^^^^^^^^-----------^^^^^
+  |                   |
+  |                   this argument influences the type of `Some`
+note: tuple variant defined here
+ --> $RUST/core/src/option.rs
+  |
+  |     Some(#[stable(feature = "rust1", since = "1.0.0")] T),
+  |     ^^^^
+  = note: this error originates in the macro `redefmt::log` (in Nightly builds, run with -Z macro-backtrace for more info)

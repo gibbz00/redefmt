@@ -47,3 +47,9 @@ pub fn print(token_stream: TokenStream) -> TokenStream {
 pub fn println(token_stream: TokenStream) -> TokenStream {
     print_statement::print_macro_impl(token_stream, true)
 }
+
+#[cfg(feature = "logger")]
+#[proc_macro]
+pub fn log(token_stream: TokenStream) -> TokenStream {
+    print_statement::log_macro_impl(token_stream)
+}
