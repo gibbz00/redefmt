@@ -21,18 +21,6 @@ pub use format::{Format, Formatter};
 pub mod identifiers;
 pub(crate) use identifiers::*;
 
-pub mod level {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-    pub enum Level {
-        Error,
-        Warn,
-        Info,
-        Debug,
-        Trace,
-    }
-}
-
 #[cfg(feature = "db")]
 mod sql_utils;
 #[cfg(feature = "db")]

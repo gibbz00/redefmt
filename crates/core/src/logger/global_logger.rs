@@ -38,12 +38,12 @@ impl GlobalLogger {
     //
     // Hidden because it should only be used by print proc-macros
     #[doc(hidden)]
-    pub fn write_start(print_id: (CrateId, PrintStatementId)) -> Self {
+    pub fn write_start(print_id: (CrateId, PrintStatementId), level: Option<Level>) -> Self {
         let mut handle = GlobalDispatcher::global_dispatcher();
 
         let stamper = GlobalStamper::stamper();
 
-        let header = Header::new(stamper.is_some());
+        let header = Header::new(stamper.is_some(), level);
         handle.get(|dispatcher| dispatcher.write(&[header.bits()]));
 
         if let Some(stamp) = stamper.map(Stamper::stamp) {
