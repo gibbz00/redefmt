@@ -132,15 +132,12 @@ mod mock {
 #[cfg(test)]
 mod tests {
     use redefmt_args::mapped_format_expression;
-    use redefmt_core::{
-        codec::encoding::{SimpleTestDispatcher, WriteValue},
-        level::Level,
-    };
+    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
         statement_table::{
-            print::{Location, PrintInfo, PrintStatement},
+            print::{Location, PrintStatement},
             stored_format_expression::StoredFormatExpression,
         },
     };
@@ -347,17 +344,17 @@ mod tests {
     }
 
     fn mock_stamp_stage<'a>() -> FrameDecoderWants<'a> {
-        FrameDecoderWants::PrintCrateId(WantsPrintCrateIdStage { header: Header::new(false), stamp: None })
+        FrameDecoderWants::PrintCrateId(WantsPrintCrateIdStage { header: Header::new(false, None), stamp: None })
     }
 
     fn mock_print_statement() -> PrintStatement<'static> {
-        let print_info = PrintInfo::new(Some(Level::Debug), Location::new("file.rs", 1));
+        let location = Location::new("file.rs", 1);
 
         // NOTE: Two format arguments, but only one provided. Implicitly
         // ensures that it only needs to be encoded and decoded once
         let format_expression = StoredFormatExpression::new(mapped_format_expression!("{0} {0}", y = y), false);
 
-        PrintStatement::new(print_info, format_expression)
+        PrintStatement::new(location, format_expression)
     }
 
     fn put_and_decode_print_crate_id(decoder: &mut RedefmtDecoder, crate_id: CrateId) {

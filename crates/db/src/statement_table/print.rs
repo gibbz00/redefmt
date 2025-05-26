@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use redefmt_core::{identifiers::PrintStatementId, level::Level};
+use redefmt_core::identifiers::PrintStatementId;
 
 use crate::*;
 
@@ -12,27 +12,14 @@ impl StatementTable for PrintStatement<'_> {
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, derive_getters::Getters)]
 pub struct PrintStatement<'a> {
-    info: PrintInfo<'a>,
+    location: Location<'a>,
     #[serde(borrow)]
     format_expression: StoredFormatExpression<'a>,
 }
 
 impl<'a> PrintStatement<'a> {
-    pub fn new(info: PrintInfo<'a>, format_expression: StoredFormatExpression<'a>) -> Self {
-        Self { info, format_expression }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub struct PrintInfo<'a> {
-    /// None for regular `println!()` statements
-    level: Option<Level>,
-    location: Location<'a>,
-}
-
-impl<'a> PrintInfo<'a> {
-    pub fn new(level: Option<Level>, location: Location<'a>) -> Self {
-        Self { level, location }
+    pub fn new(location: Location<'a>, format_expression: StoredFormatExpression<'a>) -> Self {
+        Self { location, format_expression }
     }
 }
 
@@ -68,23 +55,20 @@ mod tests {
 
         fn mock() -> Self {
             PrintStatement::new(
-                mock_print_info(),
+                mock_location(),
                 StoredFormatExpression::new(mapped_format_expression!("x"), false),
             )
         }
 
         fn mock_other() -> Self {
             PrintStatement::new(
-                mock_print_info(),
+                mock_location(),
                 StoredFormatExpression::new(mapped_format_expression!("y"), false),
             )
         }
     }
 
-    fn mock_print_info() -> PrintInfo<'static> {
-        PrintInfo {
-            level: Some(Level::Debug),
-            location: Location { file: "file.rs".into(), line: 1 },
-        }
+    fn mock_location() -> Location<'static> {
+        Location { file: "file.rs".into(), line: 1 }
     }
 }
