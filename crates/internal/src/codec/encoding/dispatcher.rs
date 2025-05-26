@@ -2,8 +2,8 @@ pub trait Dispatcher {
     fn write(&mut self, bytes: &[u8]);
 }
 
-#[cfg(feature = "testing")]
-mod test_dispatcher {
+#[cfg(test)]
+mod crate_test_dispatcher {
     use alloc::sync::Arc;
     use core::cell::RefCell;
 
@@ -16,17 +16,6 @@ mod test_dispatcher {
 
     impl Dispatcher for NoopTestDispatcher {
         fn write(&mut self, _bytes: &[u8]) {}
-    }
-
-    #[derive(Default)]
-    pub struct SimpleTestDispatcher {
-        pub bytes: BytesMut,
-    }
-
-    impl Dispatcher for SimpleTestDispatcher {
-        fn write(&mut self, bytes: &[u8]) {
-            self.bytes.put_slice(bytes);
-        }
     }
 
     #[derive(Clone)]
@@ -57,5 +46,25 @@ mod test_dispatcher {
         }
     }
 }
+#[cfg(test)]
+pub use crate_test_dispatcher::{NoopTestDispatcher, SharedTestDispatcher};
+
 #[cfg(feature = "testing")]
-pub use test_dispatcher::{NoopTestDispatcher, SharedTestDispatcher, SimpleTestDispatcher};
+mod test_dispatcher {
+    use bytes::{BufMut, BytesMut};
+
+    use crate::*;
+
+    #[derive(Default)]
+    pub struct SimpleTestDispatcher {
+        pub bytes: BytesMut,
+    }
+
+    impl Dispatcher for SimpleTestDispatcher {
+        fn write(&mut self, bytes: &[u8]) {
+            self.bytes.put_slice(bytes);
+        }
+    }
+}
+#[cfg(feature = "testing")]
+pub use test_dispatcher::SimpleTestDispatcher;

@@ -1,4 +1,4 @@
-use redefmt_internal::codec::frame::Stamp;
+use crate::*;
 
 pub trait Stamper {
     fn stamp(&self) -> Stamp;
