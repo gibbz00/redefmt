@@ -39,11 +39,11 @@ pub fn writeln(token_stream: TokenStream) -> TokenStream {
 #[cfg(feature = "logger")]
 #[proc_macro]
 pub fn print(token_stream: TokenStream) -> TokenStream {
-    print_statement::macro_impl(token_stream, false)
+    print_statement::print_macro_impl(token_stream, false)
 }
 
 #[cfg(feature = "logger")]
 #[proc_macro]
 pub fn println(token_stream: TokenStream) -> TokenStream {
-    print_statement::macro_impl(token_stream, true)
+    print_statement::print_macro_impl(token_stream, true)
 }
