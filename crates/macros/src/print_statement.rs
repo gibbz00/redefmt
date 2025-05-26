@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use redefmt_args::FormatExpression;
+use redefmt_core::codec::frame::Level;
 use redefmt_db::{
     Table,
     statement_table::{
@@ -43,18 +44,24 @@ impl Args {
     }
 }
 
-pub fn log_macro_impl(token_stream: TokenStream) -> TokenStream {
-    let Args { span, level_expression, format_expression } =
-        parse_macro_input!(token_stream with Args::parse_with_level);
-
-    match macro_impl(level_expression, format_expression, true) {
-        Ok(tokens) => tokens.into(),
-        Err(err) => err.as_compiler_error(span),
-    }
+pub fn print_macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStream {
+    let args = parse_macro_input!(token_stream with Args::parse_no_level);
+    try_macro_impl(args, append_newline)
 }
 
-pub fn print_macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStream {
-    let Args { span, level_expression, format_expression } = parse_macro_input!(token_stream with Args::parse_no_level);
+pub fn log_macro_impl(token_stream: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(token_stream with Args::parse_with_level);
+    try_macro_impl(args, true)
+}
+
+pub fn shorthand_log_macro_impl(token_stream: TokenStream, level: Level) -> TokenStream {
+    let mut args = parse_macro_input!(token_stream with Args::parse_no_level);
+    args.level_expression = Some(level_expression(level));
+    try_macro_impl(args, true)
+}
+
+fn try_macro_impl(args: Args, append_newline: bool) -> TokenStream {
+    let Args { span, level_expression, format_expression } = args;
     match macro_impl(level_expression, format_expression, append_newline) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.as_compiler_error(span),
@@ -112,4 +119,16 @@ fn location() -> Location<'static> {
     let file = rust_span.file();
     let line = rust_span.start().line();
     Location::new(file, line as u32)
+}
+
+fn level_expression(level: Level) -> syn::Expr {
+    let tokens = match level {
+        Level::Trace => quote! { ::redefmt::Level::Trace },
+        Level::Debug => quote! { ::redefmt::Level::Trace },
+        Level::Info => quote! { ::redefmt::Level::Trace },
+        Level::Warn => quote! { ::redefmt::Level::Trace },
+        Level::Error => quote! { ::redefmt::Level::Trace },
+    };
+
+    syn::Expr::Verbatim(tokens)
 }

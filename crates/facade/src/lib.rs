@@ -21,4 +21,4 @@ mod export {
 pub use export::*;
 //
 #[cfg(feature = "logger")]
-pub use redefmt_macros::{log, print, println};
+pub use redefmt_macros::{debug, error, info, log, print, println, trace, warn};
