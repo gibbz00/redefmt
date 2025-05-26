@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use redefmt_args::FormatExpression;
 use redefmt_db::{
@@ -9,14 +9,64 @@ use redefmt_db::{
         stored_format_expression::StoredFormatExpression,
     },
 };
-use syn::{parse::ParseStream, parse_macro_input};
+use syn::{Token, parse::ParseStream, parse_macro_input};
 
 use crate::*;
 
-pub fn print_macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStream {
-    let PrintArgs { span, format_expression } = parse_macro_input!(token_stream with PrintArgs::parse_print);
+struct Args {
+    span: Span,
+    level_expression: Option<syn::Expr>,
+    format_expression: FormatExpression<'static>,
+}
 
-    let db_clients = db_clients!(span);
+impl Args {
+    fn parse_with_level(input: ParseStream) -> syn::Result<Self> {
+        Self::parse_impl(true, input)
+    }
+
+    fn parse_no_level(input: ParseStream) -> syn::Result<Self> {
+        Self::parse_impl(false, input)
+    }
+
+    fn parse_impl(with_level: bool, input: ParseStream) -> syn::Result<Self> {
+        let span = input.span();
+        let mut level_expression = None;
+
+        if with_level {
+            level_expression = Some(input.parse()?);
+            let _ = input.parse::<Token![,]>()?;
+        }
+
+        let format_expression = input.parse()?;
+
+        Ok(Self { span, level_expression, format_expression })
+    }
+}
+
+pub fn log_macro_impl(token_stream: TokenStream) -> TokenStream {
+    let Args { span, level_expression, format_expression } =
+        parse_macro_input!(token_stream with Args::parse_with_level);
+
+    match macro_impl(level_expression, format_expression, true) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.as_compiler_error(span),
+    }
+}
+
+pub fn print_macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStream {
+    let Args { span, level_expression, format_expression } = parse_macro_input!(token_stream with Args::parse_no_level);
+    match macro_impl(level_expression, format_expression, append_newline) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => err.as_compiler_error(span),
+    }
+}
+
+fn macro_impl(
+    level_expression: Option<syn::Expr>,
+    format_expression: FormatExpression,
+    append_newline: bool,
+) -> Result<TokenStream2, RedefmtMacroError> {
+    let db_clients = DbClients::new()?;
 
     let format_argument_expressions = format_expression
         .provided_args()
@@ -30,48 +80,31 @@ pub fn print_macro_impl(token_stream: TokenStream, append_newline: bool) -> Toke
         PrintStatement::new(location, stored_expression)
     };
 
-    let statement_id = match db_clients.crate_db.insert(&print_statement) {
-        Ok(statement_id) => statement_id,
-        Err(err) => {
-            let macro_error = RedefmtMacroError::from(err);
-            return macro_error.as_compiler_error(span);
-        }
-    };
+    let statement_id = db_clients.crate_db.insert(&print_statement)?;
 
     let crate_id_inner = db_clients.crate_id.as_ref();
     let statement_id_inner = statement_id.as_ref();
 
-    quote! {
+    let maybe_log_level = match level_expression {
+        Some(expression) => quote! { Some(#expression) },
+        None => quote! { None },
+    };
+
+    Ok(quote! {
         {
             let mut global_logger_handle = ::redefmt::logger::GlobalLogger::write_start(
                 (
                     ::redefmt::identifiers::CrateId::new(#crate_id_inner),
                     ::redefmt::identifiers::PrintStatementId::new(#statement_id_inner)
                 ),
-                None
+                #maybe_log_level
             );
             #(
                 global_logger_handle.write_format(&#format_argument_expressions);
             )*
             global_logger_handle.write_end();
         }
-    }
-    .into()
-}
-
-pub struct PrintArgs {
-    span: Span,
-    format_expression: FormatExpression<'static>,
-}
-
-impl PrintArgs {
-    fn parse_print(input: ParseStream) -> syn::Result<Self> {
-        let span = input.span();
-
-        let format_expression = input.parse()?;
-
-        Ok(Self { span, format_expression })
-    }
+    })
 }
 
 fn location() -> Location<'static> {
