@@ -1,5 +1,5 @@
 use redefmt_db::statement_table::stored_format_expression::StoredFormatExpression;
-use redefmt_internal::codec::frame::{PointerWidth, TypeHint};
+use redefmt_core::codec::frame::{PointerWidth, TypeHint};
 use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;

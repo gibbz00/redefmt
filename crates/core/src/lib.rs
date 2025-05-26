@@ -1,4 +1,4 @@
-//! redefmt - Redefined Deferred Formatting
+//! redefmt-core
 
 #![no_std]
 // TEMP:
@@ -7,18 +7,21 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "macros")]
-pub use redefmt_macros::Format;
-//
-#[cfg(feature = "macros")]
-pub use redefmt_macros::{write, writeln};
-//
-mod export {
-    #[cfg(feature = "logger")]
-    pub use redefmt_internal::logger;
-    pub use redefmt_internal::{Format, Formatter, identifiers};
-}
-pub use export::*;
-//
 #[cfg(feature = "logger")]
-pub use redefmt_macros::{print, println};
+pub mod logger;
+#[cfg(feature = "logger")]
+pub(crate) use logger::*;
+
+pub mod codec;
+pub(crate) use codec::*;
+
+mod format;
+pub use format::{Format, Formatter};
+
+pub mod identifiers;
+pub(crate) use identifiers::*;
+
+#[cfg(feature = "db")]
+mod sql_utils;
+#[cfg(feature = "db")]
+pub(crate) use sql_utils::sql_newtype;

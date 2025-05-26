@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use elsa::sync::FrozenMap;
 use redefmt_db::{Table, statement_table::StatementTable};
-use redefmt_internal::identifiers::CrateId;
+use redefmt_core::identifiers::CrateId;
 
 use crate::*;
 
