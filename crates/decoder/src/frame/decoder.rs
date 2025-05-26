@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use redefmt_db::StateDir;
 use redefmt_core::{
     codec::frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
 };
+use redefmt_db::StateDir;
 use tokio_util::{
     bytes::{Buf, BytesMut},
     codec::Decoder,
@@ -132,15 +132,18 @@ mod mock {
 #[cfg(test)]
 mod tests {
     use redefmt_args::mapped_format_expression;
+    use redefmt_core::{
+        codec::encoding::{SimpleTestDispatcher, WriteValue},
+        level::Level,
+    };
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
         statement_table::{
-            print::{Location, LogLevel, PrintInfo, PrintStatement},
+            print::{Location, PrintInfo, PrintStatement},
             stored_format_expression::StoredFormatExpression,
         },
     };
-    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use tokio_util::{bytes::BufMut, codec::Decoder};
 
     use super::*;
@@ -348,7 +351,7 @@ mod tests {
     }
 
     fn mock_print_statement() -> PrintStatement<'static> {
-        let print_info = PrintInfo::new(Some(LogLevel::Debug), Location::new("file.rs", 1));
+        let print_info = PrintInfo::new(Some(Level::Debug), Location::new("file.rs", 1));
 
         // NOTE: Two format arguments, but only one provided. Implicitly
         // ensures that it only needs to be encoded and decoded once
