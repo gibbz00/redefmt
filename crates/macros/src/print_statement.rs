@@ -13,7 +13,7 @@ use syn::{parse::ParseStream, parse_macro_input};
 
 use crate::*;
 
-pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStream {
+pub fn print_macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStream {
     let PrintArgs { span, print_info, format_expression } =
         parse_macro_input!(token_stream with PrintArgs::parse_print);
 
@@ -66,17 +66,19 @@ impl PrintArgs {
     fn parse_print(input: ParseStream) -> syn::Result<Self> {
         let span = input.span();
 
-        let location = {
-            let rust_span = proc_macro::Span::call_site();
-            let file = rust_span.file();
-            let line = rust_span.start().line();
-            Location::new(file, line as u32)
-        };
+        let location = Self::location();
 
         let print_info = PrintInfo::new(None, location);
 
         let format_expression = input.parse()?;
 
         Ok(Self { span, print_info, format_expression })
+    }
+
+    fn location() -> Location<'static> {
+        let rust_span = proc_macro::Span::call_site();
+        let file = rust_span.file();
+        let line = rust_span.start().line();
+        Location::new(file, line as u32)
     }
 }
