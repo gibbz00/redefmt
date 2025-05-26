@@ -14,11 +14,11 @@ pub use redefmt_macros::Format;
 pub use redefmt_macros::{write, writeln};
 //
 mod export {
-    #[cfg(feature = "logger")]
-    pub use redefmt_core::logger;
     pub use redefmt_core::{Format, Formatter, identifiers};
+    #[cfg(feature = "logger")]
+    pub use redefmt_core::{codec::frame::Level, logger};
 }
 pub use export::*;
 //
 #[cfg(feature = "logger")]
-pub use redefmt_macros::{print, println};
+pub use redefmt_macros::{log, print, println};
