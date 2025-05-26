@@ -1,4 +1,4 @@
-use redefmt_internal::identifiers::CrateId;
+use redefmt_core::identifiers::CrateId;
 use rusqlite::OptionalExtension;
 
 use crate::*;

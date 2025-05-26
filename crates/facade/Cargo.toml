@@ -1,0 +1,32 @@
+[package]
+name = "redefmt"
+
+authors.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+alloc = ["redefmt-core/alloc"]
+logger = ["macros", "redefmt-core/logger", "redefmt-macros/logger"]
+macros = ["dep:redefmt-macros"]
+
+[dependencies]
+redefmt-core.workspace = true
+
+# feature: macros
+redefmt-macros = { workspace = true, optional = true }
+
+[dev-dependencies]
+# Internal
+redefmt = { path = ".", features = ["alloc", "logger", "macros"] }
+
+# External
+critical-section = { version = "1.2", features = ["std"] }
+trybuild = "1"

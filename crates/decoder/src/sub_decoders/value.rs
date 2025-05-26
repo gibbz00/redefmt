@@ -1,5 +1,5 @@
 use encode_unicode::CharExt;
-use redefmt_internal::{
+use redefmt_core::{
     codec::frame::{PointerWidth, TypeHint},
     identifiers::CrateId,
 };
@@ -229,7 +229,7 @@ mod tests {
         crate_table::{Crate, CrateName},
         statement_table::{stored_format_expression::StoredFormatExpression, write::WriteStatement},
     };
-    use redefmt_internal::codec::encoding::{SimpleTestDispatcher, WriteValue};
+    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
 
     use super::*;
 
