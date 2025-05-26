@@ -526,6 +526,7 @@ dependencies = [
  "redefmt-internal-macros",
  "rusqlite",
  "sealed",
+ "serde",
  "strum",
 ]
 

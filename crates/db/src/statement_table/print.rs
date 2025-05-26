@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use redefmt_core::identifiers::PrintStatementId;
+use redefmt_core::{identifiers::PrintStatementId, level::Level};
 
 use crate::*;
 
@@ -26,23 +26,14 @@ impl<'a> PrintStatement<'a> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct PrintInfo<'a> {
     /// None for regular `println!()` statements
-    level: Option<LogLevel>,
+    level: Option<Level>,
     location: Location<'a>,
 }
 
 impl<'a> PrintInfo<'a> {
-    pub fn new(level: Option<LogLevel>, location: Location<'a>) -> Self {
+    pub fn new(level: Option<Level>, location: Location<'a>) -> Self {
         Self { level, location }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum LogLevel {
-    Trace,
-    Debug,
-    Info,
-    Warn,
-    Error,
 }
 
 /// Print statement call site location
@@ -92,7 +83,7 @@ mod tests {
 
     fn mock_print_info() -> PrintInfo<'static> {
         PrintInfo {
-            level: Some(LogLevel::Debug),
+            level: Some(Level::Debug),
             location: Location { file: "file.rs".into(), line: 1 },
         }
     }

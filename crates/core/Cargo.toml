@@ -16,6 +16,7 @@ workspace = true
 alloc = []
 db = ["dep:rusqlite"]
 logger = ["dep:critical-section"]
+serde = ["dep:serde"]
 testing = ["alloc", "dep:bytes"]
 
 [dependencies]
@@ -33,6 +34,9 @@ critical-section = { version = "1.2", optional = true }
 
 # feature: db
 rusqlite = { version = "0.35", features = ["bundled"], optional = true }
+
+# feature: serde
+serde = { version = "1.0", features = ["derive"], optional = true }
 
 # feature: testing
 bytes = { version = "1.10", default-features = false, optional = true }
