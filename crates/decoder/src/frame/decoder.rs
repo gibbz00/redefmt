@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use redefmt_db::StateDir;
-use redefmt_internal::{
+use redefmt_core::{
     codec::frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
 };
@@ -140,7 +140,7 @@ mod tests {
             stored_format_expression::StoredFormatExpression,
         },
     };
-    use redefmt_internal::codec::encoding::{SimpleTestDispatcher, WriteValue};
+    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use tokio_util::{bytes::BufMut, codec::Decoder};
 
     use super::*;

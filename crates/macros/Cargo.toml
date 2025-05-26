@@ -22,7 +22,7 @@ workspace = true
 # Internal
 redefmt-args = { workspace = true, features = ["syn"] }
 redefmt-db.workspace = true
-redefmt-internal.workspace = true
+redefmt-core.workspace = true
 
 # External
 proc-macro2 = "1.0"
