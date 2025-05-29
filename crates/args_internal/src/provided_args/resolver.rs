@@ -145,10 +145,10 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
         return self;
 
         fn unmove_expr(expr: &mut syn::Expr) {
-            if let syn::Expr::Path(path) = expr {
-                if let Some(ident) = path.path.get_ident().cloned() {
-                    *expr = reference_ident(ident);
-                }
+            if let syn::Expr::Path(path) = expr
+                && let Some(ident) = path.path.get_ident().cloned()
+            {
+                *expr = reference_ident(ident);
             }
         }
     }
@@ -254,10 +254,10 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
                     provided_args.named.swap_remove(i);
 
                     for format_string_arg in format_string_args.iter_mut() {
-                        if let FormatArgument::Identifier(format_string_identifier) = format_string_arg {
-                            if format_string_identifier == &matching_name {
-                                *format_string_identifier = replacing_name.clone();
-                            }
+                        if let FormatArgument::Identifier(format_string_identifier) = format_string_arg
+                            && format_string_identifier == &matching_name
+                        {
+                            *format_string_identifier = replacing_name.clone();
                         }
                     }
                 }
