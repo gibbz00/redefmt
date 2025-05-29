@@ -49,6 +49,12 @@ impl<'a> FormatLiteral<'a> {
     }
 }
 
+impl AsRef<str> for FormatLiteral<'_> {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<'de: 'a, 'a> serde::Deserialize<'de> for FormatLiteral<'a> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

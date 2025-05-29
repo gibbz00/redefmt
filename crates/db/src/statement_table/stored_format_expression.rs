@@ -1,4 +1,4 @@
-use redefmt_args::DeferredFormatExpression;
+use redefmt_args::deferred::DeferredFormatExpression;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, derive_getters::Getters)]
 pub struct StoredFormatExpression<'a> {

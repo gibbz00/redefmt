@@ -37,24 +37,21 @@ pub enum ComplexValue<'cache> {
     // Map(Vec<(Value, Value)>),
 }
 
-// Using &String over &str should be fine here.
-// Saves a byte by not using a wide pointer.
-
 #[derive(Debug, PartialEq)]
 pub struct TypeStructureValue<'cache> {
-    pub name: &'cache String,
+    pub name: &'cache str,
     pub variant: TypeStructureVariantValue<'cache>,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum TypeStructureVariantValue<'cache> {
     Struct(StructVariantValue<'cache>),
-    Enum((&'cache String, StructVariantValue<'cache>)),
+    Enum((&'cache str, StructVariantValue<'cache>)),
 }
 
 #[derive(Debug, PartialEq)]
 pub enum StructVariantValue<'cache> {
     Unit,
     Tuple(Vec<ComplexValue<'cache>>),
-    Named(Vec<(&'cache String, ComplexValue<'cache>)>),
+    Named(Vec<(&'cache str, ComplexValue<'cache>)>),
 }

@@ -25,7 +25,7 @@ mod timestamp {
 pub(crate) use timestamp::{Timestamp, TimestampPrecision};
 
 mod counter {
-    use redefmt_args::DeferredFormatExpression;
+    use redefmt_args::deferred::DeferredFormatExpression;
 
     // TODO: integrate with thiserror
     #[derive(Debug, PartialEq)]
@@ -41,7 +41,7 @@ mod counter {
 
     impl Counter {
         pub fn new(format_expression: DeferredFormatExpression<'static>) -> Result<Self, CounterNewError> {
-            if format_expression.provided_args().count() != 1 {
+            if format_expression.expected_args().count() != 1 {
                 return Err(CounterNewError::ArgCount);
             }
 

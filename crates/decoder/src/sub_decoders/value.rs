@@ -422,6 +422,7 @@ mod tests {
     fn named_struct() {
         let field_0 = "a".to_string();
         let field_1 = "b".to_string();
+
         assert_struct(
             StructVariant::Named(vec![field_0.clone(), field_1.clone()]),
             [&true, &"y" as &dyn WriteValue],
@@ -450,15 +451,12 @@ mod tests {
     }
     #[test]
     fn named_enum() {
-        let field_0 = "x".to_string();
-        let field_1 = "y".to_string();
-
         assert_enum(
             2,
             [&true as &dyn WriteValue, &1u16],
             StructVariantValue::Named(vec![
-                (&field_0, ComplexValue::Value(Value::Boolean(true))),
-                (&field_1, ComplexValue::Value(Value::U16(1))),
+                ("x", ComplexValue::Value(Value::Boolean(true))),
+                ("y", ComplexValue::Value(Value::U16(1))),
             ]),
         );
     }

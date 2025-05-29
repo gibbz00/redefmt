@@ -89,7 +89,7 @@ impl<'a> FormatString<'a> {
 
                     match char_iter.find(|(_, char)| *char == CLOSING_BRACE) {
                         Some((argument_end_index, _)) => {
-                            let format_segment = FormatSegment::parse(
+                            let format_segment = FormatArgumentSegment::parse(
                                 offset + next_char_index,
                                 &str[next_char_index..argument_end_index],
                             )?;
@@ -293,6 +293,6 @@ mod tests {
     }
 
     fn empty_arg_segment() -> FormatStringSegment<'static> {
-        FormatStringSegment::Format(FormatSegment::default())
+        FormatStringSegment::Format(FormatArgumentSegment::default())
     }
 }
