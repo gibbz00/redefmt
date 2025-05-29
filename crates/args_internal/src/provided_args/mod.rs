@@ -3,8 +3,8 @@ mod provided;
 #[cfg(feature = "syn")]
 pub use provided::ProvidedArgs;
 
-mod mapping;
-pub use mapping::ProvidedArgsMapping;
+mod deferred;
+pub use deferred::DeferredArgs;
 
 #[cfg(feature = "syn")]
 mod resolver;
