@@ -1,8 +1,8 @@
+use redefmt_core::identifiers::CrateId;
 use redefmt_db::{
     CrateDb, DbClient, StateDir, Table,
     crate_table::{Crate, CrateName, CrateTable},
 };
-use redefmt_core::identifiers::CrateId;
 
 use crate::*;
 

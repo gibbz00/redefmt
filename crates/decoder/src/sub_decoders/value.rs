@@ -224,12 +224,12 @@ impl<'cache> ValueDecoder<'cache> {
 #[cfg(test)]
 mod tests {
     use redefmt_args::mapped_format_expression;
+    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
         statement_table::{stored_format_expression::StoredFormatExpression, write::WriteStatement},
     };
-    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
 
     use super::*;
 

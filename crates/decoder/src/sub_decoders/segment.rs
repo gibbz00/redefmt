@@ -1,6 +1,6 @@
-use redefmt_db::statement_table::stored_format_expression::StoredFormatExpression;
 use redefmt_core::codec::frame::{PointerWidth, TypeHint};
-use tokio_util::bytes::{Buf, BytesMut};
+use redefmt_db::statement_table::stored_format_expression::StoredFormatExpression;
+use tokio_util::bytes::BytesMut;
 
 use crate::*;
 
@@ -48,12 +48,9 @@ impl<'cache> SegmentsDecoder<'cache> {
         }
 
         while self.decoded_args.len() < self.expected_arg_count {
-            let Ok(type_hint_repr) = src.try_get_u8() else {
+            let Some(type_hint) = DecoderUtils::get_type_hint(src)? else {
                 return Ok(None);
             };
-
-            let type_hint =
-                TypeHint::from_repr(type_hint_repr).ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
 
             let mut value_decoder = ValueDecoder::new(self.pointer_width, type_hint);
 

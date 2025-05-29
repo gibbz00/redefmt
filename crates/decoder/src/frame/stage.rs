@@ -5,6 +5,9 @@ use crate::*;
 
 // Can't use generic state parameter on tokio_util::codec::Decoder
 #[derive(Default)]
+// IMPROVEMENT: benchmark if there's anything gained
+// from placing `Self::PrintStatement` behind a `Box`
+#[allow(clippy::large_enum_variant)]
 pub enum FrameDecoderWants<'cache> {
     #[default]
     Header,
