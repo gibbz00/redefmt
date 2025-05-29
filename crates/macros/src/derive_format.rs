@@ -94,41 +94,49 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
         })
         .collect();
 
-    let match_arms = enum_struct.variants.into_iter().map(|variant| {
-        let variant_ident = variant.ident;
+    let match_arms = enum_struct
+        .variants
+        .into_iter()
+        .enumerate()
+        .map(|(variant_index, variant)| {
+            let variant_ident = variant.ident;
 
-        match variant.fields {
-            Fields::Named(fields_named) => {
-                let field_idents = fields_named
-                    .named
-                    .into_iter()
-                    .map(|field| field.ident.expect("named field has no identifier"))
-                    .collect::<Vec<_>>();
+            match variant.fields {
+                Fields::Named(fields_named) => {
+                    let field_idents = fields_named
+                        .named
+                        .into_iter()
+                        .map(|field| field.ident.expect("named field has no identifier"))
+                        .collect::<Vec<_>>();
 
-                quote! {
-                    #ident::#variant_ident { #(#field_idents),* } => {
-                         #(#field_idents.fmt(f);)*
+                    quote! {
+                        #ident::#variant_ident { #(#field_idents),* } => {
+                            #variant_index.fmt(f);
+                            #(#field_idents.fmt(f);)*
+                        }
+                    }
+                }
+                Fields::Unnamed(fields_unnamed) => {
+                    let tuple_idents = (0..fields_unnamed.unnamed.len())
+                        .map(|index| format_ident!("i_{}", index))
+                        .collect::<Vec<_>>();
+
+                    quote! {
+                        #ident::#variant_ident(#(#tuple_idents),*) => {
+                            #variant_index.fmt(f);
+                            #(#tuple_idents.fmt(f);)*
+                        }
+                    }
+                }
+                Fields::Unit => {
+                    quote! {
+                        #ident::#variant_ident => {
+                            #variant_index.fmt(f);
+                        }
                     }
                 }
             }
-            Fields::Unnamed(fields_unnamed) => {
-                let tuple_idents = (0..fields_unnamed.unnamed.len())
-                    .map(|index| format_ident!("i_{}", index))
-                    .collect::<Vec<_>>();
-
-                quote! {
-                    #ident::#variant_ident(#(#tuple_idents),*) => {
-                         #(#tuple_idents.fmt(f);)*
-                    }
-                }
-            }
-            Fields::Unit => {
-                quote! {
-                    #ident::#variant_ident => {}
-                }
-            }
-        }
-    });
+        });
 
     let impl_body = quote! {
         match self {
