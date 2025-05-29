@@ -4,12 +4,6 @@ pub trait Dispatcher {
 
 #[cfg(test)]
 mod crate_test_dispatcher {
-    use alloc::sync::Arc;
-    use core::cell::RefCell;
-
-    use bytes::{BufMut, BytesMut};
-    use critical_section::Mutex;
-
     use crate::*;
 
     pub struct NoopTestDispatcher;
@@ -17,6 +11,39 @@ mod crate_test_dispatcher {
     impl Dispatcher for NoopTestDispatcher {
         fn write(&mut self, _bytes: &[u8]) {}
     }
+}
+#[cfg(test)]
+pub use crate_test_dispatcher::NoopTestDispatcher;
+
+#[cfg(feature = "testing")]
+mod simple_dispatcher {
+    use bytes::{BufMut, BytesMut};
+
+    use crate::*;
+
+    #[derive(Default)]
+    pub struct SimpleTestDispatcher {
+        pub bytes: BytesMut,
+    }
+
+    impl Dispatcher for SimpleTestDispatcher {
+        fn write(&mut self, bytes: &[u8]) {
+            self.bytes.put_slice(bytes);
+        }
+    }
+}
+#[cfg(feature = "testing")]
+pub use simple_dispatcher::SimpleTestDispatcher;
+
+#[cfg(feature = "testing")]
+mod shared_dispatcher {
+    use alloc::sync::Arc;
+    use core::cell::RefCell;
+
+    use bytes::{BufMut, BytesMut};
+    use critical_section::Mutex;
+
+    use crate::*;
 
     #[derive(Clone)]
     pub struct SharedTestDispatcher {
@@ -36,6 +63,17 @@ mod crate_test_dispatcher {
                 assert_eq!(expected_bytes, actual_bytes);
             })
         }
+
+        pub fn take_bytes(&self) -> BytesMut {
+            let mut bytes = BytesMut::new();
+
+            critical_section::with(|cs| {
+                let mut bytes_muf_ref = self.bytes.borrow_ref_mut(cs);
+                core::mem::swap(&mut bytes, &mut bytes_muf_ref);
+            });
+
+            bytes
+        }
     }
 
     impl Dispatcher for SharedTestDispatcher {
@@ -46,25 +84,5 @@ mod crate_test_dispatcher {
         }
     }
 }
-#[cfg(test)]
-pub use crate_test_dispatcher::{NoopTestDispatcher, SharedTestDispatcher};
-
 #[cfg(feature = "testing")]
-mod test_dispatcher {
-    use bytes::{BufMut, BytesMut};
-
-    use crate::*;
-
-    #[derive(Default)]
-    pub struct SimpleTestDispatcher {
-        pub bytes: BytesMut,
-    }
-
-    impl Dispatcher for SimpleTestDispatcher {
-        fn write(&mut self, bytes: &[u8]) {
-            self.bytes.put_slice(bytes);
-        }
-    }
-}
-#[cfg(feature = "testing")]
-pub use test_dispatcher::SimpleTestDispatcher;
+pub use shared_dispatcher::SharedTestDispatcher;

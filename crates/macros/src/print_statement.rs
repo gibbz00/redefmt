@@ -124,10 +124,10 @@ fn location() -> Location<'static> {
 fn level_expression(level: Level) -> syn::Expr {
     let tokens = match level {
         Level::Trace => quote! { ::redefmt::Level::Trace },
-        Level::Debug => quote! { ::redefmt::Level::Trace },
-        Level::Info => quote! { ::redefmt::Level::Trace },
-        Level::Warn => quote! { ::redefmt::Level::Trace },
-        Level::Error => quote! { ::redefmt::Level::Trace },
+        Level::Debug => quote! { ::redefmt::Level::Debug },
+        Level::Info => quote! { ::redefmt::Level::Info },
+        Level::Warn => quote! { ::redefmt::Level::Warn },
+        Level::Error => quote! { ::redefmt::Level::Error },
     };
 
     syn::Expr::Verbatim(tokens)

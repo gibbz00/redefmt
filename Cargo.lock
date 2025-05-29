@@ -471,8 +471,11 @@ version = "0.1.0"
 dependencies = [
  "critical-section",
  "redefmt",
+ "redefmt-args",
  "redefmt-core",
+ "redefmt-decoder",
  "redefmt-macros",
+ "tokio-util",
  "trybuild",
 ]
 

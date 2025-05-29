@@ -18,6 +18,7 @@ redefmt-args-internal = { path = "crates/args_internal" }
 redefmt-args-macros = { path = "crates/args_macros" }
 redefmt-core = { path = "crates/core" }
 redefmt-db = { path = "crates/db" }
+redefmt-decoder = { path = "crates/decoder" }
 redefmt-internal-macros = { path = "crates/internal_macros" }
 redefmt-macros = { path = "crates/macros" }
 
