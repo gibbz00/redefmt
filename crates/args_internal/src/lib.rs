@@ -6,14 +6,14 @@
 
 extern crate alloc;
 
-mod error;
-pub use error::FormatStringParseError;
+mod parse_error;
+pub use parse_error::FormatStringParseError;
 
 mod format_string;
 pub use format_string::FormatString;
 
 pub mod format_segment;
-pub(crate) use format_segment::{FormatSegment, FormatStringSegment, FormatStringSegmentError};
+pub(crate) use format_segment::{FormatArgumentSegment, FormatStringSegment, FormatStringSegmentError};
 
 pub mod format_argument;
 pub(crate) use format_argument::FormatArgument;
@@ -27,7 +27,9 @@ pub(crate) use format_options::*;
 pub mod identifier;
 pub(crate) use identifier::*;
 
+#[cfg(feature = "syn")]
 pub mod provided_args;
+#[cfg(feature = "syn")]
 pub(crate) use provided_args::*;
 
 #[cfg(feature = "syn")]
@@ -35,8 +37,8 @@ mod format_expression;
 #[cfg(feature = "syn")]
 pub use format_expression::FormatExpression;
 
-mod deferred_format_expression;
-pub use deferred_format_expression::DeferredFormatExpression;
+pub mod deferred;
+pub(crate) use deferred::*;
 
 mod integer;
 pub(crate) use integer::Integer;

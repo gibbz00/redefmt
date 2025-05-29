@@ -1,4 +1,4 @@
-use redefmt_args::DeferredFormatExpression;
+use redefmt_args::deferred::DeferredFormatExpression;
 use redefmt_core::codec::frame::{Level, Stamp};
 use redefmt_db::statement_table::print::PrintStatement;
 

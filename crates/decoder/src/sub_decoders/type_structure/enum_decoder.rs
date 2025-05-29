@@ -20,7 +20,7 @@ impl<'cache> EnumDecoder<'cache> {
         pointer_width: PointerWidth,
         stores: &Stores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<(&'cache String, StructVariantValue<'cache>)>, RedefmtDecoderError> {
+    ) -> Result<Option<(&'cache str, StructVariantValue<'cache>)>, RedefmtDecoderError> {
         match self {
             EnumDecoder::WantsIndex { variants } => {
                 let Some(target_length) = DecoderUtils::get_target_usize(src, pointer_width) else {
@@ -47,7 +47,7 @@ impl<'cache> EnumDecoder<'cache> {
             }
             EnumDecoder::WantsStructValue { variant_name, struct_decoder } => struct_decoder
                 .decode(stores, src)
-                .map(|maybe_decoded| maybe_decoded.map(|struct_value| (*variant_name, struct_value))),
+                .map(|maybe_decoded| maybe_decoded.map(|struct_value| (variant_name.as_str(), struct_value))),
         }
     }
 }

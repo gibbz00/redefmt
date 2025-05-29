@@ -30,7 +30,7 @@ impl<'a> From<FormatExpression<'a>> for DeferredFormatExpression<'a> {
     fn from(expression: FormatExpression<'a>) -> Self {
         Self {
             format_string: expression.format_string,
-            provided_args: expression.provided_args.into(),
+            expected_args: expression.provided_args.into(),
         }
     }
 }

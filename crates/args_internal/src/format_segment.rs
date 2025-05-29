@@ -5,7 +5,7 @@ use crate::*;
 pub enum FormatStringSegment<'a> {
     Literal(FormatLiteral<'a>),
     #[cfg_attr(feature = "serde", serde(borrow))]
-    Format(FormatSegment<'a>),
+    Format(FormatArgumentSegment<'a>),
 }
 
 impl FormatStringSegment<'_> {
@@ -27,14 +27,14 @@ pub enum FormatStringSegmentError {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FormatSegment<'a> {
+pub struct FormatArgumentSegment<'a> {
     #[cfg_attr(feature = "serde", serde(default, borrow, skip_serializing_if = "Option::is_none"))]
     pub argument: Option<FormatArgument<'a>>,
     #[cfg_attr(feature = "serde", serde(borrow))]
     pub options: FormatOptions<'a>,
 }
 
-impl<'a> FormatSegment<'a> {
+impl<'a> FormatArgumentSegment<'a> {
     /// Context from `FormatString::parse`:
     /// - Does not contain opening and closing braces.
     /// - `str` not empty.
@@ -62,10 +62,10 @@ impl<'a> FormatSegment<'a> {
         Ok(format_segment)
     }
 
-    pub(crate) fn owned(&self) -> FormatSegment<'static> {
-        let FormatSegment { argument, options } = self;
+    pub(crate) fn owned(&self) -> FormatArgumentSegment<'static> {
+        let FormatArgumentSegment { argument, options } = self;
 
-        FormatSegment {
+        FormatArgumentSegment {
             argument: argument.as_ref().map(|arg| arg.owned()),
             options: options.owned(),
         }
@@ -93,13 +93,13 @@ mod quote {
         }
     }
 
-    impl ToTokens for FormatSegment<'_> {
+    impl ToTokens for FormatArgumentSegment<'_> {
         fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
             let argument = quote_utils::PrintOption::new(&self.argument);
             let options = &self.options;
 
             let segment_tokens = quote! {
-                ::redefmt_args::format_segment::FormatSegment {
+                ::redefmt_args::format_segment::FormatArgumentSegment {
                     argument: #argument,
                     options: #options,
                 }
@@ -141,8 +141,8 @@ mod tests {
     }
 
     fn assert_parse(str: &str, expected_argument: Option<FormatArgument>, expected_options: FormatOptions) {
-        let actual = FormatSegment::parse(0, str).unwrap();
-        let expected = FormatSegment { argument: expected_argument, options: expected_options };
+        let actual = FormatArgumentSegment::parse(0, str).unwrap();
+        let expected = FormatArgumentSegment { argument: expected_argument, options: expected_options };
 
         assert_eq!(expected, actual);
     }

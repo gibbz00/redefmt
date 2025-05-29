@@ -45,7 +45,11 @@ impl<'cache> StructDecoder<'cache> {
                     return Ok(None);
                 };
 
-                let decoded_fields = field_names.iter().zip(decoded_fields).collect();
+                let decoded_fields = field_names
+                    .iter()
+                    .map(|string| string.as_str())
+                    .zip(decoded_fields)
+                    .collect();
 
                 StructVariantValue::Named(decoded_fields)
             }

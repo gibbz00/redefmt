@@ -6,7 +6,7 @@
 
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use redefmt_args_internal::{DeferredFormatExpression, FormatString};
+use redefmt_args_internal::{FormatString, deferred::DeferredFormatExpression};
 use syn::parse_macro_input;
 
 #[proc_macro]
