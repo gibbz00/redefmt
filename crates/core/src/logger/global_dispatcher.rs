@@ -120,12 +120,13 @@ mod tests {
 
     #[test]
     fn init_and_get() {
-        let bytes = [1, 2, 3];
         let shared_dispatcher = SharedTestDispatcher::new();
 
         GlobalDispatcher::init_alloc(shared_dispatcher.clone()).unwrap();
 
         shared_dispatcher.assert_bytes(&[]);
+
+        let bytes = [1, 2, 3];
 
         GlobalDispatcher::global_dispatcher().get(|dispatcher| dispatcher.write(&bytes));
 

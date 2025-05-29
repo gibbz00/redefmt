@@ -16,7 +16,7 @@ workspace = true
 alloc = []
 db = ["dep:rusqlite"]
 logger = ["dep:critical-section"]
-testing = ["alloc", "dep:bytes"]
+testing = ["alloc", "dep:bytes", "dep:critical-section"]
 
 [dependencies]
 # Internal
@@ -42,5 +42,4 @@ bytes = { version = "1.10", default-features = false, optional = true }
 redefmt-core = { path = ".", features = ["alloc", "testing"] }
 
 # External
-critical-section = { version = "1.2", features = ["std"] }
 num-traits = "0.2"
