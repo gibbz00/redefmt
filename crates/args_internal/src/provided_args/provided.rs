@@ -10,7 +10,7 @@ pub struct ProvidedArgs<'a> {
     pub named: Vec<(AnyIdentifier<'a>, syn::Expr)>,
 }
 
-impl<'a> From<ProvidedArgs<'a>> for DeferredArgs<'a> {
+impl<'a> From<ProvidedArgs<'a>> for DeferredExpectedArgs<'a> {
     fn from(args: ProvidedArgs<'a>) -> Self {
         Self {
             positional: args.positional.len(),
