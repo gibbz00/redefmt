@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use redefmt_core::{
     codec::frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
@@ -22,11 +20,6 @@ pub struct RedefmtDecoder<'cache> {
 impl<'cache> RedefmtDecoder<'cache> {
     pub fn new(cache: &'cache RedefmtDecoderCache) -> Result<Self, RedefmtDecoderError> {
         let state_dir = StateDir::resolve()?;
-        let stores = Stores::new(cache, state_dir)?;
-        Ok(Self { stores, stage: FrameDecoderWants::Header })
-    }
-
-    pub fn new_impl(cache: &'cache RedefmtDecoderCache, state_dir: PathBuf) -> Result<Self, RedefmtDecoderError> {
         let stores = Stores::new(cache, state_dir)?;
         Ok(Self { stores, stage: FrameDecoderWants::Header })
     }
@@ -98,12 +91,12 @@ impl<'cache> Decoder for RedefmtDecoder<'cache> {
                     return Ok(None);
                 }
 
-                let item = RedefmtFrame {
-                    level: stage.level,
-                    stamp: stage.stamp,
-                    print_statement: stage.print_statement,
-                    decoded_values: stage.segment_decoder.decoded_args,
-                };
+                let item = RedefmtFrame::new(
+                    stage.level,
+                    stage.stamp,
+                    stage.print_statement,
+                    stage.segment_decoder.decoded_args,
+                );
 
                 self.stage = FrameDecoderWants::Header;
 
@@ -314,12 +307,12 @@ mod tests {
         let value = true;
         let actual_frame = put_and_decode_bool_arg(&mut decoder, value).unwrap();
 
-        let expected_frame = RedefmtFrame {
-            level: None,
-            stamp: None,
-            print_statement: &print_statement,
-            decoded_values: vec![ComplexValue::Value(Value::Boolean(value))],
-        };
+        let expected_frame = RedefmtFrame::new(
+            None,
+            None,
+            &print_statement,
+            vec![ComplexValue::Value(Value::Boolean(value))],
+        );
 
         assert_eq!(expected_frame, actual_frame);
 
