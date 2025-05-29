@@ -125,7 +125,7 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::mapped_format_expression;
+    use redefmt_args::deferred_format_expression;
     use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
@@ -347,7 +347,7 @@ mod tests {
 
         // NOTE: Two format arguments, but only one provided. Implicitly
         // ensures that it only needs to be encoded and decoded once
-        let format_expression = StoredFormatExpression::new(mapped_format_expression!("{0} {0}", y = y), false);
+        let format_expression = StoredFormatExpression::new(deferred_format_expression!("{0} {0}", y = y), false);
 
         PrintStatement::new(location, format_expression)
     }

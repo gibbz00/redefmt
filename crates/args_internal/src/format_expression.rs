@@ -26,7 +26,7 @@ impl<'a> FormatExpression<'a> {
     }
 }
 
-impl<'a> From<FormatExpression<'a>> for MappedFormatExpression<'a> {
+impl<'a> From<FormatExpression<'a>> for DeferredFormatExpression<'a> {
     fn from(expression: FormatExpression<'a>) -> Self {
         Self {
             format_string: expression.format_string,

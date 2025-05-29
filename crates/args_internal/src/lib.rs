@@ -35,8 +35,8 @@ mod format_expression;
 #[cfg(feature = "syn")]
 pub use format_expression::FormatExpression;
 
-mod mapped_format_expression;
-pub use mapped_format_expression::MappedFormatExpression;
+mod deferred_format_expression;
+pub use deferred_format_expression::DeferredFormatExpression;
 
 mod integer;
 pub(crate) use integer::Integer;

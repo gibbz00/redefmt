@@ -42,7 +42,7 @@ impl<'a> Location<'a> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::mapped_format_expression;
+    use redefmt_args::deferred_format_expression;
 
     use super::*;
 
@@ -56,14 +56,14 @@ mod tests {
         fn mock() -> Self {
             PrintStatement::new(
                 mock_location(),
-                StoredFormatExpression::new(mapped_format_expression!("x"), false),
+                StoredFormatExpression::new(deferred_format_expression!("x"), false),
             )
         }
 
         fn mock_other() -> Self {
             PrintStatement::new(
                 mock_location(),
-                StoredFormatExpression::new(mapped_format_expression!("y"), false),
+                StoredFormatExpression::new(deferred_format_expression!("y"), false),
             )
         }
     }
