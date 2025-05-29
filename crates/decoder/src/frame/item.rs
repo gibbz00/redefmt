@@ -1,3 +1,4 @@
+use redefmt_args::MappedFormatExpression;
 use redefmt_core::codec::frame::{Level, Stamp};
 use redefmt_db::statement_table::print::PrintStatement;
 
@@ -14,8 +15,31 @@ use crate::*;
 /// ```
 #[derive(Debug, PartialEq)]
 pub struct RedefmtFrame<'cache> {
-    pub(crate) level: Option<Level>,
-    pub(crate) stamp: Option<Stamp>,
-    pub(crate) print_statement: &'cache PrintStatement<'static>,
-    pub(crate) decoded_values: Vec<ComplexValue<'cache>>,
+    pub level: Option<Level>,
+    pub stamp: Option<Stamp>,
+    pub file_name: &'cache str,
+    pub file_line: u32,
+    pub format_expression: &'cache MappedFormatExpression<'static>,
+    pub append_newline: bool,
+    pub decoded_values: Vec<ComplexValue<'cache>>,
+}
+
+impl<'cache> RedefmtFrame<'cache> {
+    // flattens `PrintStatement` to avoid exposing it in the public API.
+    pub(crate) fn new(
+        level: Option<Level>,
+        stamp: Option<Stamp>,
+        print_stratement: &'cache PrintStatement<'static>,
+        decoded_values: Vec<ComplexValue<'cache>>,
+    ) -> Self {
+        Self {
+            level,
+            stamp,
+            file_name: print_stratement.location().file().as_ref(),
+            file_line: *print_stratement.location().line(),
+            format_expression: print_stratement.format_expression().expression(),
+            append_newline: *print_stratement.format_expression().append_newline(),
+            decoded_values,
+        }
+    }
 }

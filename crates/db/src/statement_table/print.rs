@@ -28,7 +28,7 @@ impl<'a> PrintStatement<'a> {
 /// Crate could be inferred the crate database itself.
 ///
 /// Module path currently not saved since there isn't a reliable way to extract it from proc macros.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, derive_getters::Getters)]
 pub struct Location<'a> {
     file: Cow<'a, str>,
     line: u32,
