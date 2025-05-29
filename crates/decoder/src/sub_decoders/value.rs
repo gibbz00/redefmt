@@ -224,11 +224,17 @@ impl<'cache> ValueDecoder<'cache> {
 #[cfg(test)]
 mod tests {
     use redefmt_args::mapped_format_expression;
-    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
+    use redefmt_core::{
+        codec::encoding::{SimpleTestDispatcher, WriteValue},
+        identifiers::WriteStatementId,
+    };
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
-        statement_table::{stored_format_expression::StoredFormatExpression, write::WriteStatement},
+        statement_table::{
+            stored_format_expression::StoredFormatExpression,
+            write::{StructVariant, TypeStructure, TypeStructureVariant, WriteStatement},
+        },
     };
 
     use super::*;
@@ -385,15 +391,7 @@ mod tests {
             vec![ComplexValue::Value(Value::Boolean(arg_value))],
         );
 
-        // seed crate and write statement
-        let write_id = {
-            let crate_record = Crate::new(CrateName::new("x").unwrap());
-            let crate_id = stores.main_db.insert(&crate_record).unwrap();
-            let crate_context = stores.get_or_insert_crate(crate_id).unwrap();
-            let write_statement_id = crate_context.db.insert(&write_statement).unwrap();
-
-            (crate_id, write_statement_id)
-        };
+        let write_id = seed_crate_and_write_statement(&stores, &write_statement);
 
         // encode segment + arg
         let mut dispatcher = SimpleTestDispatcher::default();
@@ -401,6 +399,41 @@ mod tests {
         arg_value.write_value(&mut dispatcher);
 
         assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
+    }
+
+    // TODO:
+    // unit_struct
+    // tuple_struct
+    // named_struct
+
+    #[test]
+    fn unit_enum() {
+        assert_enum(0, [], StructVariantValue::Unit);
+    }
+    #[test]
+    fn tuple_enum() {
+        assert_enum(
+            1,
+            [&true as &dyn WriteValue, &1u16],
+            StructVariantValue::Tuple(vec![
+                ComplexValue::Value(Value::Boolean(true)),
+                ComplexValue::Value(Value::U16(1)),
+            ]),
+        );
+    }
+    #[test]
+    fn named_enum() {
+        let field_0 = "x".to_string();
+        let field_1 = "y".to_string();
+
+        assert_enum(
+            2,
+            [&true as &dyn WriteValue, &1u16],
+            StructVariantValue::Named(vec![
+                (&field_0, ComplexValue::Value(Value::Boolean(true))),
+                (&field_1, ComplexValue::Value(Value::U16(1))),
+            ]),
+        );
     }
 
     fn assert_simple_value<T: WriteValue>(type_hint: TypeHint, encoded_value: T, from_inner: impl FnOnce(T) -> Value) {
@@ -440,5 +473,62 @@ mod tests {
         let actual_value = value_decoder.decode(&stores, &mut dispatched_bytes).unwrap().unwrap();
 
         assert_eq!(expected_value, actual_value);
+    }
+
+    fn assert_enum(
+        variant_index: usize,
+        field_values: impl IntoIterator<Item = &'static dyn WriteValue>,
+        expected_struct_variant: StructVariantValue,
+    ) {
+        // setup
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, stores) = Stores::mock(&cache);
+
+        let enum_variants = vec![
+            ("A".to_string(), StructVariant::Unit),
+            ("B".to_string(), StructVariant::Tuple(2)),
+            (
+                "C".to_string(),
+                StructVariant::Named(vec!["x".to_string(), "y".to_string()]),
+            ),
+        ];
+
+        let expected_variant_name = enum_variants[variant_index].0.clone();
+
+        let type_name = "Foo".to_string();
+
+        let write_statement = WriteStatement::TypeStructure(TypeStructure {
+            name: type_name.clone(),
+            variant: TypeStructureVariant::Enum(enum_variants),
+        });
+
+        let expected_value = ComplexValue::Type(TypeStructureValue {
+            name: &type_name,
+            variant: TypeStructureVariantValue::Enum((&expected_variant_name, expected_struct_variant)),
+        });
+
+        let write_id = seed_crate_and_write_statement(&stores, &write_statement);
+
+        // encode segment + arg
+        let mut dispatcher = SimpleTestDispatcher::default();
+        write_id.write_value(&mut dispatcher);
+        variant_index.write_raw(&mut dispatcher);
+        field_values
+            .into_iter()
+            .for_each(|field_value| field_value.write_value(&mut dispatcher));
+
+        assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
+    }
+
+    fn seed_crate_and_write_statement(
+        stores: &Stores,
+        write_statement: &WriteStatement,
+    ) -> (CrateId, WriteStatementId) {
+        let crate_record = Crate::new(CrateName::new("x").unwrap());
+        let crate_id = stores.main_db.insert(&crate_record).unwrap();
+        let crate_context = stores.get_or_insert_crate(crate_id).unwrap();
+        let write_statement_id = crate_context.db.insert(write_statement).unwrap();
+
+        (crate_id, write_statement_id)
     }
 }

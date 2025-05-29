@@ -111,7 +111,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
 
                     quote! {
                         #ident::#variant_ident { #(#field_idents),* } => {
-                            #variant_index.fmt(f);
+                            f.write_raw(#variant_index);
                             #(#field_idents.fmt(f);)*
                         }
                     }
@@ -123,7 +123,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
 
                     quote! {
                         #ident::#variant_ident(#(#tuple_idents),*) => {
-                            #variant_index.fmt(f);
+                            f.write_raw(#variant_index);
                             #(#tuple_idents.fmt(f);)*
                         }
                     }
@@ -131,7 +131,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
                 Fields::Unit => {
                     quote! {
                         #ident::#variant_ident => {
-                            #variant_index.fmt(f);
+                            f.write_raw(#variant_index);
                         }
                     }
                 }

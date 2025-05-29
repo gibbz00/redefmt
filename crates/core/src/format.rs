@@ -23,4 +23,9 @@ impl<'a> Formatter<'a> {
     pub fn write(&mut self, value: impl WriteValue) {
         value.write_value(self.dispatcher);
     }
+
+    #[doc(hidden)]
+    pub fn write_raw(&mut self, value: impl WriteValue) {
+        value.write_raw(self.dispatcher);
+    }
 }
