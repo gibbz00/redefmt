@@ -1,6 +1,6 @@
 fn main() {
     // both
-    redefmt_args::mapped_format_expression!("{} {x} {match}", 1, x = "10", match = r#match);
+    redefmt_args::deferred_format_expression!("{} {x} {match}", 1, x = "10", match = r#match);
     // without args
-    redefmt_args::mapped_format_expression!("y");
+    redefmt_args::deferred_format_expression!("y");
 }

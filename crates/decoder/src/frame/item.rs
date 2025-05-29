@@ -1,4 +1,4 @@
-use redefmt_args::MappedFormatExpression;
+use redefmt_args::DeferredFormatExpression;
 use redefmt_core::codec::frame::{Level, Stamp};
 use redefmt_db::statement_table::print::PrintStatement;
 
@@ -19,7 +19,7 @@ pub struct RedefmtFrame<'cache> {
     pub stamp: Option<Stamp>,
     pub file_name: &'cache str,
     pub file_line: u32,
-    pub format_expression: &'cache MappedFormatExpression<'static>,
+    pub format_expression: &'cache DeferredFormatExpression<'static>,
     pub append_newline: bool,
     pub decoded_values: Vec<ComplexValue<'cache>>,
 }

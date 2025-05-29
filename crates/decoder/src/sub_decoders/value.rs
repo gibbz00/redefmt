@@ -223,7 +223,7 @@ impl<'cache> ValueDecoder<'cache> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::mapped_format_expression;
+    use redefmt_args::deferred_format_expression;
     use redefmt_core::{
         codec::encoding::{SimpleTestDispatcher, WriteValue},
         identifiers::WriteStatementId,
@@ -378,7 +378,7 @@ mod tests {
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         // input
-        let format_expression = mapped_format_expression!("x = {}", x = x);
+        let format_expression = deferred_format_expression!("x = {}", x = x);
 
         let arg_value = true;
 
