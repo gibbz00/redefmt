@@ -1,5 +1,5 @@
-use redefmt_db::statement_table::write::WriteStatement;
 use redefmt_core::{codec::frame::PointerWidth, identifiers::WriteStatementId};
+use redefmt_db::statement_table::write::WriteStatement;
 use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
@@ -15,6 +15,7 @@ enum WriteStatementDecoderStage<'cache> {
     #[default]
     New,
     Segments(Box<SegmentsDecoder<'cache>>),
+    TypeStructure(TypeStructureDecoder<'cache>),
 }
 
 impl<'cache> WriteStatementDecoder<'cache> {
@@ -46,7 +47,11 @@ impl<'cache> WriteStatementDecoder<'cache> {
                         self.stage = WriteStatementDecoderStage::Segments(Box::new(segment_decoder));
                         self.decode(stores, src)
                     }
-                    WriteStatement::TypeStructure(type_structure) => todo!(),
+                    WriteStatement::TypeStructure(type_structure) => {
+                        let type_structure_decoder = TypeStructureDecoder::new(self.pointer_width, type_structure);
+                        self.stage = WriteStatementDecoderStage::TypeStructure(type_structure_decoder);
+                        self.decode(stores, src)
+                    }
                 }
             }
             WriteStatementDecoderStage::Segments(mut segment_decoder) => {
@@ -59,6 +64,14 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     segment_decoder.stored_expression,
                     segment_decoder.decoded_args,
                 )))
+            }
+            WriteStatementDecoderStage::TypeStructure(mut type_structure_decoder) => {
+                let Some(type_structure_value) = type_structure_decoder.decode(stores, src)? else {
+                    self.stage = WriteStatementDecoderStage::TypeStructure(type_structure_decoder);
+                    return Ok(None);
+                };
+
+                Ok(Some(ComplexValue::Type(type_structure_value)))
             }
         }
     }

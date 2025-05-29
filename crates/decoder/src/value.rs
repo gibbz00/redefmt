@@ -30,28 +30,31 @@ pub enum ComplexValue<'cache> {
     // Reused for array, vec and slice containing both single and dyn values.
     List(Vec<ComplexValue<'cache>>),
     Tuple(Vec<ComplexValue<'cache>>),
-    Type(Type<'cache>),
+    Type(TypeStructureValue<'cache>),
     NestedFormatExpression(&'cache StoredFormatExpression<'static>, Vec<ComplexValue<'cache>>),
     // TODO:
     // Set(Vec<Value>),
     // Map(Vec<(Value, Value)>),
 }
 
+// Using &String over &str should be fine here.
+// Saves a byte by not using a wide pointer.
+
 #[derive(Debug, PartialEq)]
-pub struct Type<'cache> {
-    name: String,
-    variant: TypeVariant<'cache>,
+pub struct TypeStructureValue<'cache> {
+    pub name: &'cache String,
+    pub variant: TypeStructureVariantValue<'cache>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum TypeVariant<'cache> {
-    Struct(StructVariant<'cache>),
-    Enum(Vec<(String, StructVariant<'cache>)>),
+pub enum TypeStructureVariantValue<'cache> {
+    Struct(StructVariantValue<'cache>),
+    Enum((&'cache String, StructVariantValue<'cache>)),
 }
 
 #[derive(Debug, PartialEq)]
-pub enum StructVariant<'cache> {
+pub enum StructVariantValue<'cache> {
     Unit,
     Tuple(Vec<ComplexValue<'cache>>),
-    Named(Vec<(String, ComplexValue<'cache>)>),
+    Named(Vec<(&'cache String, ComplexValue<'cache>)>),
 }

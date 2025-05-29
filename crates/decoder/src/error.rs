@@ -1,8 +1,8 @@
 use std::string::FromUtf8Error;
 
 use encode_unicode::error::Utf8Error;
-use redefmt_db::{DbClientError, StateDirError, crate_table::CrateName};
 use redefmt_core::{codec::frame::TypeHint, identifiers::CrateId};
+use redefmt_db::{DbClientError, StateDirError, crate_table::CrateName};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RedefmtDecoderError {
@@ -24,6 +24,10 @@ pub enum RedefmtDecoderError {
     InvalidValueBytes(TypeHint, Vec<u8>),
     #[error("content length '{0}' does not fit host usize and will overflow")]
     LengthOverflow(u64),
+    #[error("enum variant index '{0}' does not fit host usize and will overflow")]
+    VariantIndexOverflow(u64),
+    #[error("decoded enum variant index not mappable to any registered variant")]
+    UnknownVariantIndex(usize),
     #[error("invalid UTF-8 bytes received for string type hint")]
     InvalidStringBytes(#[from] FromUtf8Error),
     #[error("invalid character byte length received, max should be 4")]

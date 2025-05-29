@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
 use elsa::sync::FrozenMap;
-use redefmt_db::{Table, statement_table::StatementTable};
 use redefmt_core::identifiers::CrateId;
+use redefmt_db::{Table, statement_table::StatementTable};
 
 use crate::*;
 
