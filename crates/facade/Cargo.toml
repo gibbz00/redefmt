@@ -26,7 +26,11 @@ redefmt-macros = { workspace = true, optional = true }
 [dev-dependencies]
 # Internal
 redefmt = { path = ".", features = ["alloc", "logger", "macros"] }
+redefmt-args = { workspace = true, features = ["macros"] }
+redefmt-core = { workspace = true, features = ["testing"] }
+redefmt-decoder.workspace = true
 
 # External
 critical-section = { version = "1.2", features = ["std"] }
+tokio-util = { version = "0.7", features = ["codec"] }
 trybuild = "1"
