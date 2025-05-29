@@ -17,8 +17,8 @@ pub use cache::RedefmtDecoderCache;
 pub(crate) use cache::*;
 
 mod frame;
-pub use frame::RedefmtDecoder;
 pub(crate) use frame::*;
+pub use frame::{RedefmtDecoder, RedefmtFrame};
 
 mod sub_decoders;
 pub(crate) use sub_decoders::*;
