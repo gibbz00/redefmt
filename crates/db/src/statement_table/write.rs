@@ -35,6 +35,7 @@ pub enum StructVariant {
     Unit,
     /// Inner u8 represents field count
     Tuple(u8),
+    /// List of field names
     Named(Vec<String>),
 }
 

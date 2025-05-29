@@ -1,5 +1,7 @@
-use redefmt_core::codec::frame::PointerWidth;
+use redefmt_core::codec::frame::{PointerWidth, TypeHint};
 use tokio_util::bytes::{Buf, BytesMut};
+
+use crate::*;
 
 pub struct DecoderUtils;
 
@@ -30,5 +32,15 @@ impl DecoderUtils {
         };
 
         Some(num)
+    }
+
+    pub fn get_type_hint(src: &mut BytesMut) -> Result<Option<TypeHint>, RedefmtDecoderError> {
+        let Ok(type_hint_repr) = src.try_get_u8() else {
+            return Ok(None);
+        };
+
+        TypeHint::from_repr(type_hint_repr)
+            .ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))
+            .map(Some)
     }
 }

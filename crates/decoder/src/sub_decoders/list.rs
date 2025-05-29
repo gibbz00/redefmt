@@ -1,5 +1,5 @@
 use redefmt_core::codec::frame::{PointerWidth, TypeHint};
-use tokio_util::bytes::{Buf, BytesMut};
+use tokio_util::bytes::BytesMut;
 
 use crate::*;
 
@@ -47,8 +47,6 @@ impl<'cache> ListValueDecoder<'cache> {
 
         let values = std::mem::take(&mut self.buffer);
 
-        // No need to clear value_context.list_value_context, decode value should be done here
-
         Ok(Some(values))
     }
 
@@ -80,8 +78,6 @@ impl<'cache> ListValueDecoder<'cache> {
 
         let values = std::mem::take(&mut self.buffer);
 
-        // No need to clear value_context.list_value_context, decode value should be done here
-
         Ok(Some(values))
     }
 
@@ -90,15 +86,8 @@ impl<'cache> ListValueDecoder<'cache> {
             return Ok(Some(type_hint));
         }
 
-        let Ok(type_hint_repr) = src.try_get_u8() else {
-            return Ok(None);
-        };
-
-        let type_hint =
-            TypeHint::from_repr(type_hint_repr).ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))?;
-
-        self.element_type_hint = Some(type_hint);
-
-        Ok(Some(type_hint))
+        let maybe_type_hint = DecoderUtils::get_type_hint(src)?;
+        self.element_type_hint = maybe_type_hint;
+        Ok(maybe_type_hint)
     }
 }
