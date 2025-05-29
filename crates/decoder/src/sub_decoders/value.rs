@@ -401,15 +401,42 @@ mod tests {
         assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
     }
 
-    // TODO:
-    // unit_struct
-    // tuple_struct
-    // named_struct
+    #[test]
+    fn unit_struct() {
+        assert_struct(StructVariant::Unit, [], StructVariantValue::Unit);
+    }
+
+    #[test]
+    fn tuple_struct() {
+        assert_struct(
+            StructVariant::Tuple(2),
+            [&"x" as &dyn WriteValue, &false],
+            StructVariantValue::Tuple(vec![
+                ComplexValue::Value(Value::String("x".to_string())),
+                ComplexValue::Value(Value::Boolean(false)),
+            ]),
+        );
+    }
+
+    #[test]
+    fn named_struct() {
+        let field_0 = "a".to_string();
+        let field_1 = "b".to_string();
+        assert_struct(
+            StructVariant::Named(vec![field_0.clone(), field_1.clone()]),
+            [&true, &"y" as &dyn WriteValue],
+            StructVariantValue::Named(vec![
+                (&field_0, ComplexValue::Value(Value::Boolean(true))),
+                (&field_1, ComplexValue::Value(Value::String("y".to_string()))),
+            ]),
+        );
+    }
 
     #[test]
     fn unit_enum() {
         assert_enum(0, [], StructVariantValue::Unit);
     }
+
     #[test]
     fn tuple_enum() {
         assert_enum(
@@ -473,6 +500,39 @@ mod tests {
         let actual_value = value_decoder.decode(&stores, &mut dispatched_bytes).unwrap().unwrap();
 
         assert_eq!(expected_value, actual_value);
+    }
+
+    fn assert_struct(
+        struct_variant: StructVariant,
+        field_values: impl IntoIterator<Item = &'static dyn WriteValue>,
+        expected_struct_variant_value: StructVariantValue,
+    ) {
+        // setup
+        let cache = RedefmtDecoderCache::default();
+        let (_dir_guard, stores) = Stores::mock(&cache);
+
+        let type_name = "Foo".to_string();
+
+        let write_statement = WriteStatement::TypeStructure(TypeStructure {
+            name: type_name.clone(),
+            variant: TypeStructureVariant::Struct(struct_variant),
+        });
+
+        let expected_value = ComplexValue::Type(TypeStructureValue {
+            name: &type_name,
+            variant: TypeStructureVariantValue::Struct(expected_struct_variant_value),
+        });
+
+        let write_id = seed_crate_and_write_statement(&stores, &write_statement);
+
+        // encode segment + arg
+        let mut dispatcher = SimpleTestDispatcher::default();
+        write_id.write_value(&mut dispatcher);
+        field_values
+            .into_iter()
+            .for_each(|field_value| field_value.write_value(&mut dispatcher));
+
+        assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
     }
 
     fn assert_enum(
