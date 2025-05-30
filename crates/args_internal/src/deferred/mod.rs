@@ -8,7 +8,9 @@ mod provided_args;
 pub use provided_args::DeferredProvidedArgs;
 
 mod value;
-pub use value::DeferredValue;
+pub use value::{
+    DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue, DeferredValueDiscriminants,
+};
 
 mod as_value;
 pub use as_value::AsDeferredValue;

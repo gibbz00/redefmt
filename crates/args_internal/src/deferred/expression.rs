@@ -20,9 +20,9 @@ impl<'a> DeferredFormatExpression<'a> {
     }
 
     pub fn evaluate<'v>(&self, provided_args: &DeferredProvidedArgs<'v>) -> Result<String, DeferredFormatError> {
-        // TODO: check that provided and expected named arg counts match?
-        // implicitly creates the rule that no unused named arguments are
-        // allowed.
+        // TODO: Check that provided and expected arg counts match? implicitly
+        // creates the rule that no unused named arguments are allowed. Must be
+        // done individually for positional and named.
 
         let mut string = String::new();
 
@@ -41,7 +41,7 @@ impl<'a> DeferredFormatExpression<'a> {
 
                     provided_args
                         .get(argument)?
-                        .evaluate(&mut string, &segment.options, provided_args);
+                        .evaluate(&mut string, &segment.options, provided_args)?;
                 }
             }
         }
