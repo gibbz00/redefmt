@@ -503,6 +503,7 @@ dependencies = [
  "sealed",
  "serde",
  "serde_json",
+ "strum",
  "syn",
  "thiserror",
  "unicode-xid",

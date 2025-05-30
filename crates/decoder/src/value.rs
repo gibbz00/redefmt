@@ -4,12 +4,14 @@ use redefmt_db::statement_table::stored_format_expression::StoredFormatExpressio
 pub enum Value {
     // Primitives
     Boolean(bool),
+    // FIXME: just use usize and return error if it does not fit
     Usize(u64),
     U8(u8),
     U16(u16),
     U32(u32),
     U64(u64),
     U128(u128),
+    // FIXME: just use isize and return error if it does not fit
     Isize(i64),
     I8(i8),
     I16(i16),

@@ -13,7 +13,6 @@ pub struct FormatOptions<'a> {
     pub sign: Option<Sign>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
     pub use_alternate_form: bool,
-    /// <https://doc.rust-lang.org/std/fmt/index.html#sign0>
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "serde_utils::is_false"))]
     pub use_zero_padding: bool,
     #[cfg_attr(feature = "serde", serde(borrow, skip_serializing_if = "Option::is_none"))]

@@ -28,20 +28,6 @@ impl AsDeferredValue for String {
     }
 }
 
-#[sealed::sealed]
-impl AsDeferredValue for usize {
-    fn as_deferred_value(&self) -> DeferredValue {
-        DeferredValue::Usize(*self as u64)
-    }
-}
-
-#[sealed::sealed]
-impl AsDeferredValue for isize {
-    fn as_deferred_value(&self) -> DeferredValue {
-        DeferredValue::Isize(*self as i64)
-    }
-}
-
 macro_rules! impl_copy {
     ($t:ty, $v:ident) => {
         #[sealed::sealed]
@@ -54,11 +40,13 @@ macro_rules! impl_copy {
 }
 
 impl_copy!(bool, Boolean);
+impl_copy!(usize, Usize);
 impl_copy!(u8, U8);
 impl_copy!(u16, U16);
 impl_copy!(u32, U32);
 impl_copy!(u64, U64);
 impl_copy!(u128, U128);
+impl_copy!(isize, Isize);
 impl_copy!(i8, I8);
 impl_copy!(i16, I16);
 impl_copy!(i32, I32);
