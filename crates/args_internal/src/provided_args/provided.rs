@@ -10,21 +10,16 @@ pub struct ProvidedArgs<'a> {
     pub named: Vec<(AnyIdentifier<'a>, syn::Expr)>,
 }
 
-impl<'a> From<ProvidedArgs<'a>> for DeferredExpectedArgs<'a> {
-    fn from(args: ProvidedArgs<'a>) -> Self {
-        Self {
-            positional: args.positional.len(),
-            named: args.named.into_iter().map(|(name, _)| name).collect(),
-        }
-    }
-}
-
 impl ProvidedArgs<'_> {
     pub fn expressions(&self) -> impl Iterator<Item = &syn::Expr> {
         let positional_iter = self.positional.iter();
         let named_iter = self.named.iter().map(|(_, expr)| expr);
 
         positional_iter.chain(named_iter)
+    }
+
+    pub(crate) fn as_deferred(&self) -> DeferredExpectedArgs {
+        DeferredExpectedArgs { positional: self.positional.len(), named: self.named.len() }
     }
 }
 

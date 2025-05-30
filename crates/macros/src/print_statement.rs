@@ -81,9 +81,11 @@ fn macro_impl(
         .cloned()
         .collect::<Vec<_>>();
 
+    let (deferred_format_expression, _) = format_expression.defer();
+
     let print_statement = {
         let location = location();
-        let stored_expression = StoredFormatExpression::new(format_expression.into(), append_newline);
+        let stored_expression = StoredFormatExpression::new(deferred_format_expression, append_newline);
         PrintStatement::new(location, stored_expression)
     };
 

@@ -7,8 +7,7 @@ use crate::*;
 pub struct DeferredFormatExpression<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
     pub(crate) format_string: FormatString<'a>,
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    pub(crate) expected_args: DeferredExpectedArgs<'a>,
+    pub(crate) expected_args: DeferredExpectedArgs,
 }
 
 impl<'a> DeferredFormatExpression<'a> {
@@ -20,13 +19,7 @@ impl<'a> DeferredFormatExpression<'a> {
         &self.expected_args
     }
 
-    pub fn evaluate<'v>(
-        &self,
-        positional_args: &'v [DeferredFormatValue<'v>],
-        named_args: impl IntoIterator<Item = (AnyIdentifier<'v>, DeferredFormatValue<'v>)>,
-    ) -> Result<String, DeferredFormatError> {
-        let provided_args = DeferredProvidedArgs::new(positional_args, named_args);
-
+    pub fn evaluate<'v>(&self, provided_args: &DeferredProvidedArgs<'v>) -> Result<String, DeferredFormatError> {
         // TODO: check that provided and expected named arg counts match?
         // implicitly creates the rule that no unused named arguments are
         // allowed.
@@ -48,7 +41,7 @@ impl<'a> DeferredFormatExpression<'a> {
 
                     provided_args
                         .get(argument)?
-                        .evaluate(&mut string, &segment.options, &provided_args);
+                        .evaluate(&mut string, &segment.options, provided_args);
                 }
             }
         }
@@ -57,7 +50,7 @@ impl<'a> DeferredFormatExpression<'a> {
     }
 
     #[doc(hidden)]
-    pub unsafe fn new_unchecked(format_string: FormatString<'a>, expected_args: DeferredExpectedArgs<'a>) -> Self {
+    pub unsafe fn new_unchecked(format_string: FormatString<'a>, expected_args: DeferredExpectedArgs) -> Self {
         Self { format_string, expected_args }
     }
 }
@@ -65,7 +58,11 @@ impl<'a> DeferredFormatExpression<'a> {
 #[cfg(feature = "syn")]
 impl ::syn::parse::Parse for DeferredFormatExpression<'static> {
     fn parse(input: ::syn::parse::ParseStream) -> ::syn::Result<Self> {
-        input.parse::<FormatExpression>().map(Into::into)
+        let format_expression = input.parse::<FormatExpression>()?;
+
+        let (deferred_format_expression, _) = format_expression.defer();
+
+        Ok(deferred_format_expression)
     }
 }
 

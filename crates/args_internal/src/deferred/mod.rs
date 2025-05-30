@@ -5,10 +5,13 @@ mod expected_args;
 pub use expected_args::DeferredExpectedArgs;
 
 mod provided_args;
-pub(crate) use provided_args::DeferredProvidedArgs;
+pub use provided_args::DeferredProvidedArgs;
 
 mod value;
-pub(crate) use value::DeferredFormatValue;
+pub use value::DeferredValue;
+
+mod as_value;
+pub use as_value::AsDeferredValue;
 
 mod expression;
 pub use expression::DeferredFormatExpression;

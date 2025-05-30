@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, string::ToString};
+use alloc::borrow::Cow;
 use core::fmt::{Debug, Display};
 
 use super::utils::RAW_START;

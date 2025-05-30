@@ -1,16 +1,19 @@
+use alloc::vec::Vec;
+
 use hashbrown::HashMap;
 
 use crate::*;
 
-pub struct DeferredProvidedArgs<'a, 'v> {
-    pub positional: &'a [DeferredFormatValue<'v>],
-    pub named: HashMap<ArgumentIdentifier<'v>, DeferredFormatValue<'v>>,
+pub struct DeferredProvidedArgs<'v> {
+    // IMPROVEMENT: Cow rather than require vec?
+    pub(crate) positional: Vec<DeferredValue<'v>>,
+    pub(crate) named: HashMap<ArgumentIdentifier<'v>, DeferredValue<'v>>,
 }
 
-impl<'a, 'v> DeferredProvidedArgs<'a, 'v> {
+impl<'v> DeferredProvidedArgs<'v> {
     pub fn new(
-        positional: &'a [DeferredFormatValue<'v>],
-        named: impl IntoIterator<Item = (AnyIdentifier<'v>, DeferredFormatValue<'v>)>,
+        positional: Vec<DeferredValue<'v>>,
+        named: impl IntoIterator<Item = (AnyIdentifier<'v>, DeferredValue<'v>)>,
     ) -> Self {
         Self {
             positional,
@@ -24,7 +27,7 @@ impl<'a, 'v> DeferredProvidedArgs<'a, 'v> {
     pub fn get<'s>(
         &'s self,
         format_argument: &FormatArgument<'s>,
-    ) -> Result<&'s DeferredFormatValue<'v>, DeferredFormatError> {
+    ) -> Result<&'s DeferredValue<'v>, DeferredFormatError> {
         match format_argument {
             FormatArgument::Identifier(identifier) => self
                 .named
