@@ -30,6 +30,21 @@ impl<'a> FormatString<'a> {
 
         for segment in &mut self.segments {
             if let FormatStringSegment::Format(format_segment) = segment {
+                // Precision needs to be disambiguated before arg since it
+                // takes the next index first for unnamed arguments
+                if let Some(precision) = &mut format_segment.options.precision {
+                    if precision == &FormatPrecision::NextArgument {
+                        let current_index = next_index;
+                        *precision =
+                            FormatPrecision::Count(FormatCount::Argument(FormatArgument::Index(current_index)));
+                        next_index += 1;
+                    }
+
+                    if let FormatPrecision::Count(FormatCount::Argument(precision_arg)) = precision {
+                        format_string_args.push(precision_arg);
+                    }
+                }
+
                 // disambiguate unnamed with indexed
                 let arg = format_segment.argument.get_or_insert_with(|| {
                     let current_index = next_index;
@@ -41,12 +56,6 @@ impl<'a> FormatString<'a> {
 
                 if let Some(FormatCount::Argument(width_arg)) = &mut format_segment.options.width {
                     format_string_args.push(width_arg);
-                }
-
-                if let Some(FormatPrecision::Count(FormatCount::Argument(precision_arg))) =
-                    &mut format_segment.options.precision
-                {
-                    format_string_args.push(precision_arg);
                 }
             }
         }

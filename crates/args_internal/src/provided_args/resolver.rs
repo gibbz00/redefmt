@@ -370,6 +370,20 @@ mod tests {
     }
 
     #[test]
+    fn next_precision_argument() {
+        // if no spec, then first arg is precision, and second value
+        assert_resolve_unchanged_provided("{:.*}", parse_quote!(1, 2), "{1:.0$}");
+
+        // uses and increments counter for next unnamed arg
+        assert_resolve_unchanged_provided("{} {:.*} {}", parse_quote!(1, 2, 3, 4), "{0} {2:.1$} {3}");
+        assert_resolve_unchanged_provided("{} {0:.*} {}", parse_quote!(1, 2, 3), "{0} {0:.1$} {2}");
+
+        // disambiguated into named
+        assert_resolve_unchanged_provided("{x:.*}", parse_quote!(x = 3), "{x:.x$}");
+        assert_resolve_unchanged_provided("{x:.*}", parse_quote!(y = 3, x = 10), "{x:.y$}");
+    }
+
+    #[test]
     fn capture_non_keyword() {
         // NOTE: captures by reference
         assert_resolve_unchanged_str("{x}", parse_quote!(), parse_quote!(x = &x));
@@ -511,6 +525,13 @@ mod tests {
         assert_resolve_err("", parse_quote!(1), ResolveArgsError::UnusedPositionals(1));
         // both positionals with the same value asserts that the check is done before any deduplication
         assert_resolve_err("{}", parse_quote!(1, 1, "x"), ResolveArgsError::UnusedPositionals(2));
+
+        // discontinuous indexes in format arguments are also captured
+        assert_resolve_err(
+            "{0} {2}",
+            parse_quote!(1, 2, x = 3),
+            ResolveArgsError::UnusedPositionals(1),
+        );
     }
 
     #[test]
@@ -523,11 +544,11 @@ mod tests {
             ResolveArgsError::InvalidStringPositional(1, 1),
         );
 
-        // discontinuous indexes in format arguments are also captured
+        // next argument usage requires when first is unnamed
         assert_resolve_err(
-            "{0} {2}",
-            parse_quote!(1, 2, x = 3),
-            ResolveArgsError::UnusedPositionals(1),
+            "{:.*}",
+            parse_quote!(1),
+            ResolveArgsError::InvalidStringPositional(1, 1),
         );
     }
 
