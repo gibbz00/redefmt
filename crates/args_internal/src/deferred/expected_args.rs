@@ -1,39 +1,28 @@
-use alloc::vec::Vec;
-
-use crate::*;
-
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DeferredExpectedArgs<'a> {
+pub struct DeferredExpectedArgs {
     pub positional: usize,
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    // Order does not matter because `ArgumentResolver::resolve` will have disambiguated
-    // the corresponding format string arguments from positional into named
-    // arguments.
-    //
-    // Could technically also made into a usize representing the expected named
-    // argument count.
-    pub named: Vec<AnyIdentifier<'a>>,
+    pub named: usize,
 }
 
-impl<'a> DeferredExpectedArgs<'a> {
+impl DeferredExpectedArgs {
     pub fn count(&self) -> usize {
-        self.positional + self.named.len()
+        self.positional + self.named
     }
 }
 
 #[cfg(feature = "quote")]
-impl quote::ToTokens for DeferredExpectedArgs<'_> {
+impl quote::ToTokens for DeferredExpectedArgs {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         use quote::quote;
 
         let positional = self.positional;
-        let named = self.named.iter();
+        let named = self.named;
 
         let provided_args_tokens = quote! {
             ::redefmt_args::deferred::DeferredExpectedArgs {
                 positional: #positional,
-                named: [#(#named),*].into_iter().collect(),
+                named: #named,
             }
         };
 

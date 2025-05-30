@@ -14,37 +14,8 @@ pub trait WriteValue {
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher);
 }
 
-// Can't do blanket implementation `impl<T: WriteValue> Format for T`
-// as it will conflict with `impl<T: Format> Format for &T`, hence the manual
-// impls.
-macro_rules! body {
-    () => {
-        fn fmt(&self, f: &mut Formatter) {
-            f.write(self);
-        }
-    };
-}
-macro_rules! impl_format {
-    ($t:ty) => {
-        impl Format for $t {
-            body!();
-        }
-    };
-    (T, $t:ty) => {
-        impl<T: WriteValue> Format for $t {
-            body!();
-        }
-    };
-    (N, $t:ty) => {
-        impl<const N: usize> Format for $t {
-            body!();
-        }
-    };
-    (T, N, $t:ty) => {
-        impl<T: WriteValue, const N: usize> Format for $t {
-            body!();
-        }
-    };
+fn write_type_hint(type_hint: TypeHint, dispatcher: &mut dyn Dispatcher) {
+    dispatcher.write(&(type_hint as u8).to_be_bytes());
 }
 
 #[sealed::sealed]
@@ -56,10 +27,6 @@ impl<T: WriteValue> WriteValue for &T {
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
         T::write_raw(self, dispatcher)
     }
-}
-
-fn write_type_hint(type_hint: TypeHint, dispatcher: &mut dyn Dispatcher) {
-    dispatcher.write(&(type_hint as u8).to_be_bytes());
 }
 
 #[sealed::sealed]
@@ -75,13 +42,37 @@ impl WriteValue for (CrateId, WriteStatementId) {
     }
 }
 
-// NOTE:
-// Increasing this from 7 to 10 increases crate build time by almost three fold.
-// From ~2.4s to ~7.1s on the authors computer. Codegen duration remains the
-// same at about 0.1s. Not pulling in this proc macro at all removes about 0.2s
-// from cold compile times. Simply moving this to a build script is therefore a
-// slightly premature optimization given that it is generated code itself which
-// takes the longest to compile.
+// Can't do blanket implementation `impl<T: WriteValue> Format for T`
+// as it will conflict with `impl<T: Format> Format for &T`, hence the manual
+// impls.
+macro_rules! impl_format {
+    () => {
+        fn fmt(&self, f: &mut Formatter) {
+            f.write(self);
+        }
+    };
+    ($t:ty) => {
+        impl Format for $t {
+            impl_format!();
+        }
+    };
+    (T, $t:ty) => {
+        impl<T: WriteValue> Format for $t {
+            impl_format!();
+        }
+    };
+    (N, $t:ty) => {
+        impl<const N: usize> Format for $t {
+            impl_format!();
+        }
+    };
+    (T, N, $t:ty) => {
+        impl<T: WriteValue, const N: usize> Format for $t {
+            impl_format!();
+        }
+    };
+}
+
 redefmt_internal_macros::impl_tuple_write_value!(7);
 
 macro_rules! num_impl {

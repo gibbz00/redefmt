@@ -18,8 +18,13 @@ syn = ["dep:proc-macro2", "dep:syn"]
 workspace = true
 
 [dependencies]
+# Internal
+redefmt-internal-macros.workspace = true
+
+# External
 check_keyword = "0.4"
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
+sealed = "0.6"
 thiserror = { version = "2.0", default-features = false }
 unicode-xid = "0.2"
 
