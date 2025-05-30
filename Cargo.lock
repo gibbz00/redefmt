@@ -499,6 +499,8 @@ dependencies = [
  "proc-macro2",
  "quote",
  "redefmt-args-internal",
+ "redefmt-internal-macros",
+ "sealed",
  "serde",
  "serde_json",
  "syn",

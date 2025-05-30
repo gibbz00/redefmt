@@ -18,8 +18,10 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
         .cloned()
         .collect::<Vec<_>>();
 
+    let (deferred_format_expression, _) = format_expression.defer();
+
     let write_id_expr = {
-        let stored_expression = StoredFormatExpression::new(format_expression.into(), append_newline);
+        let stored_expression = StoredFormatExpression::new(deferred_format_expression, append_newline);
         let write_statement = WriteStatement::FormatExpression(stored_expression);
         register_write_statement!(&db_clients, &write_statement, &formatter_ident, span)
     };

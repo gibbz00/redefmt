@@ -5,8 +5,8 @@
 #![allow(missing_docs)]
 
 use proc_macro::TokenStream;
-use quote::ToTokens;
-use redefmt_args_internal::{FormatString, deferred::DeferredFormatExpression};
+use quote::{ToTokens, quote};
+use redefmt_args_internal::{FormatExpression, FormatString, deferred::DeferredFormatExpression};
 use syn::parse_macro_input;
 
 #[proc_macro]
@@ -21,4 +21,38 @@ pub fn deferred_format_expression(token_stream: TokenStream) -> TokenStream {
     parse_macro_input!(token_stream as DeferredFormatExpression)
         .to_token_stream()
         .into()
+}
+
+#[proc_macro]
+pub fn deferred_format(token_stream: TokenStream) -> TokenStream {
+    let format_expression = parse_macro_input!(token_stream as FormatExpression);
+
+    let (deferred_format_expression, provided_args) = format_expression.defer();
+
+    let positional_args = provided_args.positional.into_iter().map(|expr| {
+        quote! {{
+            use ::redefmt_args::deferred::AsDeferredValue as _;
+            (#expr).as_deferred_value()
+        }}
+    });
+
+    let named_args = provided_args.named.into_iter().map(|(identifier, expr)| {
+        quote! {
+            (
+                #identifier,
+                { use ::redefmt_args::deferred::AsDeferredValue as _; (#expr).as_deferred_value() }
+            )
+        }
+    });
+
+    quote! {
+        (
+            #deferred_format_expression,
+            ::redefmt_args::deferred::DeferredProvidedArgs::new(
+                [#(#positional_args),*].into_iter().collect(),
+                [#(#named_args),*]
+            )
+        )
+    }
+    .into()
 }

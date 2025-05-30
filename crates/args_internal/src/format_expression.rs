@@ -6,13 +6,22 @@ pub struct FormatExpression<'a> {
     provided_args: ProvidedArgs<'a>,
 }
 
-impl FormatExpression<'_> {
+impl<'a> FormatExpression<'a> {
     pub fn format_string(&self) -> &FormatString {
         &self.format_string
     }
 
     pub fn provided_args(&self) -> &ProvidedArgs {
         &self.provided_args
+    }
+
+    pub fn defer(self) -> (DeferredFormatExpression<'a>, ProvidedArgs<'a>) {
+        let deferred_format_expression = DeferredFormatExpression {
+            format_string: self.format_string,
+            expected_args: self.provided_args.as_deferred(),
+        };
+
+        (deferred_format_expression, self.provided_args)
     }
 }
 
@@ -23,15 +32,6 @@ impl<'a> FormatExpression<'a> {
     ) -> Result<Self, ResolveArgsError> {
         ArgumentResolver::resolve(&mut format_string, &mut provided_args)?;
         Ok(Self { format_string, provided_args })
-    }
-}
-
-impl<'a> From<FormatExpression<'a>> for DeferredFormatExpression<'a> {
-    fn from(expression: FormatExpression<'a>) -> Self {
-        Self {
-            format_string: expression.format_string,
-            expected_args: expression.provided_args.into(),
-        }
     }
 }
 
