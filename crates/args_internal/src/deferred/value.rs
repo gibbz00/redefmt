@@ -61,6 +61,11 @@ enum ValueClass {
     Misc,
 }
 
+#[derive(Default)]
+struct EvaluationContext {
+    indentation: usize,
+}
+
 impl<'a> DeferredValue<'a> {
     pub fn evaluate(
         &self,
@@ -68,16 +73,17 @@ impl<'a> DeferredValue<'a> {
         format_options: &FormatOptions,
         provided_args: &DeferredProvidedArgs,
     ) -> Result<(), DeferredFormatError> {
+        let mut evaltation_context = EvaluationContext::default();
         let options = ResolvedFormatOptions::resolve(format_options, provided_args)?;
-
-        let value_string = self.evaluate_impl(&options)?;
-
-        string_buffer.push_str(&value_string);
-
-        Ok(())
+        self.evaluate_impl(string_buffer, &mut evaltation_context, &options)
     }
 
-    pub fn evaluate_impl(&self, options: &ResolvedFormatOptions) -> Result<String, DeferredFormatError> {
+    fn evaluate_impl(
+        &self,
+        string_buffer: &mut String,
+        evaluation_context: &mut EvaluationContext,
+        options: &ResolvedFormatOptions,
+    ) -> Result<(), DeferredFormatError> {
         let format_trait = options.format_trait;
 
         let value_string = match self {
@@ -154,10 +160,7 @@ impl<'a> DeferredValue<'a> {
             },
             DeferredValue::Tuple(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    match options.use_alternate_form {
-                        true => todo!(),
-                        false => todo!(),
-                    }
+                    return tuple_string(string_buffer, values, evaluation_context, options);
                 }
                 FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
@@ -186,7 +189,9 @@ impl<'a> DeferredValue<'a> {
 
         let value_string = pipeline_length(self.value_class(), value_string, options);
 
-        Ok(value_string)
+        string_buffer.push_str(&value_string);
+
+        Ok(())
     }
 
     fn value_class(&self) -> ValueClass {
@@ -338,6 +343,46 @@ fn exp_string<T: UpperExp + LowerExp>(t: T, upper: bool, options: &ResolvedForma
         (true, true, false, Some(precision)) => format!("{t:+.precision$E}"),
         (true, true, true, Some(precision)) => format!("{t:+0width$.precision$E}"),
     }
+}
+
+fn tuple_string(
+    string_buffer: &mut String,
+    elements: &[DeferredValue],
+    evaluation_context: &mut EvaluationContext,
+    options: &ResolvedFormatOptions,
+) -> Result<(), DeferredFormatError> {
+    let pretty = options.use_alternate_form;
+
+    string_buffer.push('(');
+
+    if pretty {
+        string_buffer.push('\n');
+        evaluation_context.indentation += 1;
+    }
+
+    for (index, element) in elements.iter().enumerate() {
+        if pretty {
+            (0..evaluation_context.indentation).for_each(|_| string_buffer.push('\t'));
+        }
+
+        element.evaluate_impl(string_buffer, evaluation_context, options)?;
+
+        if pretty {
+            string_buffer.push(',');
+            string_buffer.push('\n');
+        } else if index + 1 != elements.len() {
+            string_buffer.push_str(", ");
+        }
+    }
+
+    if pretty {
+        evaluation_context.indentation -= 1;
+        (0..evaluation_context.indentation).for_each(|_| string_buffer.push('\t'));
+    }
+
+    string_buffer.push(')');
+
+    Ok(())
 }
 
 fn pipeline_length(value_class: ValueClass, mut value_string: String, options: &ResolvedFormatOptions) -> String {
