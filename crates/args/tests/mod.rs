@@ -218,6 +218,14 @@ fn tuple_nested_pretty() {
 }
 
 #[test]
+fn list_empty() {
+    let list: [usize; 0] = [];
+    assert_evaluate!("[]", "{:?}", list);
+    // Pretty adds no newlines if empty
+    assert_evaluate!("[]", "{:#?}", list);
+}
+
+#[test]
 fn list_nested() {
     let str = "[[1, 2], [3, 4], [5, 6]]";
     assert_evaluate!(str, "{:?}", [[1, 2], [3, 4], [5, 6]]);
@@ -271,6 +279,21 @@ fn mock_tuple_struct() -> DeferredValue<'static> {
 }
 
 #[test]
+fn empty_tuple_struct() {
+    let x = mock_empty_tuple_struct();
+    // No parentheses printed
+    assert_evaluate!("Bar", "{:?}", x);
+    assert_evaluate!("Bar", "{:#?}", x);
+}
+
+fn mock_empty_tuple_struct() -> DeferredValue<'static> {
+    DeferredValue::Type(DeferredTypeValue {
+        name: "Bar",
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Tuple(&[])),
+    })
+}
+
+#[test]
 fn named_struct() {
     let x = mock_named_struct();
     assert_evaluate!("Baz { x: true, y: 1 }", "{:?}", x);
@@ -289,6 +312,21 @@ fn mock_named_struct() -> DeferredValue<'static> {
             ("x", DeferredValue::Boolean(true)),
             ("y", DeferredValue::Usize(1)),
         ])),
+    })
+}
+
+#[test]
+fn empty_named_struct() {
+    let x = mock_empty_named_struct();
+    // No curly braces printed
+    assert_evaluate!("Baz", "{:?}", x);
+    assert_evaluate!("Baz", "{:#?}", x);
+}
+
+fn mock_empty_named_struct() -> DeferredValue<'static> {
+    DeferredValue::Type(DeferredTypeValue {
+        name: "Baz",
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[])),
     })
 }
 
