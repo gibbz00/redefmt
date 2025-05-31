@@ -27,7 +27,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
         &mut self,
         stores: &Stores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<ComplexValue<'cache>>, RedefmtDecoderError> {
+    ) -> Result<Option<Value<'cache>>, RedefmtDecoderError> {
         let current_stage = std::mem::take(&mut self.stage);
 
         match current_stage {
@@ -60,7 +60,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     return Ok(None);
                 }
 
-                Ok(Some(ComplexValue::NestedFormatExpression(
+                Ok(Some(Value::NestedFormatExpression(
                     segment_decoder.stored_expression,
                     segment_decoder.decoded_args,
                 )))
@@ -71,7 +71,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     return Ok(None);
                 };
 
-                Ok(Some(ComplexValue::Type(type_structure_value)))
+                Ok(Some(Value::Type(type_structure_value)))
             }
         }
     }

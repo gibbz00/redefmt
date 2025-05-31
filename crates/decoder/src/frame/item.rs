@@ -21,7 +21,7 @@ pub struct RedefmtFrame<'cache> {
     pub file_line: u32,
     pub format_expression: &'cache DeferredFormatExpression<'static>,
     pub append_newline: bool,
-    pub decoded_values: Vec<ComplexValue<'cache>>,
+    pub decoded_values: Vec<Value<'cache>>,
 }
 
 impl<'cache> RedefmtFrame<'cache> {
@@ -30,7 +30,7 @@ impl<'cache> RedefmtFrame<'cache> {
         level: Option<Level>,
         stamp: Option<Stamp>,
         print_stratement: &'cache PrintStatement<'static>,
-        decoded_values: Vec<ComplexValue<'cache>>,
+        decoded_values: Vec<Value<'cache>>,
     ) -> Self {
         Self {
             level,
