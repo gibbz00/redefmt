@@ -1,4 +1,5 @@
 use alloc::{
+    borrow::Cow,
     format,
     string::{String, ToString},
     vec::Vec,
@@ -28,7 +29,7 @@ pub enum DeferredValue<'a> {
     F32(f32),
     F64(f64),
     Char(char),
-    String(&'a str),
+    String(Cow<'a, str>),
     // Reused for array, vec and slice
     List(Vec<DeferredValue<'a>>),
     Tuple(Vec<DeferredValue<'a>>),
@@ -50,8 +51,8 @@ pub enum DeferredTypeVariant<'a> {
 #[derive(Debug, Clone, PartialEq)]
 pub enum DeferredStructVariant<'a> {
     Unit,
-    Tuple(&'a [DeferredValue<'a>]),
-    Named(&'a [(&'a str, DeferredValue<'a>)]),
+    Tuple(Vec<DeferredValue<'a>>),
+    Named(Vec<(&'a str, DeferredValue<'a>)>),
 }
 
 #[derive(PartialEq)]

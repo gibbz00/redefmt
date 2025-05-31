@@ -271,7 +271,7 @@ fn tuple_struct_pretty() {
 fn mock_tuple_struct() -> DeferredValue<'static> {
     DeferredValue::Type(DeferredTypeValue {
         name: "Bar",
-        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Tuple(&[
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Tuple(vec![
             DeferredValue::Boolean(true),
             DeferredValue::Usize(1),
         ])),
@@ -289,7 +289,7 @@ fn empty_tuple_struct() {
 fn mock_empty_tuple_struct() -> DeferredValue<'static> {
     DeferredValue::Type(DeferredTypeValue {
         name: "Bar",
-        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Tuple(&[])),
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Tuple(vec![])),
     })
 }
 
@@ -308,7 +308,7 @@ fn named_struct_pretty() {
 fn mock_named_struct() -> DeferredValue<'static> {
     DeferredValue::Type(DeferredTypeValue {
         name: "Baz",
-        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(vec![
             ("x", DeferredValue::Boolean(true)),
             ("y", DeferredValue::Usize(1)),
         ])),
@@ -326,7 +326,7 @@ fn empty_named_struct() {
 fn mock_empty_named_struct() -> DeferredValue<'static> {
     DeferredValue::Type(DeferredTypeValue {
         name: "Baz",
-        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[])),
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(vec![])),
     })
 }
 
@@ -345,11 +345,11 @@ fn nested_struct_pretty() {
 fn mock_nested_struct() -> DeferredValue<'static> {
     DeferredValue::Type(DeferredTypeValue {
         name: "Baz",
-        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[(
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(vec![(
             "qux",
             DeferredValue::Type(DeferredTypeValue {
                 name: "Qux",
-                variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[(
+                variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(vec![(
                     "value",
                     DeferredValue::Boolean(true),
                 )])),
@@ -371,7 +371,7 @@ fn mock_enum() -> DeferredValue<'static> {
         name: "Foo",
         variant: DeferredTypeVariant::Enum((
             "A",
-            DeferredStructVariant::Tuple(&[DeferredValue::Boolean(true), DeferredValue::Usize(1)]),
+            DeferredStructVariant::Tuple(vec![DeferredValue::Boolean(true), DeferredValue::Usize(1)]),
         )),
     })
 }
