@@ -49,7 +49,7 @@ pub fn deferred_format(token_stream: TokenStream) -> TokenStream {
         (
             #deferred_format_expression,
             ::redefmt_args::deferred::DeferredProvidedArgs::new(
-                [#(#positional_args),*].into_iter().collect(),
+                [#(#positional_args),*],
                 [#(#named_args),*]
             )
         )
