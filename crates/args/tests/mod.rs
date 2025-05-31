@@ -83,6 +83,11 @@ fn width_equivalence() {
 }
 
 #[test]
+fn width_counts_chars_not_bytes() {
+    assert_evaluate!("🦀🦀🦀 ", "{:4}", "🦀🦀🦀");
+}
+
+#[test]
 fn default_width_align() {
     // left-aligned for non-numerics
     assert_evaluate!("x    ", "{:5}", "x");
@@ -105,6 +110,8 @@ fn fill_align() {
     assert_evaluate!("x    ", "{:<5}", "x");
     assert_evaluate!("x----", "{:-<5}", "x");
     assert_evaluate!("  x  ", "{:^5}", "x");
+    // uneven center padding cuts from left
+    assert_evaluate!(" x  ", "{:^4}", "x");
     assert_evaluate!("    x", "{:>5}", "x");
 }
 

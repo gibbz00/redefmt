@@ -54,6 +54,7 @@ pub enum DeferredStructVariant<'a> {
     Named(&'a [(&'a str, DeferredValue<'a>)]),
 }
 
+#[derive(PartialEq)]
 enum ValueClass {
     Numeric,
     Structure,
@@ -67,12 +68,12 @@ impl<'a> DeferredValue<'a> {
         format_options: &FormatOptions,
         provided_args: &DeferredProvidedArgs,
     ) -> Result<(), DeferredFormatError> {
-        let format_trait = format_options.format_trait;
+        let align = format_options.align;
         let use_alternate_form = format_options.use_alternate_form;
         let use_zero_padding = format_options.use_zero_padding;
-
-        let width = self.resolve_width(format_options, provided_args)?;
-        let precision = self.resolve_precision(format_options, provided_args)?;
+        let width = self.resolve_width(format_options.width.as_ref(), provided_args)?;
+        let precision = self.resolve_precision(format_options.precision.as_ref(), provided_args)?;
+        let format_trait = format_options.format_trait;
 
         let value_string = match self {
             DeferredValue::Boolean(value) => match format_trait {
@@ -178,24 +179,10 @@ impl<'a> DeferredValue<'a> {
             },
         };
 
-        match self.handle_width(use_zero_padding) {
-            true => {
-                todo!()
-            }
-            false => {
-                string_buffer.push_str(&value_string);
-            }
-        }
+        let value_string = pipeline_width(self.value_class(), value_string, align, use_zero_padding, width);
+        string_buffer.push_str(&value_string);
 
         Ok(())
-    }
-
-    fn handle_width(&self, use_zero_padding: bool) -> bool {
-        match self.value_class() {
-            ValueClass::Numeric => !use_zero_padding,
-            ValueClass::Structure => false,
-            ValueClass::Misc => true,
-        }
     }
 
     fn value_class(&self) -> ValueClass {
@@ -221,10 +208,10 @@ impl<'a> DeferredValue<'a> {
 
     fn resolve_width(
         &self,
-        format_options: &FormatOptions,
+        width_option: Option<&FormatCount>,
         provided_args: &DeferredProvidedArgs,
     ) -> Result<usize, DeferredFormatError> {
-        let width = match &format_options.width {
+        let width = match width_option {
             Some(width_arg) => match width_arg {
                 FormatCount::Integer(int) => *int,
                 FormatCount::Argument(format_argument) => match provided_args.get(format_argument)? {
@@ -245,10 +232,10 @@ impl<'a> DeferredValue<'a> {
 
     fn resolve_precision(
         &self,
-        format_options: &FormatOptions,
+        precision_option: Option<&FormatPrecision>,
         provided_args: &DeferredProvidedArgs,
     ) -> Result<Option<usize>, DeferredFormatError> {
-        let precision = match &format_options.precision {
+        let precision = match precision_option {
             Some(precision) => match precision {
                 FormatPrecision::Count(format_count) => match format_count {
                     FormatCount::Integer(integer) => Some(*integer),
@@ -415,5 +402,59 @@ fn exp_string<T: UpperExp + LowerExp>(
         (true, false, true, Some(precision)) => format!("{t:0width$.precision$E}"),
         (true, true, false, Some(precision)) => format!("{t:+.precision$E}"),
         (true, true, true, Some(precision)) => format!("{t:+0width$.precision$E}"),
+    }
+}
+
+fn pipeline_width(
+    value_class: ValueClass,
+    mut value_string: String,
+    align: Option<FormatAlign>,
+    use_zero_padding: bool,
+    width: usize,
+) -> String {
+    let apply_width = match value_class {
+        ValueClass::Numeric => !use_zero_padding,
+        ValueClass::Structure => false,
+        ValueClass::Misc => true,
+    };
+
+    let chars_count = value_string.chars().count();
+
+    match apply_width && chars_count < width {
+        false => value_string,
+        true => {
+            let align = align.unwrap_or_else(|| FormatAlign {
+                alignment: match value_class == ValueClass::Numeric {
+                    true => Alignment::Right,
+                    false => Alignment::Left,
+                },
+                character: None,
+            });
+
+            let pad_char = align.character.unwrap_or(' ');
+            let pad_count = width - chars_count;
+
+            match align.alignment {
+                Alignment::Left => {
+                    let mut padded_string = core::iter::repeat_n(pad_char, pad_count).collect::<String>();
+                    padded_string.push_str(&value_string);
+                    padded_string
+                }
+                Alignment::Center => {
+                    let left_pad_count = pad_count / 2;
+                    let right_pad_count = pad_count - left_pad_count;
+
+                    let mut padded_string = core::iter::repeat_n(pad_char, left_pad_count).collect::<String>();
+                    padded_string.push_str(&value_string);
+                    (0..right_pad_count).for_each(|_| value_string.push(pad_char));
+
+                    padded_string
+                }
+                Alignment::Right => {
+                    (0..pad_count).for_each(|_| value_string.push(pad_char));
+                    value_string
+                }
+            }
+        }
     }
 }
