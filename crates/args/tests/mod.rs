@@ -1,6 +1,9 @@
 #![allow(missing_docs)]
 
-use redefmt_args::deferred_format;
+use redefmt_args::{
+    deferred::{DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue},
+    deferred_format,
+};
 
 #[test]
 fn ui() {
@@ -224,4 +227,95 @@ fn list_nested() {
 fn list_nested_pretty() {
     let str = "[\n\t[\n\t\t1,\n\t\t2,\n\t],\n\t[\n\t\t3,\n\t\t4,\n\t],\n\t[\n\t\t5,\n\t\t6,\n\t],\n]";
     assert_evaluate!(str, "{:#?}", [[1, 2], [3, 4], [5, 6]]);
+}
+
+#[test]
+fn unit_struct() {
+    let x = mock_unit_struct();
+    assert_evaluate!("Foo", "{:?}", x);
+}
+
+#[test]
+fn unit_struct_pretty() {
+    let x = mock_unit_struct();
+    assert_evaluate!("Foo", "{:#?}", x);
+}
+
+fn mock_unit_struct() -> DeferredValue<'static> {
+    DeferredValue::Type(DeferredTypeValue {
+        name: "Foo",
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Unit),
+    })
+}
+
+#[test]
+fn tuple_struct() {
+    let x = mock_tuple_struct();
+    assert_evaluate!("Bar(true, 1)", "{:?}", x);
+}
+
+#[test]
+fn tuple_struct_pretty() {
+    let x = mock_tuple_struct();
+    assert_evaluate!("Bar(\n\ttrue,\n\t1,\n)", "{:#?}", x);
+}
+
+fn mock_tuple_struct() -> DeferredValue<'static> {
+    DeferredValue::Type(DeferredTypeValue {
+        name: "Bar",
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Tuple(&[
+            DeferredValue::Boolean(true),
+            DeferredValue::Usize(1),
+        ])),
+    })
+}
+
+#[test]
+fn named_struct() {
+    let x = mock_named_struct();
+    assert_evaluate!("Baz { x: true, y: 1 }", "{:?}", x);
+}
+
+#[test]
+fn named_struct_pretty() {
+    let x = mock_named_struct();
+    assert_evaluate!("Baz {\n\tx: true,\n\ty: 1,\n}", "{:#?}", x);
+}
+
+fn mock_named_struct() -> DeferredValue<'static> {
+    DeferredValue::Type(DeferredTypeValue {
+        name: "Baz",
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[
+            ("x", DeferredValue::Boolean(true)),
+            ("y", DeferredValue::Usize(1)),
+        ])),
+    })
+}
+
+#[test]
+fn nested_struct() {
+    let x = mock_nested_struct();
+    assert_evaluate!("Baz { qux: Qux { value: true } }", "{:?}", x);
+}
+
+#[test]
+fn nested_struct_pretty() {
+    let x = mock_nested_struct();
+    assert_evaluate!("Baz {\n\tqux: Qux {\n\t\tvalue: true,\n\t},\n}", "{:#?}", x);
+}
+
+fn mock_nested_struct() -> DeferredValue<'static> {
+    DeferredValue::Type(DeferredTypeValue {
+        name: "Baz",
+        variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[(
+            "qux",
+            DeferredValue::Type(DeferredTypeValue {
+                name: "Qux",
+                variant: DeferredTypeVariant::Struct(DeferredStructVariant::Named(&[(
+                    "value",
+                    DeferredValue::Boolean(true),
+                )])),
+            }),
+        )])),
+    })
 }
