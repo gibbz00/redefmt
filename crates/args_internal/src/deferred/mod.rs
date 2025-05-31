@@ -17,3 +17,6 @@ pub use as_value::AsDeferredValue;
 
 mod expression;
 pub use expression::DeferredFormatExpression;
+
+mod resolved_options;
+pub(crate) use resolved_options::ResolvedFormatOptions;
