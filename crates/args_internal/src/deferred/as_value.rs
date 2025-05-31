@@ -15,6 +15,13 @@ impl<T: AsDeferredValue> AsDeferredValue for &T {
 }
 
 #[sealed::sealed]
+impl AsDeferredValue for DeferredValue<'_> {
+    fn as_deferred_value(&self) -> DeferredValue {
+        self.clone()
+    }
+}
+
+#[sealed::sealed]
 impl AsDeferredValue for &str {
     fn as_deferred_value(&self) -> DeferredValue {
         DeferredValue::String(self)
