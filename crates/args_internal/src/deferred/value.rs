@@ -145,7 +145,7 @@ impl<'a> DeferredValue<'a> {
             DeferredValue::F64(value) => float_string(self.discriminant(), value, options)?,
             DeferredValue::List(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    return collection_string(string_buffer, values, evaluation_context, options, '[', ']');
+                    return collection_string(string_buffer, values, evaluation_context, options, '[', ']', false);
                 }
                 FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
@@ -157,7 +157,7 @@ impl<'a> DeferredValue<'a> {
             },
             DeferredValue::Tuple(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    return collection_string(string_buffer, values, evaluation_context, options, '(', ')');
+                    return collection_string(string_buffer, values, evaluation_context, options, '(', ')', false);
                 }
                 FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
@@ -346,6 +346,7 @@ fn collection_string(
     options: &ResolvedFormatOptions,
     opening_char: char,
     closing_char: char,
+    skip_delimiters_if_empty: bool,
 ) -> Result<(), DeferredFormatError> {
     collection_string_impl(
         string_buffer,
@@ -358,6 +359,7 @@ fn collection_string(
         opening_char,
         closing_char,
         false,
+        skip_delimiters_if_empty,
     )
 }
 
@@ -371,7 +373,17 @@ fn collection_string_impl<T>(
     opening_char: char,
     closing_char: char,
     space_padding: bool,
+    skip_delimiters_if_empty: bool,
 ) -> Result<(), DeferredFormatError> {
+    if elements.is_empty() {
+        if !skip_delimiters_if_empty {
+            string_buffer.push(opening_char);
+            string_buffer.push(closing_char);
+        }
+
+        return Ok(());
+    }
+
     let pretty = options.use_alternate_form;
 
     string_buffer.push(opening_char);
@@ -423,11 +435,14 @@ fn type_string(
             }
             DeferredStructVariant::Tuple(values) => {
                 string_buffer.push_str(type_value.name);
-                collection_string(string_buffer, values, evaluation_context, options, '(', ')')?;
+                collection_string(string_buffer, values, evaluation_context, options, '(', ')', true)?;
             }
             DeferredStructVariant::Named(fields) => {
                 string_buffer.push_str(type_value.name);
-                string_buffer.push(' ');
+
+                if !fields.is_empty() {
+                    string_buffer.push(' ');
+                }
 
                 collection_string_impl(
                     string_buffer,
@@ -441,6 +456,7 @@ fn type_string(
                     options,
                     '{',
                     '}',
+                    true,
                     true,
                 )?;
             }
