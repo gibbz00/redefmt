@@ -69,6 +69,15 @@ impl<'a> DeferredValue<'a> {
         provided_args: &DeferredProvidedArgs,
     ) -> Result<(), DeferredFormatError> {
         let options = ResolvedFormatOptions::resolve(format_options, provided_args)?;
+
+        let value_string = self.evaluate_impl(&options)?;
+
+        string_buffer.push_str(&value_string);
+
+        Ok(())
+    }
+
+    pub fn evaluate_impl(&self, options: &ResolvedFormatOptions) -> Result<String, DeferredFormatError> {
         let format_trait = options.format_trait;
 
         let value_string = match self {
@@ -80,7 +89,7 @@ impl<'a> DeferredValue<'a> {
                     }
                     .to_string()
                 }
-                FormatTrait::Pointer => pointer_string(value, &options),
+                FormatTrait::Pointer => pointer_string(value, options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -93,7 +102,7 @@ impl<'a> DeferredValue<'a> {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
                     format!("{value:?}")
                 }
-                FormatTrait::Pointer => pointer_string(value, &options),
+                FormatTrait::Pointer => pointer_string(value, options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -106,7 +115,7 @@ impl<'a> DeferredValue<'a> {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
                     format!("{value:?}")
                 }
-                FormatTrait::Pointer => pointer_string(value, &options),
+                FormatTrait::Pointer => pointer_string(value, options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -114,20 +123,20 @@ impl<'a> DeferredValue<'a> {
                     ));
                 }
             },
-            DeferredValue::Usize(value) => integer_string(value, &options),
-            DeferredValue::U8(value) => integer_string(value, &options),
-            DeferredValue::U16(value) => integer_string(value, &options),
-            DeferredValue::U32(value) => integer_string(value, &options),
-            DeferredValue::U64(value) => integer_string(value, &options),
-            DeferredValue::U128(value) => integer_string(value, &options),
-            DeferredValue::Isize(value) => integer_string(value, &options),
-            DeferredValue::I8(value) => integer_string(value, &options),
-            DeferredValue::I16(value) => integer_string(value, &options),
-            DeferredValue::I32(value) => integer_string(value, &options),
-            DeferredValue::I64(value) => integer_string(value, &options),
-            DeferredValue::I128(value) => integer_string(value, &options),
-            DeferredValue::F32(value) => float_string(self.discriminant(), value, &options)?,
-            DeferredValue::F64(value) => float_string(self.discriminant(), value, &options)?,
+            DeferredValue::Usize(value) => integer_string(value, options),
+            DeferredValue::U8(value) => integer_string(value, options),
+            DeferredValue::U16(value) => integer_string(value, options),
+            DeferredValue::U32(value) => integer_string(value, options),
+            DeferredValue::U64(value) => integer_string(value, options),
+            DeferredValue::U128(value) => integer_string(value, options),
+            DeferredValue::Isize(value) => integer_string(value, options),
+            DeferredValue::I8(value) => integer_string(value, options),
+            DeferredValue::I16(value) => integer_string(value, options),
+            DeferredValue::I32(value) => integer_string(value, options),
+            DeferredValue::I64(value) => integer_string(value, options),
+            DeferredValue::I128(value) => integer_string(value, options),
+            DeferredValue::F32(value) => float_string(self.discriminant(), value, options)?,
+            DeferredValue::F64(value) => float_string(self.discriminant(), value, options)?,
             DeferredValue::List(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
                     match options.use_alternate_form {
@@ -135,7 +144,7 @@ impl<'a> DeferredValue<'a> {
                         false => todo!(),
                     }
                 }
-                FormatTrait::Pointer => pointer_string(values, &options),
+                FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -150,7 +159,7 @@ impl<'a> DeferredValue<'a> {
                         false => todo!(),
                     }
                 }
-                FormatTrait::Pointer => pointer_string(values, &options),
+                FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -165,7 +174,7 @@ impl<'a> DeferredValue<'a> {
                         false => todo!(),
                     }
                 }
-                FormatTrait::Pointer => pointer_string(type_value, &options),
+                FormatTrait::Pointer => pointer_string(type_value, options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -175,11 +184,9 @@ impl<'a> DeferredValue<'a> {
             },
         };
 
-        let value_string = pipeline_length(self.value_class(), value_string, &options);
+        let value_string = pipeline_length(self.value_class(), value_string, options);
 
-        string_buffer.push_str(&value_string);
-
-        Ok(())
+        Ok(value_string)
     }
 
     fn value_class(&self) -> ValueClass {
