@@ -6,7 +6,7 @@
 
 use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
-use redefmt_args_internal::{FormatExpression, FormatString, deferred::DeferredFormatExpression};
+use redefmt_args_internal::{FormatExpression, FormatString};
 use syn::parse_macro_input;
 
 #[proc_macro]
@@ -18,9 +18,8 @@ pub fn format_string(token_stream: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn deferred_format_expression(token_stream: TokenStream) -> TokenStream {
-    parse_macro_input!(token_stream as DeferredFormatExpression)
-        .to_token_stream()
-        .into()
+    let expression = parse_macro_input!(token_stream as FormatExpression);
+    expression.defer().0.to_token_stream().into()
 }
 
 #[proc_macro]
