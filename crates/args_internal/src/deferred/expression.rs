@@ -7,7 +7,7 @@ use crate::*;
 pub struct DeferredFormatExpression<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
     pub(crate) format_string: FormatString<'a>,
-    pub(crate) expected_args: DeferredExpectedArgs,
+    pub(crate) expected_arg_count: usize,
 }
 
 impl<'a> DeferredFormatExpression<'a> {
@@ -15,14 +15,15 @@ impl<'a> DeferredFormatExpression<'a> {
         &self.format_string
     }
 
-    pub fn expected_args(&self) -> &DeferredExpectedArgs {
-        &self.expected_args
+    pub fn expected_arg_count(&self) -> usize {
+        self.expected_arg_count
     }
 
     pub fn evaluate<'v>(&self, provided_args: &DeferredProvidedArgs<'v>) -> Result<String, DeferredFormatError> {
         // TODO: Check that provided and expected arg counts match? implicitly
-        // creates the rule that no unused named arguments are allowed. Must be
-        // done individually for positional and named.
+        // creates the rule that no unused named arguments are allowed. Should
+        // be done individually for positional and named, which means that
+        // `Self` can't store them in a combined sum.
 
         let mut string = String::new();
 
@@ -50,8 +51,8 @@ impl<'a> DeferredFormatExpression<'a> {
     }
 
     #[doc(hidden)]
-    pub unsafe fn new_unchecked(format_string: FormatString<'a>, expected_args: DeferredExpectedArgs) -> Self {
-        Self { format_string, expected_args }
+    pub unsafe fn new_unchecked(format_string: FormatString<'a>, expected_arg_count: usize) -> Self {
+        Self { format_string, expected_arg_count }
     }
 }
 
@@ -70,7 +71,7 @@ impl ::syn::parse::Parse for DeferredFormatExpression<'static> {
 impl quote::ToTokens for DeferredFormatExpression<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let format_string = &self.format_string;
-        let expected_args = &self.expected_args;
+        let expected_arg_count = &self.expected_arg_count;
 
         const DOC_MESSAGE: &str = "SAFETY: values provided from a validated `DeferredFormatExpression`";
 
@@ -79,7 +80,7 @@ impl quote::ToTokens for DeferredFormatExpression<'_> {
                 #[doc = #DOC_MESSAGE]
                 ::redefmt_args::deferred::DeferredFormatExpression::new_unchecked(
                     #format_string,
-                    #expected_args
+                    #expected_arg_count
                 )
             }
         };

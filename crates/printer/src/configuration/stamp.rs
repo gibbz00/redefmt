@@ -41,7 +41,7 @@ mod counter {
 
     impl Counter {
         pub fn new(format_expression: DeferredFormatExpression<'static>) -> Result<Self, CounterNewError> {
-            if format_expression.expected_args().count() != 1 {
+            if format_expression.expected_arg_count() != 1 {
                 return Err(CounterNewError::ArgCount);
             }
 
