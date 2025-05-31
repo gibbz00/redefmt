@@ -357,3 +357,21 @@ fn mock_nested_struct() -> DeferredValue<'static> {
         )])),
     })
 }
+
+// Enum printing uses struct printing, no need for excessive testing
+
+#[test]
+fn enum_format() {
+    let x = mock_enum();
+    assert_evaluate!("A(true, 1)", "{:?}", x);
+}
+
+fn mock_enum() -> DeferredValue<'static> {
+    DeferredValue::Type(DeferredTypeValue {
+        name: "Foo",
+        variant: DeferredTypeVariant::Enum((
+            "A",
+            DeferredStructVariant::Tuple(&[DeferredValue::Boolean(true), DeferredValue::Usize(1)]),
+        )),
+    })
+}
