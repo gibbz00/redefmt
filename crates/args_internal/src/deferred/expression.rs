@@ -34,7 +34,7 @@ impl<'a> DeferredFormatExpression<'a> {
                 }
                 FormatStringSegment::Format(segment) => {
                     // IMPROVEMENT: remove `expect` by creating a separate
-                    // type for the format arguments resolved by `ArgumentResolver`
+                    // type for the format arguments resolved by `ArgumentResolver`?
                     let argument = segment
                         .argument
                         .as_ref()
@@ -53,17 +53,6 @@ impl<'a> DeferredFormatExpression<'a> {
     #[doc(hidden)]
     pub unsafe fn new_unchecked(format_string: FormatString<'a>, expected_arg_count: usize) -> Self {
         Self { format_string, expected_arg_count }
-    }
-}
-
-#[cfg(feature = "syn")]
-impl ::syn::parse::Parse for DeferredFormatExpression<'static> {
-    fn parse(input: ::syn::parse::ParseStream) -> ::syn::Result<Self> {
-        let format_expression = input.parse::<FormatExpression>()?;
-
-        let (deferred_format_expression, _) = format_expression.defer();
-
-        Ok(deferred_format_expression)
     }
 }
 
