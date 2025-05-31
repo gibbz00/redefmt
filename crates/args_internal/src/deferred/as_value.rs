@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{borrow::Cow, string::String, vec::Vec};
 
 use crate::*;
 
@@ -24,14 +24,14 @@ impl AsDeferredValue for DeferredValue<'_> {
 #[sealed::sealed]
 impl AsDeferredValue for &str {
     fn as_deferred_value(&self) -> DeferredValue {
-        DeferredValue::String(self)
+        DeferredValue::String(Cow::Borrowed(self))
     }
 }
 
 #[sealed::sealed]
 impl AsDeferredValue for String {
     fn as_deferred_value(&self) -> DeferredValue {
-        DeferredValue::String(self)
+        DeferredValue::String(Cow::Borrowed(self))
     }
 }
 
