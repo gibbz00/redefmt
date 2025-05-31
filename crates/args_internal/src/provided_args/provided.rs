@@ -17,10 +17,6 @@ impl ProvidedArgs<'_> {
 
         positional_iter.chain(named_iter)
     }
-
-    pub(crate) fn as_deferred(&self) -> DeferredExpectedArgs {
-        DeferredExpectedArgs { positional: self.positional.len(), named: self.named.len() }
-    }
 }
 
 impl syn::parse::Parse for ProvidedArgs<'static> {

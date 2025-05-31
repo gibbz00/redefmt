@@ -1,9 +1,6 @@
 mod error;
 pub use error::DeferredFormatError;
 
-mod expected_args;
-pub use expected_args::DeferredExpectedArgs;
-
 mod provided_args;
 pub use provided_args::DeferredProvidedArgs;
 

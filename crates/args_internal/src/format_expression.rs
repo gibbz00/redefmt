@@ -18,7 +18,7 @@ impl<'a> FormatExpression<'a> {
     pub fn defer(self) -> (DeferredFormatExpression<'a>, ProvidedArgs<'a>) {
         let deferred_format_expression = DeferredFormatExpression {
             format_string: self.format_string,
-            expected_args: self.provided_args.as_deferred(),
+            expected_arg_count: self.provided_args.positional.len() + self.provided_args.named.len(),
         };
 
         (deferred_format_expression, self.provided_args)
