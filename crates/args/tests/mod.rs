@@ -204,12 +204,24 @@ fn tuple_passes_format_options() {
 
 #[test]
 fn tuple_nested() {
+    let str = "((1, 2), (3, (4, 5)), 6)";
+    assert_evaluate!(str, "{:?}", ((1, 2), (3, (4, 5)), 6));
+}
+
+#[test]
+fn tuple_nested_pretty() {
     let str = "(\n\t(\n\t\t1,\n\t\t2,\n\t),\n\t(\n\t\t3,\n\t\t(\n\t\t\t4,\n\t\t\t5,\n\t\t),\n\t),\n\t6,\n)";
     assert_evaluate!(str, "{:#?}", ((1, 2), (3, (4, 5)), 6));
 }
 
 #[test]
-fn tuple_nested_pretty() {
-    let str = "((1, 2), (3, (4, 5)), 6)";
-    assert_evaluate!(str, "{:?}", ((1, 2), (3, (4, 5)), 6));
+fn list_nested() {
+    let str = "[[1, 2], [3, 4], [5, 6]]";
+    assert_evaluate!(str, "{:?}", [[1, 2], [3, 4], [5, 6]]);
+}
+
+#[test]
+fn list_nested_pretty() {
+    let str = "[\n\t[\n\t\t1,\n\t\t2,\n\t],\n\t[\n\t\t3,\n\t\t4,\n\t],\n\t[\n\t\t5,\n\t\t6,\n\t],\n]";
+    assert_evaluate!(str, "{:#?}", [[1, 2], [3, 4], [5, 6]]);
 }
