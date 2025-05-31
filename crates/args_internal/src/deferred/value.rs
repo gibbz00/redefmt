@@ -428,40 +428,57 @@ fn type_string(
     evaluation_context: &mut EvaluationContext,
     options: &ResolvedFormatOptions,
 ) -> Result<(), DeferredFormatError> {
-    match &type_value.variant {
-        DeferredTypeVariant::Struct(struct_variant) => match struct_variant {
-            DeferredStructVariant::Unit => {
-                string_buffer.push_str(type_value.name);
-            }
-            DeferredStructVariant::Tuple(values) => {
-                string_buffer.push_str(type_value.name);
-                collection_string(string_buffer, values, evaluation_context, options, '(', ')', true)?;
-            }
-            DeferredStructVariant::Named(fields) => {
-                string_buffer.push_str(type_value.name);
+    let DeferredTypeValue { name, variant } = type_value;
 
-                if !fields.is_empty() {
-                    string_buffer.push(' ');
-                }
+    match variant {
+        DeferredTypeVariant::Struct(struct_variant) => {
+            struct_string(string_buffer, name, struct_variant, evaluation_context, options)
+        }
+        DeferredTypeVariant::Enum((variant_name, struct_variant)) => {
+            // IMPROVEMENT: add configuration option to print enum_name?
+            struct_string(string_buffer, variant_name, struct_variant, evaluation_context, options)
+        }
+    }
+}
 
-                collection_string_impl(
-                    string_buffer,
-                    fields,
-                    |string_buffer, (field_name, field_value), evaluation_context, options| {
-                        string_buffer.push_str(field_name);
-                        string_buffer.push_str(": ");
-                        field_value.evaluate_impl(string_buffer, evaluation_context, options)
-                    },
-                    evaluation_context,
-                    options,
-                    '{',
-                    '}',
-                    true,
-                    true,
-                )?;
+fn struct_string(
+    string_buffer: &mut String,
+    name: &str,
+    struct_variant: &DeferredStructVariant,
+    evaluation_context: &mut EvaluationContext,
+    options: &ResolvedFormatOptions,
+) -> Result<(), DeferredFormatError> {
+    match struct_variant {
+        DeferredStructVariant::Unit => {
+            string_buffer.push_str(name);
+        }
+        DeferredStructVariant::Tuple(values) => {
+            string_buffer.push_str(name);
+            collection_string(string_buffer, values, evaluation_context, options, '(', ')', true)?;
+        }
+        DeferredStructVariant::Named(fields) => {
+            string_buffer.push_str(name);
+
+            if !fields.is_empty() {
+                string_buffer.push(' ');
             }
-        },
-        DeferredTypeVariant::Enum(_) => todo!(),
+
+            collection_string_impl(
+                string_buffer,
+                fields,
+                |string_buffer, (field_name, field_value), evaluation_context, options| {
+                    string_buffer.push_str(field_name);
+                    string_buffer.push_str(": ");
+                    field_value.evaluate_impl(string_buffer, evaluation_context, options)
+                },
+                evaluation_context,
+                options,
+                '{',
+                '}',
+                true,
+                true,
+            )?;
+        }
     }
 
     Ok(())
