@@ -186,3 +186,30 @@ fn alternate_form_zero_padding() {
     assert_evaluate!("0000000f", "{:08x}", 15);
     assert_evaluate!("---0xf", "{:->#6x}", 15);
 }
+
+#[test]
+fn tuple_debug() {
+    assert_evaluate!("(3, 4)", "{:?}", (3, 4));
+}
+
+#[test]
+fn tuple_debug_pretty() {
+    assert_evaluate!("(\n\t3,\n\t4,\n)", "{:#?}", (3, 4));
+}
+
+#[test]
+fn tuple_passes_format_options() {
+    assert_evaluate!("(\n\t0x1--,\n\t0x1--,\n)", "{:-<#5x?}", (1, 1));
+}
+
+#[test]
+fn tuple_nested() {
+    let str = "(\n\t(\n\t\t1,\n\t\t2,\n\t),\n\t(\n\t\t3,\n\t\t(\n\t\t\t4,\n\t\t\t5,\n\t\t),\n\t),\n\t6,\n)";
+    assert_evaluate!(str, "{:#?}", ((1, 2), (3, (4, 5)), 6));
+}
+
+#[test]
+fn tuple_nested_pretty() {
+    let str = "((1, 2), (3, (4, 5)), 6)";
+    assert_evaluate!(str, "{:?}", ((1, 2), (3, (4, 5)), 6));
+}
