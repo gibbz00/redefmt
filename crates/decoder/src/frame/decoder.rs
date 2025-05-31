@@ -307,12 +307,7 @@ mod tests {
         let value = true;
         let actual_frame = put_and_decode_bool_arg(&mut decoder, value).unwrap();
 
-        let expected_frame = RedefmtFrame::new(
-            None,
-            None,
-            &print_statement,
-            vec![ComplexValue::Value(Value::Boolean(value))],
-        );
+        let expected_frame = RedefmtFrame::new(None, None, &print_statement, vec![Value::Boolean(value)]);
 
         assert_eq!(expected_frame, actual_frame);
 

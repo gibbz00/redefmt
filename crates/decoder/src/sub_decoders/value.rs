@@ -30,7 +30,7 @@ impl<'cache> ValueDecoder<'cache> {
         &mut self,
         stores: &Stores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<ComplexValue<'cache>>, RedefmtDecoderError> {
+    ) -> Result<Option<Value<'cache>>, RedefmtDecoderError> {
         let maybe_simple_value = match self.type_hint {
             TypeHint::U8 => src.try_get_u8().ok().map(Value::U8),
             TypeHint::U16 => src.try_get_u16().ok().map(Value::U16),
@@ -104,7 +104,7 @@ impl<'cache> ValueDecoder<'cache> {
                 };
 
                 let maybe_tuple = list_decoder.decode_dyn_list(stores, src)?;
-                return Ok(maybe_tuple.map(ComplexValue::Tuple));
+                return Ok(maybe_tuple.map(Value::Tuple));
             }
             TypeHint::DynList => {
                 let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
@@ -112,7 +112,7 @@ impl<'cache> ValueDecoder<'cache> {
                 };
 
                 let maybe_list = list_decoder.decode_dyn_list(stores, src)?;
-                return Ok(maybe_list.map(ComplexValue::List));
+                return Ok(maybe_list.map(Value::List));
             }
             TypeHint::List => {
                 let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
@@ -120,7 +120,7 @@ impl<'cache> ValueDecoder<'cache> {
                 };
 
                 let maybe_list = list_decoder.decode_list(stores, src)?;
-                return Ok(maybe_list.map(ComplexValue::List));
+                return Ok(maybe_list.map(Value::List));
             }
             TypeHint::WriteId => {
                 let Some(write_statement_decoder) = self.get_or_store_write_decoder(stores, src)? else {
@@ -134,7 +134,7 @@ impl<'cache> ValueDecoder<'cache> {
                * TypeHint::DynMap => todo!(), */
         };
 
-        Ok(maybe_simple_value.map(ComplexValue::Value))
+        Ok(maybe_simple_value)
     }
 
     fn get_or_store_u8_length(&mut self, src: &mut BytesMut) -> Option<usize> {
@@ -241,8 +241,8 @@ mod tests {
 
     #[test]
     fn boolean_false() {
-        assert_simple_value(TypeHint::Boolean, true, Value::Boolean);
-        assert_simple_value(TypeHint::Boolean, false, Value::Boolean);
+        assert_value(TypeHint::Boolean, true, Value::Boolean);
+        assert_value(TypeHint::Boolean, false, Value::Boolean);
     }
 
     #[test]
@@ -275,17 +275,17 @@ mod tests {
         test_decode_int::<f32>(TypeHint::F32, Value::F32);
         test_decode_int::<f64>(TypeHint::F64, Value::F64);
 
-        fn test_decode_int<T: WriteValue + num_traits::One>(type_hint: TypeHint, from_inner: fn(T) -> Value) {
-            assert_simple_value(type_hint, T::one(), from_inner);
+        fn test_decode_int<T: WriteValue + num_traits::One>(type_hint: TypeHint, from_inner: fn(T) -> Value<'static>) {
+            assert_value(type_hint, T::one(), from_inner);
         }
     }
 
     #[test]
     fn char() {
-        assert_simple_value(TypeHint::Char, 'x', Value::Char);
-        assert_simple_value(TypeHint::Char, 'ß', Value::Char);
-        assert_simple_value(TypeHint::Char, 'ᴪ', Value::Char);
-        assert_simple_value(TypeHint::Char, '🦀', Value::Char);
+        assert_value(TypeHint::Char, 'x', Value::Char);
+        assert_value(TypeHint::Char, 'ß', Value::Char);
+        assert_value(TypeHint::Char, 'ᴪ', Value::Char);
+        assert_value(TypeHint::Char, '🦀', Value::Char);
     }
 
     #[test]
@@ -307,8 +307,8 @@ mod tests {
 
     #[test]
     fn string() {
-        assert_simple_value(TypeHint::StringSlice, "abc", |str| Value::String(str.to_string()));
-        assert_simple_value(TypeHint::StringSlice, "🦀", |str| Value::String(str.to_string()));
+        assert_value(TypeHint::StringSlice, "abc", |str| Value::String(str.to_string()));
+        assert_value(TypeHint::StringSlice, "🦀", |str| Value::String(str.to_string()));
     }
 
     #[test]
@@ -331,42 +331,27 @@ mod tests {
     #[test]
     fn tuple() {
         assert_value(TypeHint::Tuple, (10, "x"), |(num, str)| {
-            ComplexValue::Tuple(vec![
-                ComplexValue::Value(Value::U8(num)),
-                ComplexValue::Value(Value::String(str.to_string())),
-            ])
+            Value::Tuple(vec![Value::U8(num), Value::String(str.to_string())])
         });
         assert_value(TypeHint::Tuple, ((10, "x"), false), |((num, str), bool)| {
-            let inner = ComplexValue::Tuple(vec![
-                ComplexValue::Value(Value::U8(num)),
-                ComplexValue::Value(Value::String(str.to_string())),
-            ]);
-            ComplexValue::Tuple(vec![inner, ComplexValue::Value(Value::Boolean(bool))])
+            let inner = Value::Tuple(vec![Value::U8(num), Value::String(str.to_string())]);
+            Value::Tuple(vec![inner, Value::Boolean(bool)])
         });
     }
 
     #[test]
     fn dyn_list() {
         assert_value(TypeHint::DynList, [&10u8 as &dyn WriteValue, &"x"], |_| {
-            ComplexValue::List(vec![
-                ComplexValue::Value(Value::U8(10)),
-                ComplexValue::Value(Value::String("x".to_string())),
-            ])
+            Value::List(vec![Value::U8(10), Value::String("x".to_string())])
         });
     }
 
     #[test]
     fn list() {
         assert_value(TypeHint::List, [[0u8, 1], [2, 3]], |_| {
-            ComplexValue::List(vec![
-                ComplexValue::List(vec![
-                    ComplexValue::Value(Value::U8(0)),
-                    ComplexValue::Value(Value::U8(1)),
-                ]),
-                ComplexValue::List(vec![
-                    ComplexValue::Value(Value::U8(2)),
-                    ComplexValue::Value(Value::U8(3)),
-                ]),
+            Value::List(vec![
+                Value::List(vec![Value::U8(0), Value::U8(1)]),
+                Value::List(vec![Value::U8(2), Value::U8(3)]),
             ])
         });
     }
@@ -386,10 +371,7 @@ mod tests {
         let write_statement = WriteStatement::FormatExpression(stored_expression.clone());
 
         // expected
-        let expected_value = ComplexValue::NestedFormatExpression(
-            &stored_expression,
-            vec![ComplexValue::Value(Value::Boolean(arg_value))],
-        );
+        let expected_value = Value::NestedFormatExpression(&stored_expression, vec![Value::Boolean(arg_value)]);
 
         let write_id = seed_crate_and_write_statement(&stores, &write_statement);
 
@@ -411,10 +393,7 @@ mod tests {
         assert_struct(
             StructVariant::Tuple(2),
             [&"x" as &dyn WriteValue, &false],
-            StructVariantValue::Tuple(vec![
-                ComplexValue::Value(Value::String("x".to_string())),
-                ComplexValue::Value(Value::Boolean(false)),
-            ]),
+            StructVariantValue::Tuple(vec![Value::String("x".to_string()), Value::Boolean(false)]),
         );
     }
 
@@ -427,8 +406,8 @@ mod tests {
             StructVariant::Named(vec![field_0.clone(), field_1.clone()]),
             [&true, &"y" as &dyn WriteValue],
             StructVariantValue::Named(vec![
-                (&field_0, ComplexValue::Value(Value::Boolean(true))),
-                (&field_1, ComplexValue::Value(Value::String("y".to_string()))),
+                (&field_0, Value::Boolean(true)),
+                (&field_1, Value::String("y".to_string())),
             ]),
         );
     }
@@ -443,10 +422,7 @@ mod tests {
         assert_enum(
             1,
             [&true as &dyn WriteValue, &1u16],
-            StructVariantValue::Tuple(vec![
-                ComplexValue::Value(Value::Boolean(true)),
-                ComplexValue::Value(Value::U16(1)),
-            ]),
+            StructVariantValue::Tuple(vec![Value::Boolean(true), Value::U16(1)]),
         );
     }
     #[test]
@@ -454,21 +430,14 @@ mod tests {
         assert_enum(
             2,
             [&true as &dyn WriteValue, &1u16],
-            StructVariantValue::Named(vec![
-                ("x", ComplexValue::Value(Value::Boolean(true))),
-                ("y", ComplexValue::Value(Value::U16(1))),
-            ]),
+            StructVariantValue::Named(vec![("x", Value::Boolean(true)), ("y", Value::U16(1))]),
         );
-    }
-
-    fn assert_simple_value<T: WriteValue>(type_hint: TypeHint, encoded_value: T, from_inner: impl FnOnce(T) -> Value) {
-        assert_value(type_hint, encoded_value, |t| ComplexValue::Value(from_inner(t)));
     }
 
     fn assert_value<'cache, T: WriteValue>(
         type_hint: TypeHint,
         encoded_value: T,
-        from_inner: impl FnOnce(T) -> ComplexValue<'cache>,
+        from_inner: impl FnOnce(T) -> Value<'cache>,
     ) {
         let cache = RedefmtDecoderCache::default();
         let (_dir_guard, stores) = Stores::mock(&cache);
@@ -485,7 +454,7 @@ mod tests {
         stores: Stores<'a>,
         dispatcher: SimpleTestDispatcher,
         type_hint: TypeHint,
-        expected_value: ComplexValue<'cache>,
+        expected_value: Value<'cache>,
     ) {
         let mut dispatched_bytes = dispatcher.bytes;
 
@@ -516,7 +485,7 @@ mod tests {
             variant: TypeStructureVariant::Struct(struct_variant),
         });
 
-        let expected_value = ComplexValue::Type(TypeStructureValue {
+        let expected_value = Value::Type(TypeStructureValue {
             name: &type_name,
             variant: TypeStructureVariantValue::Struct(expected_struct_variant_value),
         });
@@ -560,7 +529,7 @@ mod tests {
             variant: TypeStructureVariant::Enum(enum_variants),
         });
 
-        let expected_value = ComplexValue::Type(TypeStructureValue {
+        let expected_value = Value::Type(TypeStructureValue {
             name: &type_name,
             variant: TypeStructureVariantValue::Enum((&expected_variant_name, expected_struct_variant)),
         });
