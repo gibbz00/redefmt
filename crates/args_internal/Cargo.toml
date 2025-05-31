@@ -12,7 +12,7 @@ version.workspace = true
 [features]
 quote = ["dep:proc-macro2", "dep:quote"]
 serde = ["dep:serde"]
-syn = ["dep:proc-macro2", "dep:syn"]
+syn = ["dep:check_keyword", "dep:proc-macro2", "dep:syn"]
 
 [lints]
 workspace = true
@@ -22,7 +22,6 @@ workspace = true
 redefmt-internal-macros.workspace = true
 
 # External
-check_keyword = "0.4"
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
 unicode-xid = "0.2"
 # TEMP: For quick prototyping, replace with manual implementations before release
@@ -34,6 +33,7 @@ thiserror = { version = "2.0", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
 
 # feature: syn
+check_keyword = { version = "0.4", optional = true }
 syn = { version = "2.0", default-features = false, features = ["clone-impls", "derive", "extra-traits", "parsing"], optional = true }
 
 # feature: quote

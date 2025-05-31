@@ -25,6 +25,7 @@ impl<'a> FormatArgument<'a> {
         }
     }
 
+    #[cfg(feature = "syn")]
     pub(crate) fn matches_index(&self, index: usize) -> bool {
         match self {
             FormatArgument::Index(argument_index) => *argument_index == index,
