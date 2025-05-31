@@ -145,7 +145,7 @@ impl<'a> DeferredValue<'a> {
             DeferredValue::F64(value) => float_string(self.discriminant(), value, options)?,
             DeferredValue::List(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    return structure_string(string_buffer, values, evaluation_context, options, '[', ']');
+                    return collection_string(string_buffer, values, evaluation_context, options, '[', ']');
                 }
                 FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
@@ -157,7 +157,7 @@ impl<'a> DeferredValue<'a> {
             },
             DeferredValue::Tuple(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    return structure_string(string_buffer, values, evaluation_context, options, '(', ')');
+                    return collection_string(string_buffer, values, evaluation_context, options, '(', ')');
                 }
                 FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
@@ -169,10 +169,7 @@ impl<'a> DeferredValue<'a> {
             },
             DeferredValue::Type(type_value) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    match options.use_alternate_form {
-                        true => todo!(),
-                        false => todo!(),
-                    }
+                    return type_string(string_buffer, type_value, evaluation_context, options);
                 }
                 FormatTrait::Pointer => pointer_string(type_value, options),
                 _ => {
@@ -342,13 +339,38 @@ fn exp_string<T: UpperExp + LowerExp>(t: T, upper: bool, options: &ResolvedForma
     }
 }
 
-fn structure_string(
+fn collection_string(
     string_buffer: &mut String,
     elements: &[DeferredValue],
     evaluation_context: &mut EvaluationContext,
     options: &ResolvedFormatOptions,
     opening_char: char,
     closing_char: char,
+) -> Result<(), DeferredFormatError> {
+    collection_string_impl(
+        string_buffer,
+        elements,
+        |string_buffer, element, evaluation_context, options| {
+            element.evaluate_impl(string_buffer, evaluation_context, options)
+        },
+        evaluation_context,
+        options,
+        opening_char,
+        closing_char,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collection_string_impl<T>(
+    string_buffer: &mut String,
+    elements: &[T],
+    print_fn: impl Fn(&mut String, &T, &mut EvaluationContext, &ResolvedFormatOptions) -> Result<(), DeferredFormatError>,
+    evaluation_context: &mut EvaluationContext,
+    options: &ResolvedFormatOptions,
+    opening_char: char,
+    closing_char: char,
+    space_padding: bool,
 ) -> Result<(), DeferredFormatError> {
     let pretty = options.use_alternate_form;
 
@@ -357,6 +379,8 @@ fn structure_string(
     if pretty {
         string_buffer.push('\n');
         evaluation_context.indentation += 1;
+    } else if space_padding {
+        string_buffer.push(' ');
     }
 
     for (index, element) in elements.iter().enumerate() {
@@ -364,7 +388,7 @@ fn structure_string(
             (0..evaluation_context.indentation).for_each(|_| string_buffer.push('\t'));
         }
 
-        element.evaluate_impl(string_buffer, evaluation_context, options)?;
+        print_fn(string_buffer, element, evaluation_context, options)?;
 
         if pretty {
             string_buffer.push(',');
@@ -377,9 +401,52 @@ fn structure_string(
     if pretty {
         evaluation_context.indentation -= 1;
         (0..evaluation_context.indentation).for_each(|_| string_buffer.push('\t'));
+    } else if space_padding {
+        string_buffer.push(' ');
     }
 
     string_buffer.push(closing_char);
+
+    Ok(())
+}
+
+fn type_string(
+    string_buffer: &mut String,
+    type_value: &DeferredTypeValue,
+    evaluation_context: &mut EvaluationContext,
+    options: &ResolvedFormatOptions,
+) -> Result<(), DeferredFormatError> {
+    match &type_value.variant {
+        DeferredTypeVariant::Struct(struct_variant) => match struct_variant {
+            DeferredStructVariant::Unit => {
+                string_buffer.push_str(type_value.name);
+            }
+            DeferredStructVariant::Tuple(values) => {
+                string_buffer.push_str(type_value.name);
+                collection_string(string_buffer, values, evaluation_context, options, '(', ')')?;
+            }
+            DeferredStructVariant::Named(fields) => {
+                string_buffer.push_str(type_value.name);
+                string_buffer.push(' ');
+
+                collection_string_impl(
+                    string_buffer,
+                    fields,
+                    |string_buffer, (field_name, field_value), evaluation_context, options| {
+                        string_buffer.push_str(field_name);
+                        string_buffer.push_str(": ");
+                        field_value.evaluate_impl(string_buffer, evaluation_context, options)
+                    },
+                    evaluation_context,
+                    options,
+                    '{',
+                    '}',
+                    true,
+                )?;
+            }
+        },
+        DeferredTypeVariant::Enum(_) => todo!(),
+    }
 
     Ok(())
 }
