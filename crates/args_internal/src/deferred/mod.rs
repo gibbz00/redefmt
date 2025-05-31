@@ -1,11 +1,11 @@
 mod expression;
 pub use expression::DeferredFormatExpression;
 
-mod error;
-pub use error::DeferredFormatError;
-
 mod provided_args;
 pub use provided_args::DeferredProvidedArgs;
+
+mod error;
+pub use error::DeferredFormatError;
 
 mod value;
 pub use value::{

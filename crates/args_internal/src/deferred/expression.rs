@@ -11,10 +11,6 @@ pub struct DeferredFormatExpression<'a> {
 }
 
 impl<'a> DeferredFormatExpression<'a> {
-    pub fn format_string(&self) -> &FormatString {
-        &self.format_string
-    }
-
     pub fn expected_arg_count(&self) -> usize {
         self.expected_arg_count
     }
