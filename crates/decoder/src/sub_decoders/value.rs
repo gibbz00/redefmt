@@ -128,10 +128,7 @@ impl<'cache> ValueDecoder<'cache> {
                 };
 
                 return write_statement_decoder.decode(stores, src);
-            } /* TODO:
-               * TypeHint::Set => todo!(),
-               * TypeHint::Map => todo!(),
-               * TypeHint::DynMap => todo!(), */
+            }
         };
 
         Ok(maybe_simple_value)
@@ -371,7 +368,11 @@ mod tests {
         let write_statement = WriteStatement::FormatExpression(stored_expression.clone());
 
         // expected
-        let expected_value = Value::NestedFormatExpression(&stored_expression, vec![Value::Boolean(arg_value)]);
+        let expected_value = Value::NestedFormatExpression {
+            expression: stored_expression.expression(),
+            append_newline: *stored_expression.append_newline(),
+            decoded_values: vec![Value::Boolean(arg_value)],
+        };
 
         let write_id = seed_crate_and_write_statement(&stores, &write_statement);
 
