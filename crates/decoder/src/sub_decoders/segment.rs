@@ -14,7 +14,7 @@ pub struct SegmentsDecoder<'cache> {
     pointer_width: PointerWidth,
     current_value: Option<SegmentValueContext<'cache>>,
     pub(crate) stored_expression: &'cache StoredFormatExpression<'static>,
-    pub(crate) decoded_args: Vec<ComplexValue<'cache>>,
+    pub(crate) decoded_args: Vec<Value<'cache>>,
 }
 
 impl<'cache> SegmentsDecoder<'cache> {
