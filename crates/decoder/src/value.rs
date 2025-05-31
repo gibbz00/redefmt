@@ -1,4 +1,4 @@
-use redefmt_db::statement_table::stored_format_expression::StoredFormatExpression;
+use redefmt_args::deferred::DeferredFormatExpression;
 
 #[derive(Debug, PartialEq)]
 pub enum Value<'cache> {
@@ -25,10 +25,11 @@ pub enum Value<'cache> {
     List(Vec<Value<'cache>>),
     Tuple(Vec<Value<'cache>>),
     Type(TypeStructureValue<'cache>),
-    NestedFormatExpression(&'cache StoredFormatExpression<'static>, Vec<Value<'cache>>),
-    // TODO:
-    // Set(Vec<Value>),
-    // Map(Vec<(Value, Value)>),
+    NestedFormatExpression {
+        expression: &'cache DeferredFormatExpression<'static>,
+        append_newline: bool,
+        decoded_values: Vec<Value<'cache>>,
+    },
 }
 
 #[derive(Debug, PartialEq)]

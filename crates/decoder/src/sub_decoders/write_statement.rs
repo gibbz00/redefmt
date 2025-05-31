@@ -60,10 +60,11 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     return Ok(None);
                 }
 
-                Ok(Some(Value::NestedFormatExpression(
-                    segment_decoder.stored_expression,
-                    segment_decoder.decoded_args,
-                )))
+                Ok(Some(Value::NestedFormatExpression {
+                    expression: segment_decoder.stored_expression.expression(),
+                    append_newline: *segment_decoder.stored_expression.append_newline(),
+                    decoded_values: segment_decoder.decoded_args,
+                }))
             }
             WriteStatementDecoderStage::TypeStructure(mut type_structure_decoder) => {
                 let Some(type_structure_value) = type_structure_decoder.decode(stores, src)? else {
