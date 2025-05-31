@@ -15,7 +15,7 @@ impl<T: AsDeferredValue> AsDeferredValue for &T {
 }
 
 #[sealed::sealed]
-impl AsDeferredValue for str {
+impl AsDeferredValue for &str {
     fn as_deferred_value(&self) -> DeferredValue {
         DeferredValue::String(self)
     }

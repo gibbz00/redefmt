@@ -68,15 +68,11 @@ impl<'a> DeferredValue<'a> {
         format_options: &FormatOptions,
         provided_args: &DeferredProvidedArgs,
     ) -> Result<(), DeferredFormatError> {
-        let align = format_options.align;
-        let use_alternate_form = format_options.use_alternate_form;
-        let use_zero_padding = format_options.use_zero_padding;
-        let width = self.resolve_width(format_options.width.as_ref(), provided_args)?;
-        let precision = self.resolve_precision(format_options.precision.as_ref(), provided_args)?;
-        let format_trait = format_options.format_trait;
+        let options = ResolvedFormatOptions::resolve(format_options, provided_args)?;
+        let format_trait = options.format_trait;
 
         let value_string = match self {
-            DeferredValue::Boolean(value) => match format_trait {
+            DeferredValue::Boolean(value) => match options.format_trait {
                 FormatTrait::Display | FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
                     match value {
                         true => "true",
@@ -84,7 +80,7 @@ impl<'a> DeferredValue<'a> {
                     }
                     .to_string()
                 }
-                FormatTrait::Pointer => pointer_string(value, width, format_options),
+                FormatTrait::Pointer => pointer_string(value, &options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -97,7 +93,7 @@ impl<'a> DeferredValue<'a> {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
                     format!("{value:?}")
                 }
-                FormatTrait::Pointer => pointer_string(value, width, format_options),
+                FormatTrait::Pointer => pointer_string(value, &options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -110,7 +106,7 @@ impl<'a> DeferredValue<'a> {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
                     format!("{value:?}")
                 }
-                FormatTrait::Pointer => pointer_string(value, width, format_options),
+                FormatTrait::Pointer => pointer_string(value, &options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -118,28 +114,28 @@ impl<'a> DeferredValue<'a> {
                     ));
                 }
             },
-            DeferredValue::Usize(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::U8(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::U16(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::U32(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::U64(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::U128(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::Isize(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::I8(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::I16(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::I32(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::I64(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::I128(value) => integer_string(value, width, precision, format_options),
-            DeferredValue::F32(value) => float_string(self.discriminant(), value, width, precision, format_options)?,
-            DeferredValue::F64(value) => float_string(self.discriminant(), value, width, precision, format_options)?,
+            DeferredValue::Usize(value) => integer_string(value, &options),
+            DeferredValue::U8(value) => integer_string(value, &options),
+            DeferredValue::U16(value) => integer_string(value, &options),
+            DeferredValue::U32(value) => integer_string(value, &options),
+            DeferredValue::U64(value) => integer_string(value, &options),
+            DeferredValue::U128(value) => integer_string(value, &options),
+            DeferredValue::Isize(value) => integer_string(value, &options),
+            DeferredValue::I8(value) => integer_string(value, &options),
+            DeferredValue::I16(value) => integer_string(value, &options),
+            DeferredValue::I32(value) => integer_string(value, &options),
+            DeferredValue::I64(value) => integer_string(value, &options),
+            DeferredValue::I128(value) => integer_string(value, &options),
+            DeferredValue::F32(value) => float_string(self.discriminant(), value, &options)?,
+            DeferredValue::F64(value) => float_string(self.discriminant(), value, &options)?,
             DeferredValue::List(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    match use_alternate_form {
+                    match options.use_alternate_form {
                         true => todo!(),
                         false => todo!(),
                     }
                 }
-                FormatTrait::Pointer => pointer_string(values, width, format_options),
+                FormatTrait::Pointer => pointer_string(values, &options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -149,12 +145,12 @@ impl<'a> DeferredValue<'a> {
             },
             DeferredValue::Tuple(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    match use_alternate_form {
+                    match options.use_alternate_form {
                         true => todo!(),
                         false => todo!(),
                     }
                 }
-                FormatTrait::Pointer => pointer_string(values, width, format_options),
+                FormatTrait::Pointer => pointer_string(values, &options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -164,12 +160,12 @@ impl<'a> DeferredValue<'a> {
             },
             DeferredValue::Type(type_value) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    match use_alternate_form {
+                    match options.use_alternate_form {
                         true => todo!(),
                         false => todo!(),
                     }
                 }
-                FormatTrait::Pointer => pointer_string(type_value, width, format_options),
+                FormatTrait::Pointer => pointer_string(type_value, &options),
                 _ => {
                     return Err(DeferredFormatError::FormatNotImplemented(
                         format_trait,
@@ -179,14 +175,7 @@ impl<'a> DeferredValue<'a> {
             },
         };
 
-        let value_string = pipeline_length(
-            self.value_class(),
-            value_string,
-            align,
-            use_zero_padding,
-            width,
-            precision,
-        );
+        let value_string = pipeline_length(self.value_class(), value_string, &options);
 
         string_buffer.push_str(&value_string);
 
@@ -213,57 +202,6 @@ impl<'a> DeferredValue<'a> {
             | DeferredValue::F64(_) => ValueClass::Numeric,
         }
     }
-
-    fn resolve_width(
-        &self,
-        width_option: Option<&FormatCount>,
-        provided_args: &DeferredProvidedArgs,
-    ) -> Result<usize, DeferredFormatError> {
-        let width = match width_option {
-            Some(width_arg) => match width_arg {
-                FormatCount::Integer(int) => *int,
-                FormatCount::Argument(format_argument) => match provided_args.get(format_argument)? {
-                    DeferredValue::Usize(arg_value) => *arg_value,
-                    other => {
-                        return Err(DeferredFormatError::InvalidArgType(
-                            DeferredValueDiscriminants::Usize,
-                            other.discriminant(),
-                        ));
-                    }
-                },
-            },
-            None => 0,
-        };
-
-        Ok(width)
-    }
-
-    fn resolve_precision(
-        &self,
-        precision_option: Option<&FormatPrecision>,
-        provided_args: &DeferredProvidedArgs,
-    ) -> Result<Option<usize>, DeferredFormatError> {
-        let precision = match precision_option {
-            Some(precision) => match precision {
-                FormatPrecision::Count(format_count) => match format_count {
-                    FormatCount::Integer(integer) => Some(*integer),
-                    FormatCount::Argument(format_argument) => match provided_args.get(format_argument)? {
-                        DeferredValue::Usize(arg_value) => Some(*arg_value),
-                        other => {
-                            return Err(DeferredFormatError::InvalidArgType(
-                                DeferredValueDiscriminants::Usize,
-                                other.discriminant(),
-                            ));
-                        }
-                    },
-                },
-                FormatPrecision::NextArgument => unreachable!("should have been disambiguated by argument resolver"),
-            },
-            None => None,
-        };
-
-        Ok(precision)
-    }
 }
 
 // NOTE: Most of this could be removed if and
@@ -273,14 +211,12 @@ impl<'a> DeferredValue<'a> {
 fn float_string<T: Copy + Display + Debug + LowerExp + UpperExp>(
     discriminant: DeferredValueDiscriminants,
     float: T,
-    width: usize,
-    precision: Option<usize>,
-    format_options: &FormatOptions,
+    options: &ResolvedFormatOptions,
 ) -> Result<String, DeferredFormatError> {
-    let FormatOptions { sign, use_zero_padding, format_trait, .. } = format_options;
+    let ResolvedFormatOptions { sign, use_zero_padding, format_trait, width, precision, .. } = options;
 
     #[rustfmt::skip]
-    let string = match (sign == &Some(Sign::Plus), use_zero_padding, precision, format_trait) {
+    let string = match (sign , use_zero_padding, precision, format_trait) {
         (false, false, None, FormatTrait::Display) => format!("{float}"),
         (false, true, None, FormatTrait::Display) => format!("{float:0width$}"),
         (true, false, None, FormatTrait::Display) => format!("{float:+}"),
@@ -297,9 +233,9 @@ fn float_string<T: Copy + Display + Debug + LowerExp + UpperExp>(
         (false, true, Some(precision), FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex) => { format!("{float:0width$.precision$?}") }
         (true, false, Some(precision), FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex) => { format!("{float:+.precision$?}") }
         (true, true, Some(precision), FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex) => { format!("{float:+0width$.precision$?}") }
-        (sign, zero_padding, precision, FormatTrait::UpperExp) => exp_string(float, true, sign, *zero_padding, width, precision),
-        (sign, zero_padding, precision, FormatTrait::LowerExp) => exp_string(float, false, sign, *zero_padding, width, precision),
-        (_, _,_, FormatTrait::Pointer) => pointer_string(float, width, format_options),
+        (_, _, _, FormatTrait::UpperExp) => exp_string(float, true, options),
+        (_, _, _, FormatTrait::LowerExp) => exp_string(float, false, options),
+        (_, _,_, FormatTrait::Pointer) => pointer_string(float, options),
         _ => {
             return Err(DeferredFormatError::FormatNotImplemented(*format_trait, discriminant));
         }
@@ -310,19 +246,12 @@ fn float_string<T: Copy + Display + Debug + LowerExp + UpperExp>(
 
 fn integer_string<T: Display + Binary + LowerHex + UpperHex + Octal + LowerExp + UpperExp>(
     numeric: T,
-    width: usize,
-    precision: Option<usize>,
-    format_options: &FormatOptions,
+    options: &ResolvedFormatOptions,
 ) -> String {
-    let FormatOptions { sign, use_alternate_form, use_zero_padding, format_trait, .. } = format_options;
+    let ResolvedFormatOptions { sign, use_alternate_form, use_zero_padding, format_trait, width, .. } = options;
 
-    match (
-        sign == &Some(Sign::Plus),
-        use_alternate_form,
-        use_zero_padding,
-        format_trait,
-    ) {
-        (_, _, _, FormatTrait::Pointer) => pointer_string(numeric, width, format_options),
+    match (sign, use_alternate_form, use_zero_padding, format_trait) {
+        (_, _, _, FormatTrait::Pointer) => pointer_string(numeric, options),
         (false, _, false, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric}"),
         (false, _, true, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric:0width$}"),
         (true, _, false, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric:+}"),
@@ -359,21 +288,17 @@ fn integer_string<T: Display + Binary + LowerHex + UpperHex + Octal + LowerExp +
         (true, false, true, FormatTrait::Binary) => format!("{numeric:+0width$b}"),
         (true, true, false, FormatTrait::Binary) => format!("{numeric:+#b}"),
         (true, true, true, FormatTrait::Binary) => format!("{numeric:+#0width$b}"),
-        (sign, _, zero_padding, FormatTrait::LowerExp) => {
-            exp_string(numeric, false, sign, *zero_padding, width, precision)
-        }
-        (sign, _, zero_padding, FormatTrait::UpperExp) => {
-            exp_string(numeric, true, sign, *zero_padding, width, precision)
-        }
+        (_, _, _, FormatTrait::LowerExp) => exp_string(numeric, false, options),
+        (_, _, _, FormatTrait::UpperExp) => exp_string(numeric, true, options),
     }
 }
 
-fn pointer_string<T>(t: T, width: usize, format_options: &FormatOptions) -> String {
-    let FormatOptions { sign, use_alternate_form, use_zero_padding, .. } = format_options;
+fn pointer_string<T>(t: T, options: &ResolvedFormatOptions) -> String {
+    let ResolvedFormatOptions { sign, use_alternate_form, use_zero_padding, width, .. } = options;
 
     let pointer: *const T = &t;
 
-    match (sign == &Some(Sign::Plus), use_alternate_form, use_zero_padding) {
+    match (sign, use_alternate_form, use_zero_padding) {
         (true, true, true) => format!("{pointer:+#0width$p}"),
         (true, true, false) => format!("{pointer:+#p}"),
         (true, false, true) => format!("{pointer:+0width$p}"),
@@ -385,15 +310,10 @@ fn pointer_string<T>(t: T, width: usize, format_options: &FormatOptions) -> Stri
     }
 }
 
-fn exp_string<T: UpperExp + LowerExp>(
-    t: T,
-    upper: bool,
-    sign: bool,
-    zero_padding: bool,
-    width: usize,
-    precision: Option<usize>,
-) -> String {
-    match (upper, sign, zero_padding, precision) {
+fn exp_string<T: UpperExp + LowerExp>(t: T, upper: bool, options: &ResolvedFormatOptions) -> String {
+    let ResolvedFormatOptions { sign, use_zero_padding, width, precision, .. } = options;
+
+    match (upper, sign, use_zero_padding, precision) {
         (false, false, false, None) => format!("{t:e}"),
         (false, false, true, None) => format!("{t:0width$e}"),
         (false, true, false, None) => format!("{t:+e}"),
@@ -413,18 +333,13 @@ fn exp_string<T: UpperExp + LowerExp>(
     }
 }
 
-fn pipeline_length(
-    value_class: ValueClass,
-    mut value_string: String,
-    align: Option<FormatAlign>,
-    use_zero_padding: bool,
-    width: usize,
-    precision: Option<usize>,
-) -> String {
+fn pipeline_length(value_class: ValueClass, mut value_string: String, options: &ResolvedFormatOptions) -> String {
+    let ResolvedFormatOptions { align, use_zero_padding, width, precision, .. } = options;
+
     let mut chars_count = value_string.chars().count();
 
     if let Some(precision) = precision
-        && chars_count > precision
+        && chars_count > *precision
         && value_class == ValueClass::Misc
     {
         let chars_to_pop = chars_count - precision;
@@ -442,7 +357,7 @@ fn pipeline_length(
         ValueClass::Misc => true,
     };
 
-    match apply_width && chars_count < width {
+    match apply_width && chars_count < *width {
         false => value_string,
         true => {
             let align = align.unwrap_or_else(|| FormatAlign {

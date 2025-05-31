@@ -186,33 +186,3 @@ fn alternate_form_zero_padding() {
     assert_evaluate!("0000000f", "{:08x}", 15);
     assert_evaluate!("---0xf", "{:->#6x}", 15);
 }
-
-// #[test]
-// fn tuple_debug() {
-//     assert_evaluate!("(3, 4)", "{:?}", (3, 4));
-// }
-
-// #[test]
-// fn tuple_debug_passes_format_options() {
-//     assert_evaluate!("(\n\t0x1--,\n\t0x1--,\n)", "{:-<#5x?}", (1, 1));
-//     // multiple levels even
-//     assert_evaluate!(
-//         "(\n(\n\t\t0x1--,\n\t\t0x2--,\n\t),\n\t0x3--,\n)",
-//         "{:-<#5x?}",
-//         ((1, 2), 3)
-//     );
-// }
-
-// #[test]
-// fn tuple_debug_pretty() {
-//     assert_evaluate!("(\n\t3,\n\t4,\n)", "{:?}", (3, 4));
-// }
-
-// TODO:
-// pointer string permutations?
-//
-// list_debug
-// list_debug_pretty
-
-// type_debug
-// type_debug_pretty
