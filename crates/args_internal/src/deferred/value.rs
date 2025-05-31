@@ -67,7 +67,7 @@ struct EvaluationContext {
 }
 
 impl<'a> DeferredValue<'a> {
-    pub fn evaluate(
+    pub(crate) fn evaluate(
         &self,
         string_buffer: &mut String,
         format_options: &FormatOptions,

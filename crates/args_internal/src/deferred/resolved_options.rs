@@ -2,7 +2,7 @@ use strum::IntoDiscriminant;
 
 use crate::*;
 
-pub struct ResolvedFormatOptions {
+pub(crate) struct ResolvedFormatOptions {
     pub(super) align: Option<FormatAlign>,
     pub(super) sign: bool,
     pub(super) use_alternate_form: bool,
@@ -13,7 +13,7 @@ pub struct ResolvedFormatOptions {
 }
 
 impl ResolvedFormatOptions {
-    pub fn resolve(
+    pub(crate) fn resolve(
         format_options: &FormatOptions,
         provided_args: &DeferredProvidedArgs,
     ) -> Result<Self, DeferredFormatError> {
