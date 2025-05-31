@@ -145,10 +145,7 @@ impl<'a> DeferredValue<'a> {
             DeferredValue::F64(value) => float_string(self.discriminant(), value, options)?,
             DeferredValue::List(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    match options.use_alternate_form {
-                        true => todo!(),
-                        false => todo!(),
-                    }
+                    return structure_string(string_buffer, values, evaluation_context, options, '[', ']');
                 }
                 FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
@@ -160,7 +157,7 @@ impl<'a> DeferredValue<'a> {
             },
             DeferredValue::Tuple(values) => match format_trait {
                 FormatTrait::Debug | FormatTrait::DebugLowerHex | FormatTrait::DebugUpperHex => {
-                    return tuple_string(string_buffer, values, evaluation_context, options);
+                    return structure_string(string_buffer, values, evaluation_context, options, '(', ')');
                 }
                 FormatTrait::Pointer => pointer_string(values, options),
                 _ => {
@@ -345,15 +342,17 @@ fn exp_string<T: UpperExp + LowerExp>(t: T, upper: bool, options: &ResolvedForma
     }
 }
 
-fn tuple_string(
+fn structure_string(
     string_buffer: &mut String,
     elements: &[DeferredValue],
     evaluation_context: &mut EvaluationContext,
     options: &ResolvedFormatOptions,
+    opening_char: char,
+    closing_char: char,
 ) -> Result<(), DeferredFormatError> {
     let pretty = options.use_alternate_form;
 
-    string_buffer.push('(');
+    string_buffer.push(opening_char);
 
     if pretty {
         string_buffer.push('\n');
@@ -380,7 +379,7 @@ fn tuple_string(
         (0..evaluation_context.indentation).for_each(|_| string_buffer.push('\t'));
     }
 
-    string_buffer.push(')');
+    string_buffer.push(closing_char);
 
     Ok(())
 }
