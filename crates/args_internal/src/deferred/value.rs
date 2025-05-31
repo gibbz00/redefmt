@@ -179,7 +179,15 @@ impl<'a> DeferredValue<'a> {
             },
         };
 
-        let value_string = pipeline_width(self.value_class(), value_string, align, use_zero_padding, width);
+        let value_string = pipeline_length(
+            self.value_class(),
+            value_string,
+            align,
+            use_zero_padding,
+            width,
+            precision,
+        );
+
         string_buffer.push_str(&value_string);
 
         Ok(())
@@ -317,8 +325,8 @@ fn integer_string<T: Display + Binary + LowerHex + UpperHex + Octal + LowerExp +
         (_, _, _, FormatTrait::Pointer) => pointer_string(numeric, width, format_options),
         (false, _, false, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric}"),
         (false, _, true, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric:0width$}"),
-        (true, _, true, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric:+}"),
-        (true, _, false, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric:+0width$}"),
+        (true, _, false, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric:+}"),
+        (true, _, true, FormatTrait::Display | FormatTrait::Debug) => format!("{numeric:+0width$}"),
         (false, false, false, FormatTrait::DebugUpperHex | FormatTrait::UpperHex) => format!("{numeric:X}"),
         (false, false, true, FormatTrait::DebugUpperHex | FormatTrait::UpperHex) => format!("{numeric:0width$X}"),
         (false, true, false, FormatTrait::DebugUpperHex | FormatTrait::UpperHex) => format!("{numeric:#X}"),
@@ -405,20 +413,34 @@ fn exp_string<T: UpperExp + LowerExp>(
     }
 }
 
-fn pipeline_width(
+fn pipeline_length(
     value_class: ValueClass,
     mut value_string: String,
     align: Option<FormatAlign>,
     use_zero_padding: bool,
     width: usize,
+    precision: Option<usize>,
 ) -> String {
+    let mut chars_count = value_string.chars().count();
+
+    if let Some(precision) = precision
+        && chars_count > precision
+        && value_class == ValueClass::Misc
+    {
+        let chars_to_pop = chars_count - precision;
+
+        (0..chars_to_pop).for_each(|_| {
+            value_string.pop();
+        });
+
+        chars_count -= chars_to_pop;
+    }
+
     let apply_width = match value_class {
         ValueClass::Numeric => !use_zero_padding,
         ValueClass::Structure => false,
         ValueClass::Misc => true,
     };
-
-    let chars_count = value_string.chars().count();
 
     match apply_width && chars_count < width {
         false => value_string,
@@ -436,9 +458,8 @@ fn pipeline_width(
 
             match align.alignment {
                 Alignment::Left => {
-                    let mut padded_string = core::iter::repeat_n(pad_char, pad_count).collect::<String>();
-                    padded_string.push_str(&value_string);
-                    padded_string
+                    (0..pad_count).for_each(|_| value_string.push(pad_char));
+                    value_string
                 }
                 Alignment::Center => {
                     let left_pad_count = pad_count / 2;
@@ -446,13 +467,14 @@ fn pipeline_width(
 
                     let mut padded_string = core::iter::repeat_n(pad_char, left_pad_count).collect::<String>();
                     padded_string.push_str(&value_string);
-                    (0..right_pad_count).for_each(|_| value_string.push(pad_char));
+                    (0..right_pad_count).for_each(|_| padded_string.push(pad_char));
 
                     padded_string
                 }
                 Alignment::Right => {
-                    (0..pad_count).for_each(|_| value_string.push(pad_char));
-                    value_string
+                    let mut padded_string = core::iter::repeat_n(pad_char, pad_count).collect::<String>();
+                    padded_string.push_str(&value_string);
+                    padded_string
                 }
             }
         }
