@@ -24,6 +24,7 @@ impl<'a> FormatString<'a> {
         &self.segments
     }
 
+    #[cfg(feature = "syn")]
     pub(crate) fn collect_args_mut(&mut self) -> Vec<&mut FormatArgument<'a>> {
         let mut format_string_args = Vec::new();
         let mut next_index = 0;

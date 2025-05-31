@@ -1,8 +1,6 @@
 use alloc::{borrow::Cow, string::ToString};
 use core::fmt::{Debug, Display};
 
-use check_keyword::CheckKeyword;
-
 use crate::*;
 
 /// Non-raw identifier or keyword
@@ -25,10 +23,13 @@ impl<'a> ArgumentIdentifier<'a> {
     }
 
     /// Makes `AnyIdentifier` raw is the identifier is a keyword
+    #[cfg(feature = "syn")]
     pub(crate) fn into_safe_any(self) -> AnyIdentifier<'a> {
+        use check_keyword::CheckKeyword;
         AnyIdentifier { raw: self.is_keyword(), inner: self.inner }
     }
 
+    #[cfg(feature = "syn")]
     pub(crate) fn into_any(self) -> AnyIdentifier<'a> {
         AnyIdentifier { raw: false, inner: self.inner }
     }
