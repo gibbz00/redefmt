@@ -12,11 +12,11 @@ pub struct DeferredProvidedArgs<'v> {
 
 impl<'v> DeferredProvidedArgs<'v> {
     pub fn new(
-        positional: Vec<DeferredValue<'v>>,
+        positional: impl IntoIterator<Item = DeferredValue<'v>>,
         named: impl IntoIterator<Item = (AnyIdentifier<'v>, DeferredValue<'v>)>,
     ) -> Self {
         Self {
-            positional,
+            positional: positional.into_iter().collect(),
             named: named
                 .into_iter()
                 .map(|(identifier, value)| (identifier.unraw(), value))
