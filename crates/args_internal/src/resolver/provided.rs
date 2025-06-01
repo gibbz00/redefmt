@@ -7,11 +7,36 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq)]
 #[impl_tools::autoimpl(Default)]
 pub struct ProvidedArgs<'a, E> {
-    pub positional: Vec<E>,
-    pub named: Vec<(AnyIdentifier<'a>, E)>,
+    pub(crate) positional: Vec<E>,
+    pub(crate) named: Vec<(AnyIdentifier<'a>, E)>,
 }
 
-impl<E> ProvidedArgs<'_, E> {
+#[derive(Debug, thiserror::Error)]
+pub enum ProvidedArgsError {
+    #[error("duplicate argument names not allowed, namely: {0}")]
+    ProvidedDuplicate(ArgumentIdentifier<'static>),
+}
+
+impl<'a, E> ProvidedArgs<'a, E> {
+    /// Verifies that all named arguments are unique in their unrawed form
+    ///
+    /// `x = 10, r#x = 20` counts in other words as a duplicate match.
+    pub fn new(positional: Vec<E>, named: Vec<(AnyIdentifier<'a>, E)>) -> Result<Self, ProvidedArgsError> {
+        let mut registered_named_args = HashSet::new();
+
+        for (name, _) in &named {
+            let unrawed_name = name.clone().unraw();
+
+            if registered_named_args.contains(&unrawed_name) {
+                return Err(ProvidedArgsError::ProvidedDuplicate(unrawed_name.owned()));
+            } else {
+                registered_named_args.insert(unrawed_name);
+            }
+        }
+
+        Ok(Self { positional, named })
+    }
+
     pub fn expressions(&self) -> impl Iterator<Item = &E> {
         let positional_iter = self.positional.iter();
         let named_iter = self.named.iter().map(|(_, expr)| expr);
@@ -20,11 +45,13 @@ impl<E> ProvidedArgs<'_, E> {
     }
 }
 
+#[cfg(feature = "syn")]
 impl syn::parse::Parse for ProvidedArgs<'static, syn::Expr> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut positional_args = Vec::new();
+        use alloc::string::ToString;
+
+        let mut positional = Vec::new();
         let mut named = Vec::new();
-        let mut registered_named_args = HashSet::new();
 
         loop {
             if input.is_empty() {
@@ -34,30 +61,20 @@ impl syn::parse::Parse for ProvidedArgs<'static, syn::Expr> {
             // named before positional so to not parse `x` in `x = 10` as a positional argument
             if input.peek2(syn::Token![=]) {
                 let name: AnyIdentifier = input.parse()?;
-                let eq_token = input.parse::<syn::Token![=]>()?;
+                let _ = input.parse::<syn::Token![=]>()?;
                 let value = input.parse()?;
 
-                // unraw because `x = 10, r#x = 20` should count as duplicate identifiers
-                let unrawed_name = name.clone().unraw();
-
-                if registered_named_args.contains(&unrawed_name) {
-                    // IMPROVEMENT: span points to `name`
-                    return Err(syn::Error::new(eq_token.span, "duplicate argument names not allowed"));
-                } else {
-                    named.push((name, value));
-                    registered_named_args.insert(unrawed_name);
-                }
+                named.push((name, value));
             } else {
                 let positional_arg = input.parse()?;
 
                 if !named.is_empty() {
                     return Err(syn::Error::new(
-                        // IMPROVEMENT: span points to `positional arg`
                         input.span(),
                         "positional arguments can not follow named arguments",
                     ));
                 } else {
-                    positional_args.push(positional_arg);
+                    positional.push(positional_arg);
                 }
             }
 
@@ -66,7 +83,8 @@ impl syn::parse::Parse for ProvidedArgs<'static, syn::Expr> {
             }
         }
 
-        Ok(Self { positional: positional_args, named })
+        // IMPROVEMENT: span points to argument that emitted error?
+        Self::new(positional, named).map_err(|err| syn::Error::new(input.span(), err.to_string()))
     }
 }
 
@@ -75,6 +93,22 @@ mod tests {
     use syn::parse_quote;
 
     use super::*;
+
+    // constructor tests
+
+    #[test]
+    #[should_panic]
+    fn duplicate_name_error() {
+        let _: ProvidedArgs<_> = parse_quote!(x = 10, x = 20);
+    }
+
+    #[test]
+    #[should_panic]
+    fn duplicate_name_error_when_raw() {
+        let _: ProvidedArgs<_> = parse_quote!(x = 10, r#x = 20);
+    }
+
+    // syn parse tests
 
     #[test]
     fn parse_empty() {
@@ -125,18 +159,6 @@ mod tests {
     #[should_panic]
     fn positional_after_named_error() {
         let _: ProvidedArgs<_> = parse_quote!(x = 10, "x");
-    }
-
-    #[test]
-    #[should_panic]
-    fn duplicate_name_error() {
-        let _: ProvidedArgs<_> = parse_quote!(x = 10, x = 20);
-    }
-
-    #[test]
-    #[should_panic]
-    fn duplicate_name_error_when_raw() {
-        let _: ProvidedArgs<_> = parse_quote!(x = 10, r#x = 20);
     }
 
     fn mock_positional() -> Vec<syn::Expr> {
