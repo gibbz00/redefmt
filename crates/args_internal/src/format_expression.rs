@@ -26,6 +26,7 @@ impl<'a, E> FormatExpression<'a, E> {
     }
 }
 
+#[cfg(feature = "syn")]
 impl syn::parse::Parse for FormatExpression<'static, syn::Expr> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let comma = syn::Token![,];
