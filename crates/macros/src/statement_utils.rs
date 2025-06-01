@@ -4,7 +4,10 @@ use redefmt_db::statement_table::stored_format_expression::StoredFormatExpressio
 pub struct StatementUtils;
 
 impl StatementUtils {
-    pub fn prepare_stored(format_expression: FormatExpression, append_newline: bool) -> StoredFormatExpression {
+    pub fn prepare_stored(
+        format_expression: FormatExpression<syn::Expr>,
+        append_newline: bool,
+    ) -> StoredFormatExpression {
         let (deferred_format_expression, provided_args) = format_expression.defer();
 
         StoredFormatExpression {
