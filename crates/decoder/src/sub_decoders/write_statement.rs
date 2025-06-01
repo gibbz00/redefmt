@@ -60,9 +60,10 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     return Ok(None);
                 }
 
+                // flatten stored expression to avoid leaking db crate in public API
                 Ok(Some(Value::NestedFormatExpression {
-                    expression: segment_decoder.stored_expression.expression(),
-                    append_newline: *segment_decoder.stored_expression.append_newline(),
+                    expression: &segment_decoder.stored_expression.expression,
+                    append_newline: segment_decoder.stored_expression.append_newline,
                     decoded_values: segment_decoder.decoded_args,
                 }))
             }
