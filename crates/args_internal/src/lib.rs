@@ -15,8 +15,8 @@ pub(crate) use format_string::*;
 mod provided_args;
 pub(crate) use provided_args::ProvidedArgs;
 
-pub mod resolver;
-pub(crate) use resolver::*;
+pub mod processor;
+pub(crate) use processor::*;
 
 mod format_expression;
 pub use format_expression::FormatExpression;

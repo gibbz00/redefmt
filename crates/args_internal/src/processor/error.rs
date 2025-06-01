@@ -1,7 +1,7 @@
 use alloc::string::String;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
-pub enum ResolveArgsError {
+pub enum ProcessorError {
     #[error("invalid positional argument {0}, provided {1}, positional argument are zero-based")]
     InvalidStringPositional(usize, usize),
     #[error("provided {0} unused positional arguments")]
