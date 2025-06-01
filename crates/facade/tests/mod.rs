@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use redefmt::{Level, logger::GlobalLogger};
-use redefmt_args::deferred_format_expression;
+use redefmt_args::deferred_format_string;
 use redefmt_core::codec::encoding::SharedTestDispatcher;
 use redefmt_decoder::{RedefmtDecoder, RedefmtDecoderCache, RedefmtFrame};
 use tokio_util::codec::Decoder;
@@ -22,7 +22,7 @@ macro_rules! assert_end_to_end {
             stamp: None,
             file_name: file!(),
             file_line: 18,
-            format_expression: &deferred_format_expression!($($arg)*),
+            format_string: &deferred_format_string!($($arg)*),
             append_newline: $append_newline,
             decoded_values: Default::default(),
         };

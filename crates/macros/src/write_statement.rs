@@ -12,18 +12,18 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
 
     let db_clients = db_clients!(span);
 
-    let (deferred_format_expression, provided_args) = format_expression.dissolve();
+    let (deferred_format_string, provided_args) = format_expression.dissolve();
 
-    let (format_argument_expressions, provided_identifiers) = provided_args.dissolve_expressions();
+    let (provided_args, provided_identifiers) = provided_args.dissolve_expressions();
 
-    let format_expression = StatementUtils::prepare_stored(
-        deferred_format_expression,
-        format_argument_expressions.len(),
+    let stored_expression = StatementUtils::prepare_stored(
+        deferred_format_string,
+        provided_args.len(),
         provided_identifiers,
         append_newline,
     );
 
-    let write_statement = WriteStatement::FormatExpression(format_expression);
+    let write_statement = WriteStatement::FormatExpression(stored_expression);
 
     let write_id_expr = { register_write_statement!(&db_clients, &write_statement, &formatter_ident, span) };
 
@@ -34,7 +34,7 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
             #[allow(unused_must_use)]
             {
                 #(
-                  #format_argument_expressions.fmt(#formatter_ident);
+                  #provided_args.fmt(#formatter_ident);
                 )*
             }
         }

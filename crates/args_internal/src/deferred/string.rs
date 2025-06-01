@@ -2,15 +2,15 @@ use alloc::string::String;
 
 use crate::*;
 
+// Format string has been passed through argument resolver
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DeferredFormatExpression<'a> {
-    // Format string has been passed through argument resolver
+pub struct DeferredFormatString<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
     pub(crate) format_string: FormatString<'a>,
 }
 
-impl<'a> DeferredFormatExpression<'a> {
+impl<'a> DeferredFormatString<'a> {
     pub fn evaluate<'v>(&self, provided_args: &DeferredProvidedArgs<'v>) -> Result<String, DeferredFormatError> {
         let mut string = String::new();
 
@@ -44,7 +44,7 @@ impl<'a> DeferredFormatExpression<'a> {
 }
 
 #[cfg(feature = "quote")]
-impl quote::ToTokens for DeferredFormatExpression<'_> {
+impl quote::ToTokens for DeferredFormatString<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let format_string = &self.format_string;
 
@@ -53,7 +53,7 @@ impl quote::ToTokens for DeferredFormatExpression<'_> {
         let format_expression_tokens = quote::quote! {
             unsafe {
                 #[doc = #DOC_MESSAGE]
-                ::redefmt_args::deferred::DeferredFormatExpression::new_unchecked(
+                ::redefmt_args::deferred::DeferredFormatString::new_unchecked(
                     #format_string,
                 )
             }
