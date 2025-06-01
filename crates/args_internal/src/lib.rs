@@ -12,9 +12,6 @@ pub(crate) use identifier::*;
 pub mod format_string;
 pub(crate) use format_string::*;
 
-mod provided_args;
-pub(crate) use provided_args::ProvidedArgs;
-
 pub mod processor;
 pub(crate) use processor::*;
 

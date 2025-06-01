@@ -1,8 +1,20 @@
 use crate::*;
 
-/// Configure the format processor when constructing [`ProcessedFormatString`]
+/// Configuration for [`FormatProcessor::process_dynamic`]
+pub struct DynamicProcessorConfig {
+    /// Defaults to false to provide compatibility with Rust's `format_args!` error handling.
+    ///
+    /// Can for example be useful to disable if an library provided a collection
+    /// arguments, but where the library user is only interested in printing
+    /// some.
+    pub disable_unused_named_check: bool,
+    /// See [`Self::disable_unused_named_check`]
+    pub disable_unused_positional_check: bool,
+}
+
+/// Configuration for [`FormatProcessor::process_static`]
 #[impl_tools::autoimpl(Default)]
-pub struct ProcessorConfig<C: ArgCapturer> {
+pub struct StaticProcessorConfig<C: ArgCapturer> {
     /// Configure a format argument capturer in order to provide functional
     /// parity with Rust's [format argument capturing][format_args_capture].
     ///
@@ -24,14 +36,7 @@ pub struct ProcessorConfig<C: ArgCapturer> {
     pub disable_unused_named_check: bool,
     /// See [`Self::disable_unused_named_check`]
     pub disable_unused_positional_check: bool,
-    /// Opt out of merging of any arguments whose values are the same.
-    ///
-    /// Improves bandwidth at the cost of upfront computation if it can be
-    /// guaranteed that the values used during resolution are the same as those
-    /// used during format expression evaluation. Disabling this is required for
-    /// format expressions which are expected to be reused for a different sets
-    /// of values.
-    ///
+    /// Opt out of value compaction
     /// # Illustrative example if enabled:
     ///
     /// Compaction is done in three steps:
