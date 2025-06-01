@@ -35,13 +35,12 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
             resolver = resolver.check_unused_provided_positionals()?;
         }
 
-        resolver
-            // needs to be done before any merging as it effectively normalizes identifiers
-            .unmove_idents(resolver_config)
-            // deduplication steps
-            .merge_named()
-            .merge_positional()
-            .reuse_named_in_positional();
+        // needs to be done before any compaction as it effectively normalizes identifiers
+        resolver = resolver.unmove_idents(resolver_config);
+
+        if !resolver_config.disable_compaction {
+            resolver.merge_named().merge_positional().reuse_named_in_positional();
+        }
 
         Ok(())
     }
@@ -162,12 +161,6 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         Ok(Self { format_string_args, provided_args })
     }
 
-    // ```rust
-    // let a = "x";
-    // let before = format!("{0} {1} {2} {3}", 1, a, 1, a);
-    // let after = format!("{0} {1} {0} {1}", 1, a);
-    // assert_eq!(before, after);
-    // ```
     fn merge_positional(self) -> Self {
         let Self { mut format_string_args, provided_args } = self;
 
@@ -191,12 +184,6 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         Self { format_string_args, provided_args }
     }
 
-    // ```rust
-    // let a = 10;
-    // let before = format!("{x} {y}", x = a, y = a);
-    // let after = format!("{x} {x}", x = a);
-    // assert_eq!(before, after);
-    // ```
     fn merge_named(self) -> Self {
         let Self { mut format_string_args, provided_args } = self;
 
@@ -232,11 +219,6 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         Self { format_string_args, provided_args }
     }
 
-    // ```rust
-    // let before = format!("{0} {x}", 1, x = 1);
-    // let after = format!("{0} {0}", 1);
-    // assert_eq!(before, after);
-    // ```
     fn reuse_named_in_positional(self) -> Self {
         let Self { mut format_string_args, provided_args } = self;
         for positional_index in (0..provided_args.positional.len()).rev() {

@@ -24,4 +24,41 @@ pub struct ResolverConfig<C: ArgCapturer> {
     pub disable_unused_named_check: bool,
     /// See [`Self::disable_unused_named_check`]
     pub disable_unused_positional_check: bool,
+    /// Opt out of merging of any arguments whose values are the same.
+    ///
+    /// Improves bandwidth at the cost of upfront computation if it can be
+    /// guaranteed that the values used during resolution are the same as those
+    /// used during format expression evaluation. Disabling this is required for
+    /// format expressions which are expected to be reused for a different sets
+    /// of values.
+    ///
+    /// # Illustrative example if enabled:
+    ///
+    /// Compaction is done in three steps:
+    ///
+    /// ## Named Argument Compaction
+    ///
+    /// ```rust
+    /// let a = 10;
+    /// let before = format!("{x} {y}", x = a, y = a);
+    /// let after = format!("{x} {x}", x = a);
+    /// assert_eq!(before, after);
+    /// ```
+    ///
+    /// ## Positional Argument Compaction
+    ///
+    /// ```rust
+    /// let before = format!("{0} {1} {2} {3}", 1, 2, 1, 2);
+    /// let after = format!("{0} {1} {0} {1}", 1, 2);
+    /// assert_eq!(before, after);
+    /// ```
+    ///
+    /// ## Positional with Named Argument Compaction
+    ///
+    /// ```rust
+    /// let before = format!("{0} {x}", 1, x = 1);
+    /// let after = format!("{0} {0}", 1);
+    /// assert_eq!(before, after);
+    /// ```
+    pub disable_compaction: bool,
 }
