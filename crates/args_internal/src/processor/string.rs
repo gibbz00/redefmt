@@ -49,7 +49,7 @@ impl quote::ToTokens for ProcessedFormatString<'_> {
         let format_expression_tokens = quote::quote! {
             unsafe {
                 #[doc = #DOC_MESSAGE]
-                ::redefmt_args::deferred::ProcessedFormatString::new_unchecked(
+                ::redefmt_args::processor::ProcessedFormatString::new_unchecked(
                     #format_string,
                 )
             }

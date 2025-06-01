@@ -1,4 +1,4 @@
-use redefmt_args::{deferred::ProcessedFormatString, identifier::AnyIdentifier};
+use redefmt_args::{identifier::AnyIdentifier, processor::ProcessedFormatString};
 use redefmt_db::statement_table::stored_format_expression::StoredFormatExpression;
 
 #[derive(Debug, Default, PartialEq)]

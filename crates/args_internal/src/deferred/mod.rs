@@ -1,6 +1,3 @@
-mod string;
-pub use string::ProcessedFormatString;
-
 mod provided_args;
 pub use provided_args::DeferredProvidedArgs;
 

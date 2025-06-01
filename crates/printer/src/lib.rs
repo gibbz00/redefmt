@@ -9,9 +9,12 @@ pub(crate) use configuration::*;
 mod pretty {
     use std::io::Write;
 
-    use redefmt_args::deferred::{
-        DeferredFormatError, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant,
-        DeferredValue, ProcessedFormatString,
+    use redefmt_args::{
+        deferred::{
+            DeferredFormatError, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant,
+            DeferredValue,
+        },
+        processor::ProcessedFormatString,
     };
     use redefmt_decoder::{
         RedefmtFrame,

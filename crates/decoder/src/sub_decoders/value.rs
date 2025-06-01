@@ -220,7 +220,7 @@ impl<'cache> ValueDecoder<'cache> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{deferred_format_string, identifier::AnyIdentifier};
+    use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
     use redefmt_core::{
         codec::encoding::{SimpleTestDispatcher, WriteValue},
         identifiers::WriteStatementId,
@@ -360,7 +360,7 @@ mod tests {
         let (_dir_guard, stores) = Stores::mock(&cache);
 
         // input
-        let format_string = deferred_format_string!("x = {}", x = x);
+        let format_string = processed_format_string!("x = {}", x = x);
 
         let arg_name = AnyIdentifier::parse("x").unwrap();
         let arg_value = true;

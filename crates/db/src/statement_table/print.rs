@@ -30,7 +30,7 @@ pub struct Location<'a> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{deferred::ProcessedFormatString, deferred_format_string};
+    use redefmt_args::{processed_format_string, processor::ProcessedFormatString};
 
     use super::*;
 
@@ -44,14 +44,14 @@ mod tests {
         fn mock() -> Self {
             PrintStatement {
                 location: mock_location(),
-                stored_expression: mock_stored_expression(deferred_format_string!("x")),
+                stored_expression: mock_stored_expression(processed_format_string!("x")),
             }
         }
 
         fn mock_other() -> Self {
             PrintStatement {
                 location: mock_location(),
-                stored_expression: mock_stored_expression(deferred_format_string!("y")),
+                stored_expression: mock_stored_expression(processed_format_string!("y")),
             }
         }
     }

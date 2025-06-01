@@ -41,7 +41,7 @@ pub enum StructVariant {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{deferred::ProcessedFormatString, deferred_format_string};
+    use redefmt_args::{processed_format_string, processor::ProcessedFormatString};
 
     use super::*;
 
@@ -53,11 +53,11 @@ mod tests {
         }
 
         fn mock() -> Self {
-            WriteStatement::FormatExpression(mock_stored_expression(deferred_format_string!("x")))
+            WriteStatement::FormatExpression(mock_stored_expression(processed_format_string!("x")))
         }
 
         fn mock_other() -> Self {
-            WriteStatement::FormatExpression(mock_stored_expression(deferred_format_string!("y")))
+            WriteStatement::FormatExpression(mock_stored_expression(processed_format_string!("y")))
         }
     }
 
