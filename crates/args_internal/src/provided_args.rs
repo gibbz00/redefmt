@@ -1,67 +1,17 @@
 use alloc::vec::Vec;
 
-use hashbrown::HashSet;
-
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq)]
 #[impl_tools::autoimpl(Default)]
 pub struct ProvidedArgs<'a, E> {
-    pub(crate) positional: Vec<E>,
-    pub(crate) named: Vec<(AnyIdentifier<'a>, E)>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ProvidedArgsError {
-    #[error("duplicate argument names not allowed, namely: {0}")]
-    ProvidedDuplicate(ArgumentIdentifier<'static>),
-}
-
-impl<'a, E> ProvidedArgs<'a, E> {
-    /// Verifies that all named arguments are unique in their unrawed form
-    ///
-    /// `x = 10, r#x = 20` counts in other words as a duplicate match.
-    pub fn new(positional: Vec<E>, named: Vec<(AnyIdentifier<'a>, E)>) -> Result<Self, ProvidedArgsError> {
-        let mut registered_named_args = HashSet::new();
-
-        for (name, _) in &named {
-            let unrawed_name = name.clone().unraw();
-
-            if registered_named_args.contains(&unrawed_name) {
-                return Err(ProvidedArgsError::ProvidedDuplicate(unrawed_name.owned()));
-            } else {
-                registered_named_args.insert(unrawed_name);
-            }
-        }
-
-        Ok(Self { positional, named })
-    }
-
-    pub fn dissolve_into_args(self) -> (Vec<E>, Vec<(AnyIdentifier<'a>, E)>) {
-        (self.positional, self.named)
-    }
-
-    pub fn dissolve_into_expressions(self) -> (Vec<E>, Vec<AnyIdentifier<'a>>) {
-        let mut expressions = self.positional.into_iter().collect::<Vec<_>>();
-
-        let identifiers = self
-            .named
-            .into_iter()
-            .map(|(identifier, expr)| {
-                expressions.push(expr);
-                identifier
-            })
-            .collect();
-
-        (expressions, identifiers)
-    }
+    pub positional: Vec<E>,
+    pub named: Vec<(AnyIdentifier<'a>, E)>,
 }
 
 #[cfg(feature = "syn")]
 impl syn::parse::Parse for ProvidedArgs<'static, syn::Expr> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        use alloc::string::ToString;
-
         let mut positional = Vec::new();
         let mut named = Vec::new();
 
@@ -95,8 +45,7 @@ impl syn::parse::Parse for ProvidedArgs<'static, syn::Expr> {
             }
         }
 
-        // IMPROVEMENT: span points to argument that emitted error?
-        Self::new(positional, named).map_err(|err| syn::Error::new(input.span(), err.to_string()))
+        Ok(Self { positional, named })
     }
 }
 
@@ -105,22 +54,6 @@ mod tests {
     use syn::parse_quote;
 
     use super::*;
-
-    // constructor tests
-
-    #[test]
-    #[should_panic]
-    fn duplicate_name_error() {
-        let _: ProvidedArgs<_> = parse_quote!(x = 10, x = 20);
-    }
-
-    #[test]
-    #[should_panic]
-    fn duplicate_name_error_when_raw() {
-        let _: ProvidedArgs<_> = parse_quote!(x = 10, r#x = 20);
-    }
-
-    // syn parse tests
 
     #[test]
     fn parse_empty() {

@@ -20,6 +20,9 @@ impl FormatProcessor {
     /// let after = format!("{x} {0}", 1, x = 2);
     /// assert_eq!(before, after);
     /// ```
+    ///
+    /// Moreover, all named arguments must be unique in their unrawed form. `x = 10, r#x = 20`
+    /// counts in other words as a duplicate match, and will result in an error.
     pub fn process<'a, E: PartialEq, C: ArgCapturer<Expression = E>>(
         mut format_string: FormatString<'a>,
         provided_args: &mut ProvidedArgs<'a, E>,
@@ -50,7 +53,7 @@ impl<'a, 'aa, E: PartialEq> FormatProcessorImpl<'a, 'aa, E> {
         let provided_named_str_set = resolver.collect_named_set();
 
         resolver = resolver
-            // preparation and validation
+            .validate_provided_arguments()?
             .validate_format_arguments(resolver_config, &provided_named_str_set)?;
 
         if !resolver_config.disable_unused_named_check {
@@ -79,6 +82,22 @@ impl<'a, 'aa, E: PartialEq> FormatProcessorImpl<'a, 'aa, E> {
             // match against both raw and non-raw alternatives
             .map(|(ident, _)| ident.clone().unraw().owned())
             .collect::<HashSet<_>>()
+    }
+
+    fn validate_provided_arguments(self) -> Result<Self, ProcessorError> {
+        let mut registered_named_args = HashSet::new();
+
+        for (name, _) in &self.provided_args.named {
+            let unrawed_name = name.clone().unraw();
+
+            if registered_named_args.contains(&unrawed_name) {
+                return Err(ProcessorError::ProvidedDuplicate(unrawed_name.owned()));
+            } else {
+                registered_named_args.insert(unrawed_name);
+            }
+        }
+
+        Ok(self)
     }
 
     fn validate_format_arguments<C: ArgCapturer<Expression = E>>(
@@ -467,6 +486,24 @@ mod tests {
             parse_quote!(1, 1, x = 1),
             "{x} {x} {x}",
             parse_quote!(x = 1),
+        );
+    }
+
+    #[test]
+    fn provided_duplicate_error() {
+        assert_resolve_err(
+            "{}",
+            parse_quote!(x = 10, x = 20),
+            ProcessorError::ProvidedDuplicate(ArgumentIdentifier::parse("x").unwrap()),
+        );
+    }
+
+    #[test]
+    fn provided_duplicate_error_when_one_raw() {
+        assert_resolve_err(
+            "{}",
+            parse_quote!(x = 10, r#x = 20),
+            ProcessorError::ProvidedDuplicate(ArgumentIdentifier::parse("x").unwrap()),
         );
     }
 
