@@ -10,8 +10,8 @@ mod pretty {
     use std::io::Write;
 
     use redefmt_args::deferred::{
-        DeferredFormatExpression, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant,
-        DeferredValue,
+        DeferredFormatError, DeferredFormatExpression, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue,
+        DeferredTypeVariant, DeferredValue,
     };
     use redefmt_decoder::{
         RedefmtFrame,
@@ -23,7 +23,9 @@ mod pretty {
     #[derive(Debug, thiserror::Error)]
     pub enum RedefmtPrinterError {
         #[error("encountered I/O error when writing to output")]
-        Io(std::io::Error),
+        Io(#[from] std::io::Error),
+        #[error("failed to evaluate format expression")]
+        DeferredFormat(#[from] DeferredFormatError),
     }
 
     pub fn pretty_print_frame(
@@ -41,18 +43,42 @@ mod pretty {
             decoded_values,
         } = redefmt_frame;
 
+        let expression_string = evaluate_expression_string(format_expression, &decoded_values, append_newline);
+
         todo!()
     }
 
-    fn evaluate_expression_recursive(
+    fn evaluate_expression_string(
         expression: &DeferredFormatExpression,
         decoded_values: &DecodedValues,
         append_newline: bool,
     ) -> Result<String, RedefmtPrinterError> {
-        let deferred_values = convert_provided(decoded_values)?;
-        // expression.evaluate(provided_args);
+        let provided_args = convert_provided(decoded_values)?;
+        let mut expression_string = expression.evaluate(&provided_args)?;
 
-        todo!()
+        if append_newline {
+            expression_string.push('\n');
+        }
+
+        Ok(expression_string)
+    }
+
+    fn convert_provided<'v>(
+        decoded_values: &'v DecodedValues,
+    ) -> Result<DeferredProvidedArgs<'v>, RedefmtPrinterError> {
+        let DecodedValues { positional, named } = decoded_values;
+
+        let deferred_positional = convert_values(positional)?;
+        let deferred_named = named
+            .iter()
+            .map(|(identifier, value)| Ok(((*identifier).clone(), convert_value(value)?)))
+            .collect::<Result<Vec<_>, RedefmtPrinterError>>()?;
+
+        Ok(DeferredProvidedArgs::new(deferred_positional, deferred_named))
+    }
+
+    fn convert_values<'v>(decoded_values: &'v [Value]) -> Result<Vec<DeferredValue<'v>>, RedefmtPrinterError> {
+        decoded_values.iter().map(convert_value).collect()
     }
 
     fn convert_value<'v>(decoded_value: &'v Value) -> Result<DeferredValue<'v>, RedefmtPrinterError> {
@@ -91,43 +117,13 @@ mod pretty {
 
                 DeferredValue::Type(DeferredTypeValue { name, variant: deferred_variant })
             }
-            // TODO: recursive decent expand all nested expressions
             Value::NestedFormatExpression { expression, append_newline, decoded_values } => {
-                let pretty_string = evaluate_expression_recursive(expression, decoded_values, *append_newline)?;
+                let pretty_string = evaluate_expression_string(expression, decoded_values, *append_newline)?;
                 DeferredValue::String(pretty_string.into())
             }
         };
 
         Ok(value)
-    }
-
-    fn convert_provided<'v>(
-        decoded_values: &'v DecodedValues,
-    ) -> Result<DeferredProvidedArgs<'v>, RedefmtPrinterError> {
-        let DecodedValues { positional, named } = decoded_values;
-
-        let deferred_positional = convert_values(&positional)?;
-
-        let mut deferred_named = Vec::with_capacity(named.len());
-        for (named_identifier, named_value) in named {
-            let deferred_value = convert_value(&named_value)?;
-            // IMPROVEMENT: remove clone?
-            let name = (*named_identifier).clone();
-            deferred_named.push((name, deferred_value));
-        }
-
-        Ok(DeferredProvidedArgs::new(deferred_positional, deferred_named))
-    }
-
-    fn convert_values<'v>(decoded_values: &'v [Value]) -> Result<Vec<DeferredValue<'v>>, RedefmtPrinterError> {
-        let mut elements = Vec::new();
-
-        for decoded_value in decoded_values {
-            let deferred_value = convert_value(decoded_value)?;
-            elements.push(deferred_value);
-        }
-
-        Ok(elements)
     }
 
     fn convert_struct_variant<'v>(
@@ -136,16 +132,11 @@ mod pretty {
         let deferred_variant = match decoded_struct_variant {
             StructVariantValue::Unit => DeferredStructVariant::Unit,
             StructVariantValue::Tuple(values) => convert_values(values).map(DeferredStructVariant::Tuple)?,
-            StructVariantValue::Named(fields) => {
-                let mut deferred_fields = Vec::new();
-
-                for (field_name, field_value) in fields {
-                    let deferred_value = convert_value(field_value)?;
-                    deferred_fields.push((*field_name, deferred_value));
-                }
-
-                DeferredStructVariant::Named(deferred_fields)
-            }
+            StructVariantValue::Named(fields) => fields
+                .iter()
+                .map(|(field_name, field_value)| Ok((*field_name, convert_value(field_value)?)))
+                .collect::<Result<Vec<_>, RedefmtPrinterError>>()
+                .map(DeferredStructVariant::Named)?,
         };
 
         Ok(deferred_variant)
