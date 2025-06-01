@@ -1,8 +1,10 @@
 use crate::*;
 
-pub trait ArgCapturer<E> {
-    fn capture_identifier(&self, any_identifier: AnyIdentifier<'_>) -> E;
-    fn unmove_expression(&self, expression: &mut E);
+pub trait ArgCapturer {
+    type Expression;
+
+    fn capture_identifier(&self, any_identifier: AnyIdentifier<'_>) -> Self::Expression;
+    fn unmove_expression(&self, expression: &mut Self::Expression);
 }
 
 #[cfg(feature = "syn")]
@@ -11,7 +13,9 @@ mod syn_impl {
 
     pub struct SynArgCapturer;
 
-    impl ArgCapturer<syn::Expr> for SynArgCapturer {
+    impl ArgCapturer for SynArgCapturer {
+        type Expression = syn::Expr;
+
         fn capture_identifier(&self, any_identifier: AnyIdentifier<'_>) -> syn::Expr {
             from_identifier_impl(any_identifier.into())
         }
