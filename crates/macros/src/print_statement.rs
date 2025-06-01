@@ -72,16 +72,7 @@ fn macro_impl(
 ) -> Result<TokenStream2, RedefmtMacroError> {
     let db_clients = DbClients::new()?;
 
-    let (deferred_format_string, provided_args) = format_expression.dissolve();
-
-    let (provided_args, provided_identifiers) = provided_args.dissolve_expressions();
-
-    let stored_expression = StatementUtils::prepare_stored(
-        deferred_format_string,
-        provided_args.len(),
-        provided_identifiers,
-        append_newline,
-    );
+    let (stored_expression, provided_args) = StatementUtils::dissolve_expression(format_expression, append_newline);
 
     let print_statement = PrintStatement { location: location(), stored_expression };
 
