@@ -1,14 +1,17 @@
 mod core;
 pub use core::FormatProcessor;
 
-mod string;
-pub use string::ProcessedFormatString;
+mod provided_args;
+pub(crate) use provided_args::ProvidedStaticArgs;
+
+mod processed;
+pub use processed::ProcessedFormatString;
 
 mod error;
 pub use error::ProcessorError;
 
 mod config;
-pub use config::ProcessorConfig;
+pub use config::{DynamicProcessorConfig, StaticProcessorConfig};
 
 mod arg_capturer;
 pub use arg_capturer::ArgCapturer;

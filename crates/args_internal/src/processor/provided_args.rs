@@ -4,13 +4,13 @@ use crate::*;
 
 #[derive(Debug, Clone, PartialEq)]
 #[impl_tools::autoimpl(Default)]
-pub struct ProvidedArgs<'a, E> {
+pub struct ProvidedStaticArgs<'a, E> {
     pub positional: Vec<E>,
     pub named: Vec<(AnyIdentifier<'a>, E)>,
 }
 
 #[cfg(feature = "syn")]
-impl syn::parse::Parse for ProvidedArgs<'static, syn::Expr> {
+impl syn::parse::Parse for ProvidedStaticArgs<'static, syn::Expr> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut positional = Vec::new();
         let mut named = Vec::new();
@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn parse_empty() {
-        let expected = ProvidedArgs { positional: Default::default(), named: Default::default() };
+        let expected = ProvidedStaticArgs { positional: Default::default(), named: Default::default() };
 
         let actual = parse_quote!();
 
@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn parse_positional() {
-        let expected = ProvidedArgs { positional: mock_positional(), named: Default::default() };
+        let expected = ProvidedStaticArgs { positional: mock_positional(), named: Default::default() };
 
         let actual = parse_quote!(10, a, "y");
 
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn parse_named() {
-        let expected = ProvidedArgs { positional: Default::default(), named: mock_named() };
+        let expected = ProvidedStaticArgs { positional: Default::default(), named: mock_named() };
 
         let actual = parse_quote!(x = 10, match = y);
 
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn parse_combined() {
-        let expected = ProvidedArgs { positional: mock_positional(), named: mock_named() };
+        let expected = ProvidedStaticArgs { positional: mock_positional(), named: mock_named() };
 
         let actual = parse_quote!(10, a, "y", x = 10, match = y);
 
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn parse_with_trailing_comma() {
-        let expected = ProvidedArgs { positional: Default::default(), named: mock_named() };
+        let expected = ProvidedStaticArgs { positional: Default::default(), named: mock_named() };
 
         let actual = parse_quote!(x = 10, match = y,);
 
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn positional_after_named_error() {
-        let _: ProvidedArgs<_> = parse_quote!(x = 10, "x");
+        let _: ProvidedStaticArgs<_> = parse_quote!(x = 10, "x");
     }
 
     fn mock_positional() -> Vec<syn::Expr> {
