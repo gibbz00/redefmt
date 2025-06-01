@@ -8,14 +8,15 @@ pub struct FormatExpression<'a, E> {
 }
 
 impl<'a, E> FormatExpression<'a, E> {
-    pub fn new(
+    pub fn new<C: ArgCapturer<E>>(
         mut format_string: FormatString<'a>,
         mut provided_args: ProvidedArgs<'a, E>,
+        arg_capturer: Option<&C>,
     ) -> Result<Self, ResolveArgsError>
     where
-        E: ProvidedArgExpression + PartialEq,
+        E: PartialEq,
     {
-        ArgumentResolver::resolve(&mut format_string, &mut provided_args)?;
+        ArgumentResolver::resolve(&mut format_string, &mut provided_args, arg_capturer)?;
         Ok(Self { format_string, provided_args })
     }
 
@@ -49,6 +50,7 @@ impl syn::parse::Parse for FormatExpression<'static, syn::Expr> {
             }
         };
 
-        Self::new(format_string, provided_args).map_err(|error| syn::Error::new(input.span(), error))
+        Self::new(format_string, provided_args, Some(&SynArgCapturer))
+            .map_err(|error| syn::Error::new(input.span(), error))
     }
 }

@@ -41,12 +41,15 @@ pub enum ResolveArgsError {
     UnusedPositionals(usize),
     #[error("provided named argument {0} not used in format string")]
     UnusedNamed(String),
+    #[error("missing named argument {0} in provided arguments")]
+    MissingNamed(String),
 }
 
-impl<'a, 'aa, E: ProvidedArgExpression + PartialEq> ArgumentResolver<'a, 'aa, E> {
-    pub(crate) fn resolve(
+impl<'a, 'aa, E: PartialEq> ArgumentResolver<'a, 'aa, E> {
+    pub(crate) fn resolve<C: ArgCapturer<E>>(
         format_string: &'aa mut FormatString<'a>,
         provided_args: &'aa mut ProvidedArgs<'a, E>,
+        arg_capturer: Option<&C>,
     ) -> Result<(), ResolveArgsError> {
         let this = Self { format_string_args: format_string.collect_args_mut(), provided_args };
 
@@ -58,11 +61,11 @@ impl<'a, 'aa, E: ProvidedArgExpression + PartialEq> ArgumentResolver<'a, 'aa, E>
 
         this
             // preparation and validation
-            .capture_and_validate_format_arguments(&provided_named_str_set)?
+            .capture_and_validate_format_arguments(&provided_named_str_set, arg_capturer)?
             .check_unused_provided_named(&provided_named_str_set)?
             .check_unused_provided_positionals()?
             // needs to be done before any merging as it effectively normalizes identifiers
-            .unmove_idents()
+            .unmove_idents(arg_capturer)
             // deduplication steps
             .merge_named()
             .merge_positional()
@@ -81,9 +84,10 @@ impl<'a, 'aa, E: ProvidedArgExpression + PartialEq> ArgumentResolver<'a, 'aa, E>
             .collect::<HashSet<_>>()
     }
 
-    fn capture_and_validate_format_arguments(
+    fn capture_and_validate_format_arguments<C: ArgCapturer<E>>(
         self,
         provided_named_str_set: &HashSet<ArgumentIdentifier>,
+        arg_capturer: Option<&C>,
     ) -> Result<Self, ResolveArgsError> {
         let Self { mut format_string_args, provided_args } = self;
 
@@ -107,15 +111,18 @@ impl<'a, 'aa, E: ProvidedArgExpression + PartialEq> ArgumentResolver<'a, 'aa, E>
                     }
                 }
                 FormatArgument::Identifier(identifier) => {
-                    // capture missing arguments
                     if !provided_named_str_set.contains(identifier) {
-                        let captured_name = identifier.clone().into_any();
+                        if let Some(arg_capturer) = arg_capturer {
+                            let captured_name = identifier.clone().into_any();
 
-                        let captured_identifier = identifier.clone().into_safe_any();
+                            let captured_identifier = identifier.clone().into_safe_any();
 
-                        let captured_variable = E::from_identifier(captured_identifier);
+                            let captured_variable = arg_capturer.capture_identifier(captured_identifier);
 
-                        provided_args.named.push((captured_name, captured_variable));
+                            provided_args.named.push((captured_name, captured_variable));
+                        } else {
+                            return Err(ResolveArgsError::MissingNamed(identifier.to_string()));
+                        }
                     };
                 }
             }
@@ -133,13 +140,17 @@ impl<'a, 'aa, E: ProvidedArgExpression + PartialEq> ArgumentResolver<'a, 'aa, E>
     // ```
     //
     // Because the print statement i transformed into: `print!("{} {x}", &x, x = &x);`
-    fn unmove_idents(self) -> Self {
-        self.provided_args.positional.iter_mut().for_each(E::unmove_expression);
+    fn unmove_idents<C: ArgCapturer<E>>(self, arg_capturer: Option<&C>) -> Self {
+        if let Some(arg_capturer) = arg_capturer {
+            self.provided_args.positional.iter_mut().for_each(|expr| {
+                arg_capturer.unmove_expression(expr);
+            });
 
-        self.provided_args
-            .named
-            .iter_mut()
-            .for_each(|(_, expr)| expr.unmove_expression());
+            self.provided_args
+                .named
+                .iter_mut()
+                .for_each(|(_, expr)| arg_capturer.unmove_expression(expr));
+        }
 
         self
     }
@@ -559,7 +570,7 @@ mod tests {
         let mut format_string = FormatString::parse(format_str).unwrap();
         let expected_format_string = FormatString::parse(expected_format_str).unwrap();
 
-        ArgumentResolver::resolve(&mut format_string, &mut provided_args).unwrap();
+        ArgumentResolver::resolve(&mut format_string, &mut provided_args, Some(&SynArgCapturer)).unwrap();
 
         assert_eq!(expected_format_string, format_string);
         assert_eq!(expected_provided_args, provided_args);
@@ -568,7 +579,7 @@ mod tests {
     fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs<syn::Expr>, expected_error: ResolveArgsError) {
         let format_string = FormatString::parse(format_str).unwrap();
 
-        let actual_error = FormatExpression::new(format_string, provided_args).unwrap_err();
+        let actual_error = FormatExpression::new(format_string, provided_args, Some(&SynArgCapturer)).unwrap_err();
 
         assert_eq!(expected_error, actual_error);
     }
