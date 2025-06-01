@@ -1,6 +1,6 @@
 use crate::*;
 
-/// Validated and optimized format string together with its required arguments
+/// Resolved format string together with its provided arguments
 #[derive(Debug, PartialEq)]
 pub struct FormatExpression<'a, E> {
     format_string: FormatString<'a>,
@@ -33,8 +33,8 @@ impl<'a, E> FormatExpression<'a, E> {
         Ok(Self { format_string, provided_args })
     }
 
-    pub fn dissolve(self) -> (DeferredFormatString<'a>, ProvidedArgs<'a, E>) {
-        let deferred_format_expression = DeferredFormatString { format_string: self.format_string };
+    pub fn dissolve(self) -> (ProcessedFormatString<'a>, ProvidedArgs<'a, E>) {
+        let deferred_format_expression = ProcessedFormatString(self.format_string);
 
         (deferred_format_expression, self.provided_args)
     }
@@ -44,6 +44,7 @@ impl<'a, E> FormatExpression<'a, E> {
 impl syn::parse::Parse for FormatExpression<'static, syn::Expr> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let comma = syn::Token![,];
+
         let format_string = input.parse()?;
 
         let provided_args = match input.peek(comma) {
