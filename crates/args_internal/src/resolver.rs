@@ -7,6 +7,32 @@ use hashbrown::HashSet;
 
 use crate::*;
 
+/// Resolve provided args with those in [`FormatString`]
+///
+/// [`Self::resolve`] performs a variety of context dependant checks, optimizations and
+/// disambiguations on both argument sources. Some provide functional
+/// parity with Rust's `format_args!`--notably [format argument
+/// capturing][format_args_capture]--, whilst others improve the efficiency of
+/// `redefmt`'s codec and printing.
+///
+/// # Format String Argument Disambigaution
+///
+/// Unnamed positional arguments are disambiguated to indexed positional
+/// arguments. If the index points to a named argument, then the positional
+/// argument is replaced with the corresponding named argument.
+///
+/// ```rust
+/// let before = format!("{1} {}", 1, x = 2);
+/// let after = format!("{x} {0}", 1, x = 2);
+/// assert_eq!(before, after);
+/// ```
+///
+/// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
+pub struct ArgumentResolver<'a, 'aa, E> {
+    format_string_args: Vec<&'aa mut FormatArgument<'a>>,
+    provided_args: &'aa mut ProvidedArgs<'a, E>,
+}
+
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum ResolveArgsError {
     #[error("invalid positional argument {0}, provided {1}, positional argument are zero-based")]
@@ -17,33 +43,7 @@ pub enum ResolveArgsError {
     UnusedNamed(String),
 }
 
-pub struct ArgumentResolver<'a, 'aa, E> {
-    format_string_args: Vec<&'aa mut FormatArgument<'a>>,
-    provided_args: &'aa mut ProvidedArgs<'a, E>,
-}
-
-impl<'a, 'aa, E: Expression + PartialEq> ArgumentResolver<'a, 'aa, E> {
-    /// Combine provided args with those in [`FormatString`]
-    ///
-    /// Performs a variety of context dependant checks, optimizations and
-    /// disambiguations on both argument sources. Some provide functional
-    /// parity with Rust's `format_args!`--notably [format argument
-    /// capturing][format_args_capture]--, whilst others improve the efficiency of
-    /// `redefmt`'s codec and printing.
-    ///
-    /// # Format String Argument Disambigaution
-    ///
-    /// Unnamed positional arguments are disambiguated to indexed positional
-    /// arguments. If the index points to a named argument, then the positional
-    /// argument is replaced with the corresponding named argument.
-    ///
-    /// ```rust
-    /// let before = format!("{1} {}", 1, x = 2);
-    /// let after = format!("{x} {0}", 1, x = 2);
-    /// assert_eq!(before, after);
-    /// ```
-    ///
-    /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
+impl<'a, 'aa, E: ProvidedArgExpression + PartialEq> ArgumentResolver<'a, 'aa, E> {
     pub(crate) fn resolve(
         format_string: &'aa mut FormatString<'a>,
         provided_args: &'aa mut ProvidedArgs<'a, E>,
