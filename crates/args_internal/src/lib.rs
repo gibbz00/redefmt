@@ -18,9 +18,7 @@ pub(crate) use resolver::{ArgumentResolver, ResolveArgsError};
 mod provided_args;
 pub(crate) use provided_args::{ProvidedArgExpression, ProvidedArgs};
 
-#[cfg(feature = "syn")]
 mod format_expression;
-#[cfg(feature = "syn")]
 pub use format_expression::FormatExpression;
 
 pub mod deferred;
