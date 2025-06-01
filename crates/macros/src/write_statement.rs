@@ -42,7 +42,7 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
 pub struct WriteArgs {
     span: Span,
     formatter_ident: syn::Ident,
-    format_expression: FormatExpression<'static>,
+    format_expression: FormatExpression<'static, syn::Expr>,
 }
 
 impl syn::parse::Parse for WriteArgs {

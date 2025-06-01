@@ -18,13 +18,13 @@ pub fn format_string(token_stream: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn deferred_format_expression(token_stream: TokenStream) -> TokenStream {
-    let expression = parse_macro_input!(token_stream as FormatExpression);
+    let expression = parse_macro_input!(token_stream as FormatExpression<syn::Expr>);
     expression.defer().0.to_token_stream().into()
 }
 
 #[proc_macro]
 pub fn deferred_format(token_stream: TokenStream) -> TokenStream {
-    let format_expression = parse_macro_input!(token_stream as FormatExpression);
+    let format_expression = parse_macro_input!(token_stream as FormatExpression<syn::Expr>);
 
     let (deferred_format_expression, provided_args) = format_expression.defer();
 
