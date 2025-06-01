@@ -3,7 +3,19 @@ use crate::*;
 pub trait ArgCapturer {
     type Expression;
 
-    fn capture_identifier(&self, any_identifier: AnyIdentifier<'_>) -> Self::Expression;
+    fn transform_identifier(&self, any_identifier: AnyIdentifier<'_>) -> Self::Expression;
+
+    /// Unmove expressions
+    ///
+    /// Rust's `format_args!` compiles:
+    ///
+    /// ```rust
+    /// let x = "x".to_string();
+    /// print!("{} {x}", x, x = x);
+    /// drop(x);
+    /// ```
+    ///
+    /// ...because the print statement i transformed into: `print!("{} {x}", &x, x = &x);`
     fn unmove_expression(&self, expression: &mut Self::Expression);
 }
 
@@ -16,7 +28,7 @@ mod syn_impl {
     impl ArgCapturer for SynArgCapturer {
         type Expression = syn::Expr;
 
-        fn capture_identifier(&self, any_identifier: AnyIdentifier<'_>) -> syn::Expr {
+        fn transform_identifier(&self, any_identifier: AnyIdentifier<'_>) -> syn::Expr {
             from_identifier_impl(any_identifier.into())
         }
 

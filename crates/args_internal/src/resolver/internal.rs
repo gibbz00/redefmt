@@ -4,27 +4,6 @@ use hashbrown::HashSet;
 
 use crate::*;
 
-/// Resolve provided args with those in [`FormatString`]
-///
-/// [`Self::resolve`] performs a variety of context dependant checks, optimizations and
-/// disambiguations on both argument sources. Some provide functional
-/// parity with Rust's `format_args!`--notably [format argument
-/// capturing][format_args_capture]--, whilst others improve the efficiency of
-/// `redefmt`'s codec and printing.
-///
-/// # Format String Argument Disambigaution
-///
-/// Unnamed positional arguments are disambiguated to indexed positional
-/// arguments. If the index points to a named argument, then the positional
-/// argument is replaced with the corresponding named argument.
-///
-/// ```rust
-/// let before = format!("{1} {}", 1, x = 2);
-/// let after = format!("{x} {0}", 1, x = 2);
-/// assert_eq!(before, after);
-/// ```
-///
-/// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
 pub struct InternalArgumentResolver<'a, 'aa, E> {
     format_string_args: Vec<&'aa mut FormatArgument<'a>>,
     provided_args: &'aa mut ProvidedArgs<'a, E>,
@@ -36,19 +15,27 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         provided_args: &'aa mut ProvidedArgs<'a, E>,
         resolver_config: &ResolverConfig<C>,
     ) -> Result<(), ResolveArgsError> {
-        let this = Self { format_string_args: format_string.collect_args_mut(), provided_args };
+        let mut resolver = Self { format_string_args: format_string.collect_args_mut(), provided_args };
 
         // Only valid as long as no provided args are removed. Could technically
         // reference provided args by temporarily having the args in an append
         // only structure--ex. from the elsa crate--for the duration it is
         // needed. Probably a bit overkill though.
-        let provided_named_str_set = this.collect_named_set();
+        let provided_named_str_set = resolver.collect_named_set();
 
-        this
+        resolver = resolver
             // preparation and validation
-            .capture_and_validate_format_arguments(resolver_config, &provided_named_str_set)?
-            .check_unused_provided_named(&provided_named_str_set)?
-            .check_unused_provided_positionals()?
+            .capture_and_validate_format_arguments(resolver_config, &provided_named_str_set)?;
+
+        if !resolver_config.disable_unused_named_check {
+            resolver = resolver.check_unused_provided_named(&provided_named_str_set)?;
+        }
+
+        if !resolver_config.disable_unused_positional_check {
+            resolver = resolver.check_unused_provided_positionals()?;
+        }
+
+        resolver
             // needs to be done before any merging as it effectively normalizes identifiers
             .unmove_idents(resolver_config)
             // deduplication steps
@@ -102,7 +89,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
 
                             let captured_identifier = identifier.clone().into_safe_any();
 
-                            let captured_variable = arg_capturer.capture_identifier(captured_identifier);
+                            let captured_variable = arg_capturer.transform_identifier(captured_identifier);
 
                             provided_args.named.push((captured_name, captured_variable));
                         } else {
@@ -116,15 +103,6 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         Ok(Self { format_string_args, provided_args })
     }
 
-    // This compiles:
-    //
-    // ```rust
-    // let x = "x".to_string();
-    // print!("{} {x}", x, x = x);
-    // drop(x);
-    // ```
-    //
-    // Because the print statement i transformed into: `print!("{} {x}", &x, x = &x);`
     fn unmove_idents<C: ArgCapturer<Expression = E>>(self, resolver_config: &ResolverConfig<C>) -> Self {
         if let Some(arg_capturer) = &resolver_config.arg_capturer {
             self.provided_args.positional.iter_mut().for_each(|expr| {
@@ -555,7 +533,7 @@ mod tests {
         let mut format_string = FormatString::parse(format_str).unwrap();
         let expected_format_string = FormatString::parse(expected_format_str).unwrap();
 
-        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer) };
+        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
         InternalArgumentResolver::resolve(&mut format_string, &mut provided_args, &resolver_config).unwrap();
 
         assert_eq!(expected_format_string, format_string);
@@ -565,7 +543,7 @@ mod tests {
     fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs<syn::Expr>, expected_error: ResolveArgsError) {
         let format_string = FormatString::parse(format_str).unwrap();
 
-        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer) };
+        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
         let actual_error = FormatExpression::new(format_string, provided_args, &resolver_config).unwrap_err();
 
         assert_eq!(expected_error, actual_error);
