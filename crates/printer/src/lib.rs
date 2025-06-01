@@ -10,8 +10,8 @@ mod pretty {
     use std::io::Write;
 
     use redefmt_args::deferred::{
-        DeferredFormatError, DeferredFormatString, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue,
-        DeferredTypeVariant, DeferredValue,
+        DeferredFormatError, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant,
+        DeferredValue, ProcessedFormatString,
     };
     use redefmt_decoder::{
         RedefmtFrame,
@@ -49,7 +49,7 @@ mod pretty {
     }
 
     fn evaluate_format_string(
-        format_string: &DeferredFormatString,
+        format_string: &ProcessedFormatString,
         decoded_values: &DecodedValues,
         append_newline: bool,
     ) -> Result<String, RedefmtPrinterError> {

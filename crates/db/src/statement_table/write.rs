@@ -41,7 +41,7 @@ pub enum StructVariant {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{deferred::DeferredFormatString, deferred_format_string};
+    use redefmt_args::{deferred::ProcessedFormatString, deferred_format_string};
 
     use super::*;
 
@@ -61,7 +61,7 @@ mod tests {
         }
     }
 
-    fn mock_stored_expression(expression: DeferredFormatString) -> StoredFormatExpression {
+    fn mock_stored_expression(expression: ProcessedFormatString) -> StoredFormatExpression {
         StoredFormatExpression {
             format_string: expression,
             append_newline: false,
