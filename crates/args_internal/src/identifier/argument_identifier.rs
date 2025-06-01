@@ -23,13 +23,11 @@ impl<'a> ArgumentIdentifier<'a> {
     }
 
     /// Makes `AnyIdentifier` raw is the identifier is a keyword
-    #[cfg(feature = "syn")]
     pub(crate) fn into_safe_any(self) -> AnyIdentifier<'a> {
         use check_keyword::CheckKeyword;
         AnyIdentifier { raw: self.is_keyword(), inner: self.inner }
     }
 
-    #[cfg(feature = "syn")]
     pub(crate) fn into_any(self) -> AnyIdentifier<'a> {
         AnyIdentifier { raw: false, inner: self.inner }
     }

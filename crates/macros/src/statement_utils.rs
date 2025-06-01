@@ -1,20 +1,20 @@
-use redefmt_args::FormatExpression;
+use redefmt_args::{deferred::DeferredFormatExpression, identifier::AnyIdentifier};
 use redefmt_db::statement_table::stored_format_expression::StoredFormatExpression;
 
 pub struct StatementUtils;
 
 impl StatementUtils {
-    pub fn prepare_stored(
-        format_expression: FormatExpression<syn::Expr>,
+    pub fn prepare_stored<'a>(
+        format_expression: DeferredFormatExpression<'a>,
+        expressions_count: usize,
+        provided_identifiers: Vec<AnyIdentifier<'a>>,
         append_newline: bool,
-    ) -> StoredFormatExpression {
-        let (deferred_format_expression, provided_positional, provided_named) = format_expression.defer();
-
+    ) -> StoredFormatExpression<'a> {
         StoredFormatExpression {
-            expression: deferred_format_expression,
+            expression: format_expression,
             append_newline,
-            expected_positional_arg_count: provided_positional.len(),
-            expected_named_args: provided_named.into_iter().map(|(identifier, _)| identifier).collect(),
+            expected_positional_arg_count: expressions_count - provided_identifiers.len(),
+            expected_named_args: provided_identifiers,
         }
     }
 }

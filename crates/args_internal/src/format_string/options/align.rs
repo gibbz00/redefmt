@@ -83,7 +83,7 @@ mod tests {
 
         let expected = quote! {
             ::redefmt_args::format_string::options::FormatAlign {
-                alignment: ::redefmt_args::format_string::options::::Alignment::Left,
+                alignment: ::redefmt_args::format_string::options::Alignment::Left,
                 character: Some('a'),
             }
         };

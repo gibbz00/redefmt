@@ -43,11 +43,23 @@ impl<'a, E> ProvidedArgs<'a, E> {
         Ok(Self { positional, named })
     }
 
-    pub fn expressions(&self) -> impl Iterator<Item = &E> {
-        let positional_iter = self.positional.iter();
-        let named_iter = self.named.iter().map(|(_, expr)| expr);
+    pub fn dissolve_args(self) -> (Vec<E>, Vec<(AnyIdentifier<'a>, E)>) {
+        (self.positional, self.named)
+    }
 
-        positional_iter.chain(named_iter)
+    pub fn dissolve_expressions(self) -> (Vec<E>, Vec<AnyIdentifier<'a>>) {
+        let mut expressions = self.positional.into_iter().collect::<Vec<_>>();
+
+        let identifiers = self
+            .named
+            .into_iter()
+            .map(|(identifier, expr)| {
+                expressions.push(expr);
+                identifier
+            })
+            .collect();
+
+        (expressions, identifiers)
     }
 }
 
