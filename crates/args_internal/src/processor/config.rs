@@ -1,8 +1,8 @@
 use crate::*;
 
-/// Configure the argument resolver when constructing [`FormatExpression`]
+/// Configure the format processor when constructing [`ProcessedFormatString`]
 #[impl_tools::autoimpl(Default)]
-pub struct ResolverConfig<C: ArgCapturer> {
+pub struct ProcessorConfig<C: ArgCapturer> {
     /// Configure a format argument capturer in order to provide functional
     /// parity with Rust's [format argument capturing][format_args_capture].
     ///

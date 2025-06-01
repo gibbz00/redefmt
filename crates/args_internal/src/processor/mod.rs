@@ -1,11 +1,11 @@
 mod internal;
-pub(crate) use internal::InternalArgumentResolver;
+pub(crate) use internal::FormatProcessor;
 
 mod error;
-pub use error::ResolveArgsError;
+pub use error::ProcessorError;
 
 mod config;
-pub use config::ResolverConfig;
+pub use config::ProcessorConfig;
 
 mod arg_capturer;
 pub use arg_capturer::ArgCapturer;
