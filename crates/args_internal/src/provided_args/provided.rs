@@ -4,14 +4,15 @@ use hashbrown::HashSet;
 
 use crate::*;
 
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct ProvidedArgs<'a> {
-    pub positional: Vec<syn::Expr>,
-    pub named: Vec<(AnyIdentifier<'a>, syn::Expr)>,
+#[derive(Debug, Clone, PartialEq)]
+#[impl_tools::autoimpl(Default)]
+pub struct ProvidedArgs<'a, E> {
+    pub positional: Vec<E>,
+    pub named: Vec<(AnyIdentifier<'a>, E)>,
 }
 
-impl ProvidedArgs<'_> {
-    pub fn expressions(&self) -> impl Iterator<Item = &syn::Expr> {
+impl<E> ProvidedArgs<'_, E> {
+    pub fn expressions(&self) -> impl Iterator<Item = &E> {
         let positional_iter = self.positional.iter();
         let named_iter = self.named.iter().map(|(_, expr)| expr);
 
@@ -19,7 +20,7 @@ impl ProvidedArgs<'_> {
     }
 }
 
-impl syn::parse::Parse for ProvidedArgs<'static> {
+impl syn::parse::Parse for ProvidedArgs<'static, syn::Expr> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut positional_args = Vec::new();
         let mut named = Vec::new();
@@ -123,19 +124,19 @@ mod tests {
     #[test]
     #[should_panic]
     fn positional_after_named_error() {
-        let _: ProvidedArgs = parse_quote!(x = 10, "x");
+        let _: ProvidedArgs<_> = parse_quote!(x = 10, "x");
     }
 
     #[test]
     #[should_panic]
     fn duplicate_name_error() {
-        let _: ProvidedArgs = parse_quote!(x = 10, x = 20);
+        let _: ProvidedArgs<_> = parse_quote!(x = 10, x = 20);
     }
 
     #[test]
     #[should_panic]
     fn duplicate_name_error_when_raw() {
-        let _: ProvidedArgs = parse_quote!(x = 10, r#x = 20);
+        let _: ProvidedArgs<_> = parse_quote!(x = 10, r#x = 20);
     }
 
     fn mock_positional() -> Vec<syn::Expr> {

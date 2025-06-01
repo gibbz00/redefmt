@@ -1,5 +1,4 @@
 use alloc::{
-    boxed::Box,
     string::{String, ToString},
     vec::Vec,
 };
@@ -18,12 +17,12 @@ pub enum ResolveArgsError {
     UnusedNamed(String),
 }
 
-pub struct ArgumentResolver<'a, 'aa> {
+pub struct ArgumentResolver<'a, 'aa, E> {
     format_string_args: Vec<&'aa mut FormatArgument<'a>>,
-    provided_args: &'aa mut ProvidedArgs<'a>,
+    provided_args: &'aa mut ProvidedArgs<'a, E>,
 }
 
-impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
+impl<'a, 'aa, E: Expression + PartialEq> ArgumentResolver<'a, 'aa, E> {
     /// Combine provided args with those in [`FormatString`]
     ///
     /// Performs a variety of context dependant checks, optimizations and
@@ -47,7 +46,7 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
     /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
     pub(crate) fn resolve(
         format_string: &'aa mut FormatString<'a>,
-        provided_args: &'aa mut ProvidedArgs<'a>,
+        provided_args: &'aa mut ProvidedArgs<'a, E>,
     ) -> Result<(), ResolveArgsError> {
         let this = Self { format_string_args: format_string.collect_args_mut(), provided_args };
 
@@ -114,7 +113,7 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
 
                         let captured_identifier = identifier.clone().into_safe_any();
 
-                        let captured_variable = reference_ident(captured_identifier.into());
+                        let captured_variable = E::from_identifier(captured_identifier);
 
                         provided_args.named.push((captured_name, captured_variable));
                     };
@@ -135,22 +134,14 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
     //
     // Because the print statement i transformed into: `print!("{} {x}", &x, x = &x);`
     fn unmove_idents(self) -> Self {
-        self.provided_args.positional.iter_mut().for_each(unmove_expr);
+        self.provided_args.positional.iter_mut().for_each(E::unmove_expression);
 
         self.provided_args
             .named
             .iter_mut()
-            .for_each(|(_, expr)| unmove_expr(expr));
+            .for_each(|(_, expr)| expr.unmove_expression());
 
-        return self;
-
-        fn unmove_expr(expr: &mut syn::Expr) {
-            if let syn::Expr::Path(path) = expr
-                && let Some(ident) = path.path.get_ident().cloned()
-            {
-                *expr = reference_ident(ident);
-            }
-        }
+        self
     }
 
     fn check_unused_provided_positionals(self) -> Result<Self, ResolveArgsError> {
@@ -206,7 +197,7 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
     fn merge_positional(self) -> Self {
         let Self { mut format_string_args, provided_args } = self;
 
-        for (i, j) in Self::reversed_combinations(provided_args.positional.len()) {
+        for (i, j) in reversed_combinations(provided_args.positional.len()) {
             // None if element in index `i` was removed in a previous iteration
             if let Some(current_positional) = provided_args.positional.get(i) {
                 let other_positional = &provided_args.positional[j];
@@ -235,7 +226,7 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
     fn merge_named(self) -> Self {
         let Self { mut format_string_args, provided_args } = self;
 
-        let combinations = Self::reversed_combinations(provided_args.named.len());
+        let combinations = reversed_combinations(provided_args.named.len());
 
         for (i, j) in combinations {
             // None if i was removed in a previous iteration, less performant
@@ -296,29 +287,16 @@ impl<'a, 'aa> ArgumentResolver<'a, 'aa> {
 
         Self { format_string_args, provided_args }
     }
-
-    /// Returns all unique index combinations for a collection of a given length.
-    ///
-    /// Indexes are flipped in such a way that i > j for any (i, j) item
-    /// returned by the iterator. Morover, the iterator is reversed in such a
-    /// way that i >= i_next. The intent of this is to make it possible simply remove a
-    /// an element at index `i` during iteration.
-    fn reversed_combinations(len: usize) -> impl Iterator<Item = (usize, usize)> {
-        (0..len).flat_map(move |j| (j + 1..len).map(move |i| (i, j))).rev()
-    }
 }
 
-fn reference_ident(ident: syn::Ident) -> syn::Expr {
-    syn::Expr::Reference(syn::ExprReference {
-        attrs: Default::default(),
-        and_token: Default::default(),
-        mutability: None,
-        expr: Box::new(syn::Expr::Path(syn::ExprPath {
-            attrs: Default::default(),
-            qself: None,
-            path: syn::Path::from(ident),
-        })),
-    })
+/// Returns all unique index combinations for a collection of a given length.
+///
+/// Indexes are flipped in such a way that i > j for any (i, j) item
+/// returned by the iterator. Morover, the iterator is reversed in such a
+/// way that i >= i_next. The intent of this is to make it possible simply remove a
+/// an element at index `i` during iteration.
+fn reversed_combinations(len: usize) -> impl Iterator<Item = (usize, usize)> {
+    (0..len).flat_map(move |j| (j + 1..len).map(move |i| (i, j))).rev()
 }
 
 #[cfg(test)]
@@ -330,7 +308,7 @@ mod tests {
     #[test]
     fn reversed_combinations() {
         let expected = alloc::vec![(2, 1), (2, 0), (1, 0)];
-        let actual = ArgumentResolver::reversed_combinations(3).collect::<Vec<_>>();
+        let actual = super::reversed_combinations(3).collect::<Vec<_>>();
         assert_eq!(expected, actual);
     }
 
@@ -552,21 +530,21 @@ mod tests {
         );
     }
 
-    fn assert_resolve_unchanged(format_str: &'static str, provided_args: ProvidedArgs) {
+    fn assert_resolve_unchanged(format_str: &'static str, provided_args: ProvidedArgs<syn::Expr>) {
         assert_resolve(format_str, provided_args.clone(), format_str, provided_args);
     }
 
     fn assert_resolve_unchanged_str(
         format_str: &'static str,
-        provided_args: ProvidedArgs,
-        provided_args_result: ProvidedArgs,
+        provided_args: ProvidedArgs<syn::Expr>,
+        provided_args_result: ProvidedArgs<syn::Expr>,
     ) {
         assert_resolve(format_str, provided_args.clone(), format_str, provided_args_result);
     }
 
     fn assert_resolve_unchanged_provided(
         format_str: &'static str,
-        provided_args: ProvidedArgs,
+        provided_args: ProvidedArgs<syn::Expr>,
         format_str_result: &str,
     ) {
         assert_resolve(format_str, provided_args.clone(), format_str_result, provided_args);
@@ -574,9 +552,9 @@ mod tests {
 
     fn assert_resolve(
         format_str: &'static str,
-        mut provided_args: ProvidedArgs,
+        mut provided_args: ProvidedArgs<syn::Expr>,
         expected_format_str: &str,
-        expected_provided_args: ProvidedArgs,
+        expected_provided_args: ProvidedArgs<syn::Expr>,
     ) {
         let mut format_string = FormatString::parse(format_str).unwrap();
         let expected_format_string = FormatString::parse(expected_format_str).unwrap();
@@ -587,7 +565,7 @@ mod tests {
         assert_eq!(expected_provided_args, provided_args);
     }
 
-    fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs, expected_error: ResolveArgsError) {
+    fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs<syn::Expr>, expected_error: ResolveArgsError) {
         let format_string = FormatString::parse(format_str).unwrap();
 
         let actual_error = FormatExpression::new(format_string, provided_args).unwrap_err();
