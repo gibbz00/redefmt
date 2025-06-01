@@ -64,7 +64,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
                 Ok(Some(Value::NestedFormatExpression {
                     expression: &segment_decoder.stored_expression.expression,
                     append_newline: segment_decoder.stored_expression.append_newline,
-                    decoded_values: segment_decoder.decoded_args,
+                    decoded_values: segment_decoder.decoded_values,
                 }))
             }
             WriteStatementDecoderStage::TypeStructure(mut type_structure_decoder) => {

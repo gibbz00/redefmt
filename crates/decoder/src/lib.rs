@@ -6,8 +6,8 @@
 mod error;
 pub use error::RedefmtDecoderError;
 
-pub mod value;
-pub(crate) use value::{StructVariantValue, TypeStructureValue, TypeStructureVariantValue, Value};
+pub mod values;
+pub(crate) use values::{DecodedValues, StructVariantValue, TypeStructureValue, TypeStructureVariantValue, Value};
 
 mod stores;
 pub(crate) use stores::Stores;

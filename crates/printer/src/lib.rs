@@ -10,11 +10,12 @@ mod pretty {
     use std::io::Write;
 
     use redefmt_args::deferred::{
-        DeferredFormatExpression, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue,
+        DeferredFormatExpression, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant,
+        DeferredValue,
     };
     use redefmt_decoder::{
         RedefmtFrame,
-        value::{StructVariantValue, TypeStructureValue, TypeStructureVariantValue, Value},
+        values::{DecodedValues, StructVariantValue, TypeStructureValue, TypeStructureVariantValue, Value},
     };
 
     use crate::*;
@@ -45,10 +46,10 @@ mod pretty {
 
     fn evaluate_expression_recursive(
         expression: &DeferredFormatExpression,
-        decoded_values: &[Value],
+        decoded_values: &DecodedValues,
         append_newline: bool,
     ) -> Result<String, RedefmtPrinterError> {
-        let deferred_values = convert_values(decoded_values)?;
+        let deferred_values = convert_provided(decoded_values)?;
         // expression.evaluate(provided_args);
 
         todo!()
@@ -98,6 +99,24 @@ mod pretty {
         };
 
         Ok(value)
+    }
+
+    fn convert_provided<'v>(
+        decoded_values: &'v DecodedValues,
+    ) -> Result<DeferredProvidedArgs<'v>, RedefmtPrinterError> {
+        let DecodedValues { positional, named } = decoded_values;
+
+        let deferred_positional = convert_values(&positional)?;
+
+        let mut deferred_named = Vec::with_capacity(named.len());
+        for (named_identifier, named_value) in named {
+            let deferred_value = convert_value(&named_value)?;
+            // IMPROVEMENT: remove clone?
+            let name = (*named_identifier).clone();
+            deferred_named.push((name, deferred_value));
+        }
+
+        Ok(DeferredProvidedArgs::new(deferred_positional, deferred_named))
     }
 
     fn convert_values<'v>(decoded_values: &'v [Value]) -> Result<Vec<DeferredValue<'v>>, RedefmtPrinterError> {

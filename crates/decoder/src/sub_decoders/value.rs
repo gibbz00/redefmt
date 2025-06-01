@@ -362,13 +362,14 @@ mod tests {
         // input
         let format_expression = deferred_format_expression!("x = {}", x = x);
 
+        let arg_name = AnyIdentifier::parse("x").unwrap();
         let arg_value = true;
 
         let stored_expression = StoredFormatExpression {
             expression: format_expression,
             append_newline: false,
             expected_positional_arg_count: 0,
-            expected_named_args: vec![AnyIdentifier::parse("x").unwrap()],
+            expected_named_args: vec![arg_name.clone()],
         };
 
         let write_statement = WriteStatement::FormatExpression(stored_expression.clone());
@@ -377,7 +378,10 @@ mod tests {
         let expected_value = Value::NestedFormatExpression {
             expression: &stored_expression.expression,
             append_newline: stored_expression.append_newline,
-            decoded_values: vec![Value::Boolean(arg_value)],
+            decoded_values: DecodedValues {
+                positional: vec![],
+                named: vec![(&arg_name, Value::Boolean(arg_value))],
+            },
         };
 
         let write_id = seed_crate_and_write_statement(&stores, &write_statement);
