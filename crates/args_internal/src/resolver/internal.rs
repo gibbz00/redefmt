@@ -31,10 +31,10 @@ pub struct InternalArgumentResolver<'a, 'aa, E> {
 }
 
 impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
-    pub(crate) fn resolve<C: ArgCapturer<E>>(
+    pub(crate) fn resolve<C: ArgCapturer<Expression = E>>(
         format_string: &'aa mut FormatString<'a>,
         provided_args: &'aa mut ProvidedArgs<'a, E>,
-        arg_capturer: Option<&C>,
+        resolver_config: &ResolverConfig<C>,
     ) -> Result<(), ResolveArgsError> {
         let this = Self { format_string_args: format_string.collect_args_mut(), provided_args };
 
@@ -46,11 +46,11 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
 
         this
             // preparation and validation
-            .capture_and_validate_format_arguments(&provided_named_str_set, arg_capturer)?
+            .capture_and_validate_format_arguments(resolver_config, &provided_named_str_set)?
             .check_unused_provided_named(&provided_named_str_set)?
             .check_unused_provided_positionals()?
             // needs to be done before any merging as it effectively normalizes identifiers
-            .unmove_idents(arg_capturer)
+            .unmove_idents(resolver_config)
             // deduplication steps
             .merge_named()
             .merge_positional()
@@ -69,10 +69,10 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
             .collect::<HashSet<_>>()
     }
 
-    fn capture_and_validate_format_arguments<C: ArgCapturer<E>>(
+    fn capture_and_validate_format_arguments<C: ArgCapturer<Expression = E>>(
         self,
+        resolver_config: &ResolverConfig<C>,
         provided_named_str_set: &HashSet<ArgumentIdentifier>,
-        arg_capturer: Option<&C>,
     ) -> Result<Self, ResolveArgsError> {
         let Self { mut format_string_args, provided_args } = self;
 
@@ -97,7 +97,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
                 }
                 FormatArgument::Identifier(identifier) => {
                     if !provided_named_str_set.contains(identifier) {
-                        if let Some(arg_capturer) = arg_capturer {
+                        if let Some(arg_capturer) = &resolver_config.arg_capturer {
                             let captured_name = identifier.clone().into_any();
 
                             let captured_identifier = identifier.clone().into_safe_any();
@@ -125,8 +125,8 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
     // ```
     //
     // Because the print statement i transformed into: `print!("{} {x}", &x, x = &x);`
-    fn unmove_idents<C: ArgCapturer<E>>(self, arg_capturer: Option<&C>) -> Self {
-        if let Some(arg_capturer) = arg_capturer {
+    fn unmove_idents<C: ArgCapturer<Expression = E>>(self, resolver_config: &ResolverConfig<C>) -> Self {
+        if let Some(arg_capturer) = &resolver_config.arg_capturer {
             self.provided_args.positional.iter_mut().for_each(|expr| {
                 arg_capturer.unmove_expression(expr);
             });
@@ -555,7 +555,8 @@ mod tests {
         let mut format_string = FormatString::parse(format_str).unwrap();
         let expected_format_string = FormatString::parse(expected_format_str).unwrap();
 
-        InternalArgumentResolver::resolve(&mut format_string, &mut provided_args, Some(&SynArgCapturer)).unwrap();
+        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer) };
+        InternalArgumentResolver::resolve(&mut format_string, &mut provided_args, &resolver_config).unwrap();
 
         assert_eq!(expected_format_string, format_string);
         assert_eq!(expected_provided_args, provided_args);
@@ -564,7 +565,8 @@ mod tests {
     fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs<syn::Expr>, expected_error: ResolveArgsError) {
         let format_string = FormatString::parse(format_str).unwrap();
 
-        let actual_error = FormatExpression::new(format_string, provided_args, Some(&SynArgCapturer)).unwrap_err();
+        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer) };
+        let actual_error = FormatExpression::new(format_string, provided_args, &resolver_config).unwrap_err();
 
         assert_eq!(expected_error, actual_error);
     }
