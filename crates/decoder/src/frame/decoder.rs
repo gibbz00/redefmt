@@ -95,7 +95,7 @@ impl<'cache> Decoder for RedefmtDecoder<'cache> {
                     stage.level,
                     stage.stamp,
                     stage.print_statement,
-                    stage.segment_decoder.decoded_args,
+                    stage.segment_decoder.decoded_values,
                 );
 
                 self.stage = FrameDecoderWants::Header;
@@ -307,7 +307,18 @@ mod tests {
         let value = true;
         let actual_frame = put_and_decode_bool_arg(&mut decoder, value).unwrap();
 
-        let expected_frame = RedefmtFrame::new(None, None, &print_statement, vec![Value::Boolean(value)]);
+        let arg_name = print_statement
+            .format_expression
+            .expected_named_args
+            .first()
+            .unwrap()
+            .clone();
+
+        let decoded_values = DecodedValues {
+            positional: Default::default(),
+            named: vec![(&arg_name, Value::Boolean(value))],
+        };
+        let expected_frame = RedefmtFrame::new(None, None, &print_statement, decoded_values);
 
         assert_eq!(expected_frame, actual_frame);
 

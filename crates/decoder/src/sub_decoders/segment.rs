@@ -10,25 +10,16 @@ struct SegmentValueContext<'cache> {
 }
 
 pub struct SegmentsDecoder<'cache> {
-    expected_arg_count: usize,
     pointer_width: PointerWidth,
     current_value: Option<SegmentValueContext<'cache>>,
     pub(crate) stored_expression: &'cache StoredFormatExpression<'static>,
-    pub(crate) decoded_args: Vec<Value<'cache>>,
+    pub(crate) decoded_values: DecodedValues<'cache>,
 }
 
 impl<'cache> SegmentsDecoder<'cache> {
     pub fn new(pointer_width: PointerWidth, stored_expression: &'cache StoredFormatExpression<'static>) -> Self {
-        let expected_arg_count = stored_expression.expected_arg_count();
-        let decoded_args = Vec::with_capacity(expected_arg_count);
-
-        Self {
-            stored_expression,
-            expected_arg_count,
-            pointer_width,
-            current_value: None,
-            decoded_args,
-        }
+        let decoded_values = DecodedValues::new_with_capacity(stored_expression);
+        Self { stored_expression, pointer_width, current_value: None, decoded_values }
     }
 
     pub fn decode(&mut self, stores: &Stores<'cache>, src: &mut BytesMut) -> Result<Option<()>, RedefmtDecoderError> {
@@ -37,7 +28,7 @@ impl<'cache> SegmentsDecoder<'cache> {
 
             match value_decoder.decode(stores, src)? {
                 Some(value) => {
-                    self.decoded_args.push(value);
+                    self.decoded_values.push(value, self.stored_expression);
                     self.current_value = None;
                 }
                 None => {
@@ -47,7 +38,7 @@ impl<'cache> SegmentsDecoder<'cache> {
             }
         }
 
-        while self.decoded_args.len() < self.expected_arg_count {
+        while !self.decoded_values.is_filled(self.stored_expression) {
             let Some(type_hint) = DecoderUtils::get_type_hint(src)? else {
                 return Ok(None);
             };
@@ -56,7 +47,7 @@ impl<'cache> SegmentsDecoder<'cache> {
 
             match value_decoder.decode(stores, src)? {
                 Some(value) => {
-                    self.decoded_args.push(value);
+                    self.decoded_values.push(value, self.stored_expression);
                 }
                 None => {
                     self.current_value = Some(SegmentValueContext { type_hint, value_decoder });
