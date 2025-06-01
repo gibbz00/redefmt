@@ -7,13 +7,13 @@ use crate::*;
 pub struct ProcessedFormatString<'a>(#[cfg_attr(feature = "serde", serde(borrow))] pub(crate) FormatString<'a>);
 
 impl<'a> ProcessedFormatString<'a> {
-    pub fn evaluate<'v>(&self, provided_args: &DeferredProvidedArgs<'v>) -> Result<String, DeferredFormatError> {
-        let mut string = String::new();
+    pub fn format_deferred<'v>(&self, deferred_values: &DeferredValues<'v>) -> Result<String, DeferredFormatError> {
+        let mut string_buffer = String::new();
 
         for segment in self.0.segments() {
             match segment {
                 FormatStringSegment::Literal(literal) => {
-                    string.push_str(literal.as_ref());
+                    string_buffer.push_str(literal.as_ref());
                 }
                 FormatStringSegment::Format(segment) => {
                     // IMPROVEMENT: remove `expect` by creating a separate
@@ -23,14 +23,16 @@ impl<'a> ProcessedFormatString<'a> {
                         .as_ref()
                         .expect("argument not disambiguated by argument resolver");
 
-                    provided_args
+                    let options = ResolvedFormatOptions::new(&segment.options, deferred_values)?;
+
+                    deferred_values
                         .get(argument)?
-                        .evaluate(&mut string, &segment.options, provided_args)?;
+                        .format_deferred(&mut string_buffer, &options)?;
                 }
             }
         }
 
-        Ok(string)
+        Ok(string_buffer)
     }
 
     #[doc(hidden)]

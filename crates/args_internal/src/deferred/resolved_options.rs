@@ -13,16 +13,16 @@ pub(crate) struct ResolvedFormatOptions {
 }
 
 impl ResolvedFormatOptions {
-    pub(crate) fn resolve(
+    pub(crate) fn new(
         format_options: &FormatOptions,
-        provided_args: &DeferredProvidedArgs,
+        deferred_values: &DeferredValues,
     ) -> Result<Self, DeferredFormatError> {
         let align = format_options.align;
         let sign = format_options.sign == Some(Sign::Plus);
         let use_alternate_form = format_options.use_alternate_form;
         let use_zero_padding = format_options.use_zero_padding;
-        let width = Self::resolve_width(format_options.width.as_ref(), provided_args)?;
-        let precision = Self::resolve_precision(format_options.precision.as_ref(), provided_args)?;
+        let width = Self::resolve_width(format_options.width.as_ref(), deferred_values)?;
+        let precision = Self::resolve_precision(format_options.precision.as_ref(), deferred_values)?;
         let format_trait = format_options.format_trait;
 
         Ok(Self {
@@ -38,12 +38,12 @@ impl ResolvedFormatOptions {
 
     fn resolve_width(
         width_option: Option<&FormatCount>,
-        provided_args: &DeferredProvidedArgs,
+        deferred_values: &DeferredValues,
     ) -> Result<usize, DeferredFormatError> {
         let width = match width_option {
             Some(width_arg) => match width_arg {
                 FormatCount::Integer(int) => *int,
-                FormatCount::Argument(format_argument) => match provided_args.get(format_argument)? {
+                FormatCount::Argument(format_argument) => match deferred_values.get(format_argument)? {
                     DeferredValue::Usize(arg_value) => *arg_value,
                     other => {
                         return Err(DeferredFormatError::InvalidArgType(
@@ -61,13 +61,13 @@ impl ResolvedFormatOptions {
 
     fn resolve_precision(
         precision_option: Option<&FormatPrecision>,
-        provided_args: &DeferredProvidedArgs,
+        deferred_values: &DeferredValues,
     ) -> Result<Option<usize>, DeferredFormatError> {
         let precision = match precision_option {
             Some(precision) => match precision {
                 FormatPrecision::Count(format_count) => match format_count {
                     FormatCount::Integer(integer) => Some(*integer),
-                    FormatCount::Argument(format_argument) => match provided_args.get(format_argument)? {
+                    FormatCount::Argument(format_argument) => match deferred_values.get(format_argument)? {
                         DeferredValue::Usize(arg_value) => Some(*arg_value),
                         other => {
                             return Err(DeferredFormatError::InvalidArgType(
