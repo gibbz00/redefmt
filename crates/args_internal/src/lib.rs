@@ -28,12 +28,10 @@ pub mod identifier;
 pub(crate) use identifier::*;
 
 mod resolver;
-pub(crate) use resolver::*;
+pub(crate) use resolver::{ArgumentResolver, ResolveArgsError};
 
-#[cfg(feature = "syn")]
-pub mod provided_args;
-#[cfg(feature = "syn")]
-pub(crate) use provided_args::*;
+mod provided_args;
+pub(crate) use provided_args::{ProvidedArgExpression, ProvidedArgs};
 
 #[cfg(feature = "syn")]
 mod format_expression;

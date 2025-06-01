@@ -14,7 +14,7 @@ impl<'a, E> FormatExpression<'a, E> {
         mut provided_args: ProvidedArgs<'a, E>,
     ) -> Result<Self, ResolveArgsError>
     where
-        E: Expression + PartialEq,
+        E: ProvidedArgExpression + PartialEq,
     {
         ArgumentResolver::resolve(&mut format_string, &mut provided_args)?;
         Ok(Self { format_string, provided_args })
