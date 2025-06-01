@@ -203,7 +203,7 @@ impl quote::ToTokens for FormatString<'_> {
         let segments = self.segments.iter();
 
         let format_string_tokens = quote::quote! {
-            ::redefmt_args::FormatString {
+            ::redefmt_args::format_string::FormatString {
                 segments: [#(#segments),*].into_iter().collect()
             }
         };

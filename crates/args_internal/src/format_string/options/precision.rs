@@ -36,7 +36,7 @@ impl quote::ToTokens for FormatPrecision<'_> {
         };
 
         let precision_tokens = quote! {
-            ::redefmt_args::format_options::FormatPrecision::#variant_tokens
+            ::redefmt_args::format_string::options::FormatPrecision::#variant_tokens
         };
 
         tokens.extend(precision_tokens);

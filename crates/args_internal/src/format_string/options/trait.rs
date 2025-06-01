@@ -83,7 +83,7 @@ impl quote::ToTokens for FormatTrait {
         };
 
         let trait_tokens = quote! {
-            ::redefmt_args::format_options::FormatTrait::#variant_tokens
+            ::redefmt_args::format_string::options::FormatTrait::#variant_tokens
         };
 
         tokens.extend(trait_tokens);

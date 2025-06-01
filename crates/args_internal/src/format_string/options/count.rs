@@ -34,7 +34,7 @@ impl quote::ToTokens for FormatCount<'_> {
         };
 
         let count_tokens = quote! {
-            ::redefmt_args::format_options::FormatCount::#variant_tokens
+            ::redefmt_args::format_string::options::FormatCount::#variant_tokens
         };
 
         tokens.extend(count_tokens);
