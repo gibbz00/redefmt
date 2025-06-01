@@ -18,11 +18,13 @@ pub(crate) use provided_args::ProvidedArgs;
 pub mod processor;
 pub(crate) use processor::*;
 
-mod format_expression;
-pub use format_expression::FormatExpression;
-
 pub mod deferred;
 pub(crate) use deferred::*;
+
+#[cfg(feature = "syn")]
+mod format_expression;
+#[cfg(feature = "syn")]
+pub use format_expression::FormatExpression;
 
 #[cfg(feature = "serde")]
 mod serde_utils;

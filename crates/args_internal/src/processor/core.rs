@@ -4,13 +4,39 @@ use hashbrown::HashSet;
 
 use crate::*;
 
-pub struct FormatProcessor<'a, 'aa, E> {
+pub struct FormatProcessor;
+
+impl FormatProcessor {
+    /// Resolves provided args with those in [`FormatString`] using a [`ProcessorConfig`]
+    ///
+    /// Format string argument disambigaution is always performed, regardless of configuration:
+    ///
+    /// Unnamed positional arguments are disambiguated to indexed positional
+    /// arguments. If the index points to a named argument, then the positional
+    /// argument is replaced with the corresponding named argument.
+    ///
+    /// ```rust
+    /// let before = format!("{1} {}", 1, x = 2);
+    /// let after = format!("{x} {0}", 1, x = 2);
+    /// assert_eq!(before, after);
+    /// ```
+    pub fn process<'a, E: PartialEq, C: ArgCapturer<Expression = E>>(
+        mut format_string: FormatString<'a>,
+        provided_args: &mut ProvidedArgs<'a, E>,
+        resolver_config: &ProcessorConfig<C>,
+    ) -> Result<ProcessedFormatString<'a>, ProcessorError> {
+        FormatProcessorImpl::process_impl(&mut format_string, provided_args, resolver_config)?;
+        Ok(ProcessedFormatString(format_string))
+    }
+}
+
+struct FormatProcessorImpl<'a, 'aa, E> {
     format_string_args: Vec<&'aa mut FormatArgument<'a>>,
     provided_args: &'aa mut ProvidedArgs<'a, E>,
 }
 
-impl<'a, 'aa, E: PartialEq> FormatProcessor<'a, 'aa, E> {
-    pub(crate) fn resolve<C: ArgCapturer<Expression = E>>(
+impl<'a, 'aa, E: PartialEq> FormatProcessorImpl<'a, 'aa, E> {
+    fn process_impl<C: ArgCapturer<Expression = E>>(
         format_string: &'aa mut FormatString<'a>,
         provided_args: &'aa mut ProvidedArgs<'a, E>,
         resolver_config: &ProcessorConfig<C>,
@@ -512,17 +538,21 @@ mod tests {
         let expected_format_string = FormatString::parse(expected_format_str).unwrap();
 
         let resolver_config = ProcessorConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
-        FormatProcessor::resolve(&mut format_string, &mut provided_args, &resolver_config).unwrap();
+        FormatProcessorImpl::process_impl(&mut format_string, &mut provided_args, &resolver_config).unwrap();
 
         assert_eq!(expected_format_string, format_string);
         assert_eq!(expected_provided_args, provided_args);
     }
 
-    fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs<syn::Expr>, expected_error: ProcessorError) {
+    fn assert_resolve_err<'a>(
+        format_str: &'a str,
+        mut provided_args: ProvidedArgs<'a, syn::Expr>,
+        expected_error: ProcessorError,
+    ) {
         let format_string = FormatString::parse(format_str).unwrap();
 
         let resolver_config = ProcessorConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
-        let actual_error = FormatExpression::new(format_string, provided_args, &resolver_config).unwrap_err();
+        let actual_error = FormatProcessor::process(format_string, &mut provided_args, &resolver_config).unwrap_err();
 
         assert_eq!(expected_error, actual_error);
     }

@@ -1,4 +1,4 @@
-use redefmt_args::{deferred::ProcessedFormatString, identifier::AnyIdentifier};
+use redefmt_args::{identifier::AnyIdentifier, processor::ProcessedFormatString};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct StoredFormatExpression<'a> {

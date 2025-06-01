@@ -14,7 +14,7 @@ use crate::*;
 struct Args {
     span: Span,
     level_expression: Option<syn::Expr>,
-    format_expression: FormatExpression<'static, syn::Expr>,
+    format_expression: FormatExpression<'static>,
 }
 
 impl Args {
@@ -67,7 +67,7 @@ fn try_macro_impl(args: Args, append_newline: bool) -> TokenStream {
 
 fn macro_impl(
     level_expression: Option<syn::Expr>,
-    format_expression: FormatExpression<syn::Expr>,
+    format_expression: FormatExpression,
     append_newline: bool,
 ) -> Result<TokenStream2, RedefmtMacroError> {
     let db_clients = DbClients::new()?;

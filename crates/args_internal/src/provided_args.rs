@@ -37,11 +37,11 @@ impl<'a, E> ProvidedArgs<'a, E> {
         Ok(Self { positional, named })
     }
 
-    pub fn dissolve_args(self) -> (Vec<E>, Vec<(AnyIdentifier<'a>, E)>) {
+    pub fn dissolve_into_args(self) -> (Vec<E>, Vec<(AnyIdentifier<'a>, E)>) {
         (self.positional, self.named)
     }
 
-    pub fn dissolve_expressions(self) -> (Vec<E>, Vec<AnyIdentifier<'a>>) {
+    pub fn dissolve_into_expressions(self) -> (Vec<E>, Vec<AnyIdentifier<'a>>) {
         let mut expressions = self.positional.into_iter().collect::<Vec<_>>();
 
         let identifiers = self
