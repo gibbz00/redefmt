@@ -26,7 +26,7 @@ impl<T: StatementTable> StatementCache<T> {
                     return Err(RedefmtDecoderError::UnknownStatement(
                         *id.as_ref(),
                         T::NAME,
-                        crate_context.record.name().clone(),
+                        crate_context.record.name.clone(),
                     ));
                 };
 

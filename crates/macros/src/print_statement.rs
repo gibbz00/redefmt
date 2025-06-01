@@ -5,10 +5,7 @@ use redefmt_args::FormatExpression;
 use redefmt_core::codec::frame::Level;
 use redefmt_db::{
     Table,
-    statement_table::{
-        print::{Location, PrintStatement},
-        stored_format_expression::StoredFormatExpression,
-    },
+    statement_table::print::{Location, PrintStatement},
 };
 use syn::{Token, parse::ParseStream, parse_macro_input};
 
@@ -81,12 +78,10 @@ fn macro_impl(
         .cloned()
         .collect::<Vec<_>>();
 
-    let (deferred_format_expression, _) = format_expression.defer();
-
     let print_statement = {
         let location = location();
-        let stored_expression = StoredFormatExpression::new(deferred_format_expression, append_newline);
-        PrintStatement::new(location, stored_expression)
+        let format_expression = StatementUtils::prepare_stored(format_expression, append_newline);
+        PrintStatement { location, format_expression }
     };
 
     let statement_id = db_clients.crate_db.insert(&print_statement)?;
@@ -118,9 +113,9 @@ fn macro_impl(
 
 fn location() -> Location<'static> {
     let rust_span = proc_macro::Span::call_site();
-    let file = rust_span.file();
-    let line = rust_span.start().line();
-    Location::new(file, line as u32)
+    let file = rust_span.file().into();
+    let line = rust_span.start().line() as u32;
+    Location { file, line }
 }
 
 fn level_expression(level: Level) -> syn::Expr {

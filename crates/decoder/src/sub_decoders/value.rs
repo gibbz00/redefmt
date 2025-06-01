@@ -220,7 +220,7 @@ impl<'cache> ValueDecoder<'cache> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::deferred_format_expression;
+    use redefmt_args::{deferred_format_expression, identifier::AnyIdentifier};
     use redefmt_core::{
         codec::encoding::{SimpleTestDispatcher, WriteValue},
         identifiers::WriteStatementId,
@@ -364,13 +364,19 @@ mod tests {
 
         let arg_value = true;
 
-        let stored_expression = StoredFormatExpression::new(format_expression, false);
+        let stored_expression = StoredFormatExpression {
+            expression: format_expression,
+            append_newline: false,
+            expected_positional_arg_count: 0,
+            expected_named_args: vec![AnyIdentifier::parse("x").unwrap()],
+        };
+
         let write_statement = WriteStatement::FormatExpression(stored_expression.clone());
 
         // expected
         let expected_value = Value::NestedFormatExpression {
-            expression: stored_expression.expression(),
-            append_newline: *stored_expression.append_newline(),
+            expression: &stored_expression.expression,
+            append_newline: stored_expression.append_newline,
             decoded_values: vec![Value::Boolean(arg_value)],
         };
 

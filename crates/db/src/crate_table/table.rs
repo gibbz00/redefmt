@@ -3,9 +3,9 @@ use rusqlite::OptionalExtension;
 
 use crate::*;
 
-#[derive(Debug, PartialEq, derive_getters::Getters)]
+#[derive(Debug, PartialEq)]
 pub struct Crate<'a> {
-    pub(super) name: CrateName<'a>,
+    pub name: CrateName<'a>,
 }
 
 impl<'a> Crate<'a> {

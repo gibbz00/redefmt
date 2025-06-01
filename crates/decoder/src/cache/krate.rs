@@ -34,7 +34,7 @@ impl CrateCache {
                     return Err(RedefmtDecoderError::UnknownCrate(id));
                 };
 
-                let crate_db = DbClient::new_crate(state_dir, crate_record.name())?;
+                let crate_db = DbClient::new_crate(state_dir, &crate_record.name)?;
 
                 self.map.insert(id, Box::new((crate_db, crate_record)))
             }
