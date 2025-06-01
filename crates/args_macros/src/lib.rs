@@ -17,7 +17,7 @@ pub fn format_string(token_stream: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn deferred_format_expression(token_stream: TokenStream) -> TokenStream {
+pub fn deferred_format_string(token_stream: TokenStream) -> TokenStream {
     let expression = parse_macro_input!(token_stream as FormatExpression<syn::Expr>);
     expression.dissolve().0.to_token_stream().into()
 }
@@ -26,7 +26,7 @@ pub fn deferred_format_expression(token_stream: TokenStream) -> TokenStream {
 pub fn deferred_format(token_stream: TokenStream) -> TokenStream {
     let format_expression = parse_macro_input!(token_stream as FormatExpression<syn::Expr>);
 
-    let (deferred_format_expression, provided_args) = format_expression.dissolve();
+    let (deferred_format_string, provided_args) = format_expression.dissolve();
 
     let (provided_positional, provided_named) = provided_args.dissolve_args();
 
@@ -48,7 +48,7 @@ pub fn deferred_format(token_stream: TokenStream) -> TokenStream {
 
     quote! {
         (
-            #deferred_format_expression,
+            #deferred_format_string,
             ::redefmt_args::deferred::DeferredProvidedArgs::new(
                 [#(#positional_args),*],
                 [#(#named_args),*]

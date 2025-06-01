@@ -1,5 +1,5 @@
-mod expression;
-pub use expression::DeferredFormatExpression;
+mod string;
+pub use string::DeferredFormatString;
 
 mod provided_args;
 pub use provided_args::DeferredProvidedArgs;

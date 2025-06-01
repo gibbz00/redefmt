@@ -19,8 +19,8 @@ impl<'a, E> FormatExpression<'a, E> {
         Ok(Self { format_string, provided_args })
     }
 
-    pub fn dissolve(self) -> (DeferredFormatExpression<'a>, ProvidedArgs<'a, E>) {
-        let deferred_format_expression = DeferredFormatExpression { format_string: self.format_string };
+    pub fn dissolve(self) -> (DeferredFormatString<'a>, ProvidedArgs<'a, E>) {
+        let deferred_format_expression = DeferredFormatString { format_string: self.format_string };
 
         (deferred_format_expression, self.provided_args)
     }

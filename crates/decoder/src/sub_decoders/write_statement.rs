@@ -42,8 +42,8 @@ impl<'cache> WriteStatementDecoder<'cache> {
                     .get_or_insert(write_statement_id, self.write_crate)?;
 
                 match write_statement {
-                    WriteStatement::FormatExpression(format_expression) => {
-                        let segment_decoder = SegmentsDecoder::new(self.pointer_width, format_expression);
+                    WriteStatement::FormatExpression(stored_expression) => {
+                        let segment_decoder = SegmentsDecoder::new(self.pointer_width, stored_expression);
                         self.stage = WriteStatementDecoderStage::Segments(Box::new(segment_decoder));
                         self.decode(stores, src)
                     }
@@ -62,7 +62,7 @@ impl<'cache> WriteStatementDecoder<'cache> {
 
                 // flatten stored expression to avoid leaking db crate in public API
                 Ok(Some(Value::NestedFormatExpression {
-                    expression: &segment_decoder.stored_expression.expression,
+                    expression: &segment_decoder.stored_expression.format_string,
                     append_newline: segment_decoder.stored_expression.append_newline,
                     decoded_values: segment_decoder.decoded_values,
                 }))
