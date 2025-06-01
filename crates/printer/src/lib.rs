@@ -10,7 +10,7 @@ mod pretty {
     use std::io::Write;
 
     use redefmt_args::deferred::{
-        DeferredFormatError, DeferredFormatExpression, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue,
+        DeferredFormatError, DeferredFormatString, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue,
         DeferredTypeVariant, DeferredValue,
     };
     use redefmt_decoder::{
@@ -38,23 +38,23 @@ mod pretty {
             stamp,
             file_name,
             file_line,
-            format_expression,
+            format_string,
             append_newline,
             decoded_values,
         } = redefmt_frame;
 
-        let expression_string = evaluate_expression_string(format_expression, &decoded_values, append_newline);
+        let expression_string = evaluate_format_string(format_string, &decoded_values, append_newline);
 
         todo!()
     }
 
-    fn evaluate_expression_string(
-        expression: &DeferredFormatExpression,
+    fn evaluate_format_string(
+        format_string: &DeferredFormatString,
         decoded_values: &DecodedValues,
         append_newline: bool,
     ) -> Result<String, RedefmtPrinterError> {
         let provided_args = convert_provided(decoded_values)?;
-        let mut expression_string = expression.evaluate(&provided_args)?;
+        let mut expression_string = format_string.evaluate(&provided_args)?;
 
         if append_newline {
             expression_string.push('\n');
@@ -118,7 +118,7 @@ mod pretty {
                 DeferredValue::Type(DeferredTypeValue { name, variant: deferred_variant })
             }
             Value::NestedFormatExpression { expression, append_newline, decoded_values } => {
-                let pretty_string = evaluate_expression_string(expression, decoded_values, *append_newline)?;
+                let pretty_string = evaluate_format_string(expression, decoded_values, *append_newline)?;
                 DeferredValue::String(pretty_string.into())
             }
         };

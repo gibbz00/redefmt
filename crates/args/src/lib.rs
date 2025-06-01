@@ -8,7 +8,7 @@ pub use redefmt_args_internal::*;
 // Almost exclusively used to declare tests within redefmt
 #[doc(hidden)]
 #[cfg(feature = "macros")]
-pub use redefmt_args_macros::deferred_format_expression;
+pub use redefmt_args_macros::deferred_format_string;
 //
 #[cfg(feature = "macros")]
 pub use redefmt_args_macros::{deferred_format, format_string};

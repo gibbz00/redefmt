@@ -72,18 +72,18 @@ fn macro_impl(
 ) -> Result<TokenStream2, RedefmtMacroError> {
     let db_clients = DbClients::new()?;
 
-    let (deferred_format_expression, provided_args) = format_expression.dissolve();
+    let (deferred_format_string, provided_args) = format_expression.dissolve();
 
-    let (format_argument_expressions, provided_identifiers) = provided_args.dissolve_expressions();
+    let (provided_args, provided_identifiers) = provided_args.dissolve_expressions();
 
-    let format_expression = StatementUtils::prepare_stored(
-        deferred_format_expression,
-        format_argument_expressions.len(),
+    let stored_expression = StatementUtils::prepare_stored(
+        deferred_format_string,
+        provided_args.len(),
         provided_identifiers,
         append_newline,
     );
 
-    let print_statement = PrintStatement { location: location(), format_expression };
+    let print_statement = PrintStatement { location: location(), stored_expression };
 
     let statement_id = db_clients.crate_db.insert(&print_statement)?;
 
@@ -105,7 +105,7 @@ fn macro_impl(
                 #maybe_log_level
             );
             #(
-                global_logger_handle.write_format(&#format_argument_expressions);
+                global_logger_handle.write_format(&#provided_args);
             )*
             global_logger_handle.write_end();
         }

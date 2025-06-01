@@ -14,7 +14,7 @@ impl StatementTable for PrintStatement<'_> {
 pub struct PrintStatement<'a> {
     pub location: Location<'a>,
     #[serde(borrow)]
-    pub format_expression: StoredFormatExpression<'a>,
+    pub stored_expression: StoredFormatExpression<'a>,
 }
 
 /// Print statement call site location
@@ -30,7 +30,7 @@ pub struct Location<'a> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{deferred::DeferredFormatExpression, deferred_format_expression};
+    use redefmt_args::{deferred::DeferredFormatString, deferred_format_string};
 
     use super::*;
 
@@ -44,14 +44,14 @@ mod tests {
         fn mock() -> Self {
             PrintStatement {
                 location: mock_location(),
-                format_expression: mock_stored_expression(deferred_format_expression!("x")),
+                stored_expression: mock_stored_expression(deferred_format_string!("x")),
             }
         }
 
         fn mock_other() -> Self {
             PrintStatement {
                 location: mock_location(),
-                format_expression: mock_stored_expression(deferred_format_expression!("y")),
+                stored_expression: mock_stored_expression(deferred_format_string!("y")),
             }
         }
     }
@@ -60,9 +60,9 @@ mod tests {
         Location { file: "file.rs".into(), line: 1 }
     }
 
-    fn mock_stored_expression(expression: DeferredFormatExpression) -> StoredFormatExpression {
+    fn mock_stored_expression(expression: DeferredFormatString) -> StoredFormatExpression {
         StoredFormatExpression {
-            expression,
+            format_string: expression,
             append_newline: false,
             expected_positional_arg_count: 0,
             expected_named_args: Default::default(),
