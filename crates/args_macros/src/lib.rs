@@ -45,7 +45,7 @@ pub fn deferred_format(token_stream: TokenStream) -> TokenStream {
     quote! {
         (
             #processed_format_string,
-            ::redefmt_args::deferred::DeferredProvidedArgs::new(
+            ::redefmt_args::deferred::DeferredValues::new(
                 [#(#positional_args),*],
                 [#(#named_args),*]
             )

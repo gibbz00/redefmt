@@ -68,18 +68,16 @@ struct EvaluationContext {
 }
 
 impl<'a> DeferredValue<'a> {
-    pub(crate) fn evaluate(
+    pub(crate) fn format_deferred(
         &self,
         string_buffer: &mut String,
-        format_options: &FormatOptions,
-        provided_args: &DeferredProvidedArgs,
+        options: &ResolvedFormatOptions,
     ) -> Result<(), DeferredFormatError> {
         let mut evaltation_context = EvaluationContext::default();
-        let options = ResolvedFormatOptions::resolve(format_options, provided_args)?;
-        self.evaluate_impl(string_buffer, &mut evaltation_context, &options)
+        self.format_deferred_impl(string_buffer, &mut evaltation_context, options)
     }
 
-    fn evaluate_impl(
+    fn format_deferred_impl(
         &self,
         string_buffer: &mut String,
         evaluation_context: &mut EvaluationContext,
@@ -353,7 +351,7 @@ fn collection_string(
         string_buffer,
         elements,
         |string_buffer, element, evaluation_context, options| {
-            element.evaluate_impl(string_buffer, evaluation_context, options)
+            element.format_deferred_impl(string_buffer, evaluation_context, options)
         },
         evaluation_context,
         options,
@@ -470,7 +468,7 @@ fn struct_string(
                 |string_buffer, (field_name, field_value), evaluation_context, options| {
                     string_buffer.push_str(field_name);
                     string_buffer.push_str(": ");
-                    field_value.evaluate_impl(string_buffer, evaluation_context, options)
+                    field_value.format_deferred_impl(string_buffer, evaluation_context, options)
                 },
                 evaluation_context,
                 options,

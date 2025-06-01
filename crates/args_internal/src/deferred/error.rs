@@ -4,7 +4,7 @@ use crate::*;
 pub enum DeferredFormatError {
     #[error("format positional argument index not present in provided values slice")]
     PositionalOutOfBounds(usize),
-    #[error("missing named identifier, or its raw counterpart, in provided arguments")]
+    #[error("missing named identifier or its raw counterpart in provided values")]
     MissingNamed(ArgumentIdentifier<'static>),
     #[error("format trait {0:?} not implemented for {1}")]
     FormatNotImplemented(FormatTrait, DeferredValueDiscriminants),

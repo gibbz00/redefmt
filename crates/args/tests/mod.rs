@@ -14,8 +14,8 @@ fn ui() {
 
 macro_rules! assert_evaluate {
     ($expected_string:expr, $($arg:tt)*) => {
-        let (expression, args) = deferred_format!($($arg)*);
-        let actual_string = expression.evaluate(&args).unwrap();
+        let (expression, values) = deferred_format!($($arg)*);
+        let actual_string = expression.format_deferred(&values).unwrap();
         assert_eq!($expected_string, actual_string);
     };
 }

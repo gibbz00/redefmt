@@ -4,13 +4,13 @@ use hashbrown::HashMap;
 
 use crate::*;
 
-pub struct DeferredProvidedArgs<'v> {
+pub struct DeferredValues<'v> {
     // IMPROVEMENT: Cow rather than require vec?
     pub(crate) positional: Vec<DeferredValue<'v>>,
     pub(crate) named: HashMap<ArgumentIdentifier<'v>, DeferredValue<'v>>,
 }
 
-impl<'v> DeferredProvidedArgs<'v> {
+impl<'v> DeferredValues<'v> {
     pub fn new(
         positional: impl IntoIterator<Item = DeferredValue<'v>>,
         named: impl IntoIterator<Item = (AnyIdentifier<'v>, DeferredValue<'v>)>,
