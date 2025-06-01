@@ -25,20 +25,20 @@ pub struct RedefmtFrame<'cache> {
 }
 
 impl<'cache> RedefmtFrame<'cache> {
-    // flattens `PrintStatement` to avoid exposing it in the public API.
     pub(crate) fn new(
         level: Option<Level>,
         stamp: Option<Stamp>,
         print_stratement: &'cache PrintStatement<'static>,
         decoded_values: Vec<Value<'cache>>,
     ) -> Self {
+        // flatten `PrintStatement` to avoid exposing the db crate in the public API.
         Self {
             level,
             stamp,
-            file_name: print_stratement.location().file().as_ref(),
-            file_line: *print_stratement.location().line(),
-            format_expression: print_stratement.format_expression().expression(),
-            append_newline: *print_stratement.format_expression().append_newline(),
+            file_name: print_stratement.location.file.as_ref(),
+            file_line: print_stratement.location.line,
+            format_expression: &print_stratement.format_expression.expression,
+            append_newline: print_stratement.format_expression.append_newline,
             decoded_values,
         }
     }

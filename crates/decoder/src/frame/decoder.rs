@@ -125,7 +125,7 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::deferred_format_expression;
+    use redefmt_args::{deferred_format_expression, identifier::AnyIdentifier};
     use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
@@ -261,7 +261,7 @@ mod tests {
 
         assert!(cached_print_statement.is_some());
 
-        let expected_format_expression = print_statement.format_expression();
+        let expected_format_expression = &print_statement.format_expression;
 
         match decoder.stage {
             FrameDecoderWants::PrintStatement(stage) => {
@@ -338,13 +338,19 @@ mod tests {
     }
 
     fn mock_print_statement() -> PrintStatement<'static> {
-        let location = Location::new("file.rs", 1);
+        let location = Location { file: "file.rs".into(), line: 1 };
 
         // NOTE: Two format arguments, but only one provided. Implicitly
         // ensures that it only needs to be encoded and decoded once
-        let format_expression = StoredFormatExpression::new(deferred_format_expression!("{0} {0}", y = y), false);
 
-        PrintStatement::new(location, format_expression)
+        let format_expression = StoredFormatExpression {
+            expression: deferred_format_expression!("{0} {0}", y = y),
+            append_newline: false,
+            expected_positional_arg_count: 0,
+            expected_named_args: vec![AnyIdentifier::parse("y").unwrap()],
+        };
+
+        PrintStatement { location, format_expression }
     }
 
     fn put_and_decode_print_crate_id(decoder: &mut RedefmtDecoder, crate_id: CrateId) {

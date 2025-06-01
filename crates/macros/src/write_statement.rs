@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use redefmt_args::FormatExpression;
-use redefmt_db::statement_table::{stored_format_expression::StoredFormatExpression, write::WriteStatement};
+use redefmt_db::statement_table::write::WriteStatement;
 use syn::{Token, parse_macro_input};
 
 use crate::*;
@@ -18,10 +18,8 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
         .cloned()
         .collect::<Vec<_>>();
 
-    let (deferred_format_expression, _) = format_expression.defer();
-
     let write_id_expr = {
-        let stored_expression = StoredFormatExpression::new(deferred_format_expression, append_newline);
+        let stored_expression = StatementUtils::prepare_stored(format_expression, append_newline);
         let write_statement = WriteStatement::FormatExpression(stored_expression);
         register_write_statement!(&db_clients, &write_statement, &formatter_ident, span)
     };
