@@ -8,6 +8,19 @@ pub struct FormatExpression<'a, E> {
 }
 
 impl<'a, E> FormatExpression<'a, E> {
+    /// Resolves provided args with those in [`FormatString`] using a [`ResolverConfig`]
+    ///
+    /// Format string argument disambigaution is always performed, regardless of configuration:
+    ///
+    /// Unnamed positional arguments are disambiguated to indexed positional
+    /// arguments. If the index points to a named argument, then the positional
+    /// argument is replaced with the corresponding named argument.
+    ///
+    /// ```rust
+    /// let before = format!("{1} {}", 1, x = 2);
+    /// let after = format!("{x} {0}", 1, x = 2);
+    /// assert_eq!(before, after);
+    /// ```
     pub fn new<C: ArgCapturer<Expression = E>>(
         mut format_string: FormatString<'a>,
         mut provided_args: ProvidedArgs<'a, E>,
@@ -50,7 +63,7 @@ impl syn::parse::Parse for FormatExpression<'static, syn::Expr> {
             }
         };
 
-        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer) };
+        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
         Self::new(format_string, provided_args, &resolver_config).map_err(|error| syn::Error::new(input.span(), error))
     }
 }
