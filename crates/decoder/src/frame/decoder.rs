@@ -125,7 +125,7 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{deferred_format_string, identifier::AnyIdentifier};
+    use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
     use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
@@ -355,7 +355,7 @@ mod tests {
         // ensures that it only needs to be encoded and decoded once
 
         let stored_expression = StoredFormatExpression {
-            format_string: deferred_format_string!("{0} {0}", y = y),
+            format_string: processed_format_string!("{0} {0}", y = y),
             append_newline: false,
             expected_positional_arg_count: 0,
             expected_named_args: vec![AnyIdentifier::parse("y").unwrap()],

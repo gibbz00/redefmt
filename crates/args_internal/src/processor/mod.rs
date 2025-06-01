@@ -1,5 +1,8 @@
-mod internal;
-pub(crate) use internal::FormatProcessor;
+mod core;
+pub use core::FormatProcessor;
+
+mod string;
+pub use string::ProcessedFormatString;
 
 mod error;
 pub use error::ProcessorError;
