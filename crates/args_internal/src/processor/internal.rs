@@ -4,17 +4,17 @@ use hashbrown::HashSet;
 
 use crate::*;
 
-pub struct InternalArgumentResolver<'a, 'aa, E> {
+pub struct FormatProcessor<'a, 'aa, E> {
     format_string_args: Vec<&'aa mut FormatArgument<'a>>,
     provided_args: &'aa mut ProvidedArgs<'a, E>,
 }
 
-impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
+impl<'a, 'aa, E: PartialEq> FormatProcessor<'a, 'aa, E> {
     pub(crate) fn resolve<C: ArgCapturer<Expression = E>>(
         format_string: &'aa mut FormatString<'a>,
         provided_args: &'aa mut ProvidedArgs<'a, E>,
-        resolver_config: &ResolverConfig<C>,
-    ) -> Result<(), ResolveArgsError> {
+        resolver_config: &ProcessorConfig<C>,
+    ) -> Result<(), ProcessorError> {
         let mut resolver = Self { format_string_args: format_string.collect_args_mut(), provided_args };
 
         // Only valid as long as no provided args are removed. Could technically
@@ -57,9 +57,9 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
 
     fn validate_format_arguments<C: ArgCapturer<Expression = E>>(
         self,
-        resolver_config: &ResolverConfig<C>,
+        resolver_config: &ProcessorConfig<C>,
         provided_named_str_set: &HashSet<ArgumentIdentifier>,
-    ) -> Result<Self, ResolveArgsError> {
+    ) -> Result<Self, ProcessorError> {
         let Self { mut format_string_args, provided_args } = self;
 
         for format_string_arg in format_string_args.iter_mut() {
@@ -72,7 +72,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
                         let named_index = argument_index - positional_len;
 
                         let Some((arg_name, _)) = provided_args.named.get(named_index) else {
-                            return Err(ResolveArgsError::InvalidStringPositional(
+                            return Err(ProcessorError::InvalidStringPositional(
                                 *argument_index,
                                 positional_len + provided_args.named.len(),
                             ));
@@ -92,7 +92,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
 
                             provided_args.named.push((captured_name, captured_variable));
                         } else {
-                            return Err(ResolveArgsError::MissingNamed(identifier.to_string()));
+                            return Err(ProcessorError::MissingNamed(identifier.to_string()));
                         }
                     };
                 }
@@ -102,7 +102,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         Ok(Self { format_string_args, provided_args })
     }
 
-    fn unmove_idents<C: ArgCapturer<Expression = E>>(self, resolver_config: &ResolverConfig<C>) -> Self {
+    fn unmove_idents<C: ArgCapturer<Expression = E>>(self, resolver_config: &ProcessorConfig<C>) -> Self {
         if let Some(arg_capturer) = &resolver_config.arg_capturer {
             self.provided_args.positional.iter_mut().for_each(|expr| {
                 arg_capturer.unmove_expression(expr);
@@ -117,7 +117,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         self
     }
 
-    fn check_unused_provided_positionals(self) -> Result<Self, ResolveArgsError> {
+    fn check_unused_provided_positionals(self) -> Result<Self, ProcessorError> {
         let Self { format_string_args, provided_args } = self;
 
         let format_string_positional_count = format_string_args
@@ -128,7 +128,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
         let provided_positional_count = provided_args.positional.len();
 
         if provided_positional_count > format_string_positional_count {
-            return Err(ResolveArgsError::UnusedPositionals(
+            return Err(ProcessorError::UnusedPositionals(
                 provided_positional_count - format_string_positional_count,
             ));
         }
@@ -139,7 +139,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
     fn check_unused_provided_named(
         self,
         provided_named_str_set: &HashSet<ArgumentIdentifier>,
-    ) -> Result<Self, ResolveArgsError> {
+    ) -> Result<Self, ProcessorError> {
         let Self { format_string_args, provided_args } = self;
 
         let format_args_named_set = format_string_args
@@ -152,7 +152,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
 
         for provided_named_str in provided_named_str_set {
             if !format_args_named_set.contains(provided_named_str) {
-                return Err(ResolveArgsError::UnusedNamed(provided_named_str.to_string()));
+                return Err(ProcessorError::UnusedNamed(provided_named_str.to_string()));
             }
         }
 
@@ -450,40 +450,36 @@ mod tests {
         assert_resolve_err(
             "{x}",
             parse_quote!(x = 10, y = 10),
-            ResolveArgsError::UnusedNamed("y".to_string()),
+            ProcessorError::UnusedNamed("y".to_string()),
         );
     }
 
     #[test]
     fn unused_positional_error() {
-        assert_resolve_err("", parse_quote!(1), ResolveArgsError::UnusedPositionals(1));
+        assert_resolve_err("", parse_quote!(1), ProcessorError::UnusedPositionals(1));
         // both positionals with the same value asserts that the check is done before any deduplication
-        assert_resolve_err("{}", parse_quote!(1, 1, "x"), ResolveArgsError::UnusedPositionals(2));
+        assert_resolve_err("{}", parse_quote!(1, 1, "x"), ProcessorError::UnusedPositionals(2));
 
         // discontinuous indexes in format arguments are also captured
         assert_resolve_err(
             "{0} {2}",
             parse_quote!(1, 2, x = 3),
-            ResolveArgsError::UnusedPositionals(1),
+            ProcessorError::UnusedPositionals(1),
         );
     }
 
     #[test]
     fn invalid_positional_error() {
-        assert_resolve_err("{1}", parse_quote!(), ResolveArgsError::InvalidStringPositional(1, 0));
+        assert_resolve_err("{1}", parse_quote!(), ProcessorError::InvalidStringPositional(1, 0));
 
         assert_resolve_err(
             "{0} {1}",
             parse_quote!(1),
-            ResolveArgsError::InvalidStringPositional(1, 1),
+            ProcessorError::InvalidStringPositional(1, 1),
         );
 
         // next argument usage requires when first is unnamed
-        assert_resolve_err(
-            "{:.*}",
-            parse_quote!(1),
-            ResolveArgsError::InvalidStringPositional(1, 1),
-        );
+        assert_resolve_err("{:.*}", parse_quote!(1), ProcessorError::InvalidStringPositional(1, 1));
     }
 
     fn assert_resolve_unchanged(format_str: &'static str, provided_args: ProvidedArgs<syn::Expr>) {
@@ -515,17 +511,17 @@ mod tests {
         let mut format_string = FormatString::parse(format_str).unwrap();
         let expected_format_string = FormatString::parse(expected_format_str).unwrap();
 
-        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
-        InternalArgumentResolver::resolve(&mut format_string, &mut provided_args, &resolver_config).unwrap();
+        let resolver_config = ProcessorConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
+        FormatProcessor::resolve(&mut format_string, &mut provided_args, &resolver_config).unwrap();
 
         assert_eq!(expected_format_string, format_string);
         assert_eq!(expected_provided_args, provided_args);
     }
 
-    fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs<syn::Expr>, expected_error: ResolveArgsError) {
+    fn assert_resolve_err(format_str: &str, provided_args: ProvidedArgs<syn::Expr>, expected_error: ProcessorError) {
         let format_string = FormatString::parse(format_str).unwrap();
 
-        let resolver_config = ResolverConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
+        let resolver_config = ProcessorConfig { arg_capturer: Some(SynArgCapturer), ..Default::default() };
         let actual_error = FormatExpression::new(format_string, provided_args, &resolver_config).unwrap_err();
 
         assert_eq!(expected_error, actual_error);

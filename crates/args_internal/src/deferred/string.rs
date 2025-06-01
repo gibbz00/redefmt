@@ -2,7 +2,6 @@ use alloc::string::String;
 
 use crate::*;
 
-// Format string has been passed through argument resolver
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProcessedFormatString<'a>(#[cfg_attr(feature = "serde", serde(borrow))] pub(crate) FormatString<'a>);
