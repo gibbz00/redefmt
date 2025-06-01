@@ -2,7 +2,7 @@ mod core {
     use crate::*;
 
     pub struct PrinterConfig {
-        stamp: PrintStampConfig,
+        pub stamp: PrintStampConfig,
     }
 }
 pub use core::PrinterConfig;
