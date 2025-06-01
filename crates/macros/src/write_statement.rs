@@ -12,16 +12,7 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
 
     let db_clients = db_clients!(span);
 
-    let (deferred_format_string, provided_args) = format_expression.dissolve();
-
-    let (provided_args, provided_identifiers) = provided_args.dissolve_expressions();
-
-    let stored_expression = StatementUtils::prepare_stored(
-        deferred_format_string,
-        provided_args.len(),
-        provided_identifiers,
-        append_newline,
-    );
+    let (stored_expression, provided_args) = StatementUtils::dissolve_expression(format_expression, append_newline);
 
     let write_statement = WriteStatement::FormatExpression(stored_expression);
 
