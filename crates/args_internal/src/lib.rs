@@ -12,11 +12,11 @@ pub(crate) use identifier::*;
 pub mod format_string;
 pub(crate) use format_string::*;
 
-mod resolver;
-pub(crate) use resolver::{ArgumentResolver, ResolveArgsError};
-
 mod provided_args;
 pub(crate) use provided_args::ProvidedArgs;
+
+pub mod resolver;
+pub(crate) use resolver::*;
 
 pub mod arg_capturer;
 pub(crate) use arg_capturer::ArgCapturer;

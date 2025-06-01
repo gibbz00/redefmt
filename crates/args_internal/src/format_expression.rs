@@ -16,7 +16,7 @@ impl<'a, E> FormatExpression<'a, E> {
     where
         E: PartialEq,
     {
-        ArgumentResolver::resolve(&mut format_string, &mut provided_args, arg_capturer)?;
+        InternalArgumentResolver::resolve(&mut format_string, &mut provided_args, arg_capturer)?;
         Ok(Self { format_string, provided_args })
     }
 
