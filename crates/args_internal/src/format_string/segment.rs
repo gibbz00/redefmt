@@ -86,7 +86,7 @@ mod quote {
             };
 
             let segment_tokens = quote! {
-                ::redefmt_args::format_segment::FormatStringSegment::#variant_tokens
+                ::redefmt_args::format_string::segment::FormatStringSegment::#variant_tokens
             };
 
             tokens.extend(segment_tokens);
@@ -99,7 +99,7 @@ mod quote {
             let options = &self.options;
 
             let segment_tokens = quote! {
-                ::redefmt_args::format_segment::FormatArgumentSegment {
+                ::redefmt_args::format_string::segment::FormatArgumentSegment {
                     argument: #argument,
                     options: #options,
                 }

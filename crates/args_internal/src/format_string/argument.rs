@@ -45,7 +45,7 @@ impl quote::ToTokens for FormatArgument<'_> {
         };
 
         let argument_tokens = quote! {
-            ::redefmt_args::format_argument::FormatArgument::#variant_tokens
+            ::redefmt_args::format_string::argument::FormatArgument::#variant_tokens
         };
 
         tokens.extend(argument_tokens);
