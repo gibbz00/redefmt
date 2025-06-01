@@ -21,7 +21,7 @@ pub struct RedefmtFrame<'cache> {
     pub file_line: u32,
     pub format_expression: &'cache DeferredFormatExpression<'static>,
     pub append_newline: bool,
-    pub decoded_values: Vec<Value<'cache>>,
+    pub decoded_values: DecodedValues<'cache>,
 }
 
 impl<'cache> RedefmtFrame<'cache> {
@@ -29,7 +29,7 @@ impl<'cache> RedefmtFrame<'cache> {
         level: Option<Level>,
         stamp: Option<Stamp>,
         print_stratement: &'cache PrintStatement<'static>,
-        decoded_values: Vec<Value<'cache>>,
+        decoded_values: DecodedValues<'cache>,
     ) -> Self {
         // flatten `PrintStatement` to avoid exposing the db crate in the public API.
         Self {

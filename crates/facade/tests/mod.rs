@@ -24,7 +24,7 @@ macro_rules! assert_end_to_end {
             file_line: 18,
             format_expression: &deferred_format_expression!($($arg)*),
             append_newline: $append_newline,
-            decoded_values: Vec::new(),
+            decoded_values: Default::default(),
         };
 
         assert_end_to_end_impl(&mut $dispatcher, &mut $decoder, expected_frame);
