@@ -16,7 +16,12 @@ mod resolver;
 pub(crate) use resolver::{ArgumentResolver, ResolveArgsError};
 
 mod provided_args;
-pub(crate) use provided_args::{ProvidedArgExpression, ProvidedArgs};
+pub(crate) use provided_args::ProvidedArgs;
+
+pub mod arg_capturer;
+pub(crate) use arg_capturer::ArgCapturer;
+#[cfg(feature = "syn")]
+pub(crate) use arg_capturer::SynArgCapturer;
 
 mod format_expression;
 pub use format_expression::FormatExpression;
