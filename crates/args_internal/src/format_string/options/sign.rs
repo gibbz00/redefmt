@@ -19,7 +19,7 @@ impl quote::ToTokens for Sign {
         };
 
         let sign_tokens = quote! {
-            ::redefmt_args::format_options::Sign::#variant_name
+            ::redefmt_args::format_string::options::Sign::#variant_name
         };
 
         tokens.extend(sign_tokens);
@@ -35,7 +35,7 @@ mod tests {
     #[test]
     fn to_tokens_plus() {
         let input = Sign::Plus;
-        let expected = quote! { ::redefmt_args::format_options::Sign::Plus };
+        let expected = quote! { ::redefmt_args::format_string::options::Sign::Plus };
 
         crate::quote_utils::assert_tokens(input, expected);
     }
@@ -43,7 +43,7 @@ mod tests {
     #[test]
     fn to_tokens_minus() {
         let input = Sign::Minus;
-        let expected = quote! { ::redefmt_args::format_options::Sign::Minus };
+        let expected = quote! { ::redefmt_args::format_string::options::Sign::Minus };
 
         crate::quote_utils::assert_tokens(input, expected);
     }

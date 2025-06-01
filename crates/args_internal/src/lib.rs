@@ -6,26 +6,11 @@
 
 extern crate alloc;
 
-mod parse_error;
-pub use parse_error::FormatStringParseError;
-
-mod format_string;
-pub use format_string::FormatString;
-
-pub mod format_segment;
-pub(crate) use format_segment::{FormatArgumentSegment, FormatStringSegment, FormatStringSegmentError};
-
-pub mod format_argument;
-pub(crate) use format_argument::FormatArgument;
-
-pub mod format_literal;
-pub(crate) use format_literal::FormatLiteral;
-
-pub mod format_options;
-pub(crate) use format_options::*;
-
 pub mod identifier;
 pub(crate) use identifier::*;
+
+pub mod format_string;
+pub(crate) use format_string::*;
 
 mod resolver;
 pub(crate) use resolver::{ArgumentResolver, ResolveArgsError};
@@ -40,9 +25,6 @@ pub use format_expression::FormatExpression;
 
 pub mod deferred;
 pub(crate) use deferred::*;
-
-mod integer;
-pub(crate) use integer::Integer;
 
 #[cfg(feature = "serde")]
 mod serde_utils;

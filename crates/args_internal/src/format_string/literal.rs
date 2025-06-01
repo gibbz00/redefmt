@@ -75,7 +75,7 @@ impl quote::ToTokens for FormatLiteral<'_> {
 
         let format_literal_tokens = quote::quote! {
             #[doc = #DOC_MESSAGE]
-            unsafe { ::redefmt_args::format_literal::FormatLiteral::new_unchecked(#inner) }
+            unsafe { ::redefmt_args::format_string::literal::FormatLiteral::new_unchecked(#inner) }
         };
 
         tokens.extend(format_literal_tokens);

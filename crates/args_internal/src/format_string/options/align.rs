@@ -20,7 +20,7 @@ impl quote::ToTokens for FormatAlign {
         let character = crate::quote_utils::PrintOption::new(&self.character);
 
         let format_align_tokens = quote::quote! {
-            ::redefmt_args::format_options::FormatAlign {
+            ::redefmt_args::format_string::options::FormatAlign {
                 alignment: #alignment,
                 character: #character,
             }
@@ -64,7 +64,7 @@ impl quote::ToTokens for Alignment {
         };
 
         let align_tokens = quote! {
-            ::redefmt_args::format_options::Alignment::#variant_name
+            ::redefmt_args::format_string::options::Alignment::#variant_name
         };
 
         tokens.extend(align_tokens);
@@ -82,8 +82,8 @@ mod tests {
         let input = FormatAlign { alignment: Alignment::Left, character: Some('a') };
 
         let expected = quote! {
-            ::redefmt_args::format_options::FormatAlign {
-                alignment: ::redefmt_args::format_options::Alignment::Left,
+            ::redefmt_args::format_string::options::FormatAlign {
+                alignment: ::redefmt_args::format_string::options::::Alignment::Left,
                 character: Some('a'),
             }
         };

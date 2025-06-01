@@ -1,3 +1,5 @@
+mod utils;
+
 mod argument_identifier;
 pub use argument_identifier::ArgumentIdentifier;
 
@@ -6,5 +8,3 @@ pub use any_identifier::AnyIdentifier;
 
 mod error;
 pub use error::IdentifierParseError;
-
-mod utils;

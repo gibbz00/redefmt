@@ -336,7 +336,7 @@ impl quote::ToTokens for FormatOptions<'_> {
         let format_trait = &self.format_trait;
 
         let format_options_tokens = quote! {
-            ::redefmt_args::format_options::FormatOptions {
+            ::redefmt_args::format_string::options::FormatOptions {
                 align: #align,
                 sign: #sign,
                 use_alternate_form: #use_alternate_form,
