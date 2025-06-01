@@ -1,8 +1,5 @@
-mod provided_args;
-pub use provided_args::DeferredProvidedArgs;
-
-mod error;
-pub use error::DeferredFormatError;
+mod values;
+pub use values::DeferredValues;
 
 mod value;
 pub use value::{
@@ -11,6 +8,9 @@ pub use value::{
 
 mod as_value;
 pub use as_value::AsDeferredValue;
+
+mod error;
+pub use error::DeferredFormatError;
 
 mod resolved_options;
 pub(crate) use resolved_options::ResolvedFormatOptions;

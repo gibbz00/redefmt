@@ -11,8 +11,8 @@ mod pretty {
 
     use redefmt_args::{
         deferred::{
-            DeferredFormatError, DeferredProvidedArgs, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant,
-            DeferredValue,
+            DeferredFormatError, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue,
+            DeferredValues,
         },
         processor::ProcessedFormatString,
     };
@@ -56,8 +56,8 @@ mod pretty {
         decoded_values: &DecodedValues,
         append_newline: bool,
     ) -> Result<String, RedefmtPrinterError> {
-        let provided_args = convert_provided(decoded_values)?;
-        let mut expression_string = format_string.evaluate(&provided_args)?;
+        let deferred_values = convert_decoded_values(decoded_values)?;
+        let mut expression_string = format_string.format_deferred(&deferred_values)?;
 
         if append_newline {
             expression_string.push('\n');
@@ -66,9 +66,9 @@ mod pretty {
         Ok(expression_string)
     }
 
-    fn convert_provided<'v>(
+    fn convert_decoded_values<'v>(
         decoded_values: &'v DecodedValues,
-    ) -> Result<DeferredProvidedArgs<'v>, RedefmtPrinterError> {
+    ) -> Result<DeferredValues<'v>, RedefmtPrinterError> {
         let DecodedValues { positional, named } = decoded_values;
 
         let deferred_positional = convert_values(positional)?;
@@ -77,7 +77,7 @@ mod pretty {
             .map(|(identifier, value)| Ok(((*identifier).clone(), convert_value(value)?)))
             .collect::<Result<Vec<_>, RedefmtPrinterError>>()?;
 
-        Ok(DeferredProvidedArgs::new(deferred_positional, deferred_named))
+        Ok(DeferredValues::new(deferred_positional, deferred_named))
     }
 
     fn convert_values<'v>(decoded_values: &'v [Value]) -> Result<Vec<DeferredValue<'v>>, RedefmtPrinterError> {
