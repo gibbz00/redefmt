@@ -1,7 +1,4 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{string::ToString, vec::Vec};
 
 use hashbrown::HashSet;
 
@@ -28,24 +25,12 @@ use crate::*;
 /// ```
 ///
 /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
-pub struct ArgumentResolver<'a, 'aa, E> {
+pub struct InternalArgumentResolver<'a, 'aa, E> {
     format_string_args: Vec<&'aa mut FormatArgument<'a>>,
     provided_args: &'aa mut ProvidedArgs<'a, E>,
 }
 
-#[derive(Debug, PartialEq, thiserror::Error)]
-pub enum ResolveArgsError {
-    #[error("invalid positional argument {0}, provided {1}, positional argument are zero-based")]
-    InvalidStringPositional(usize, usize),
-    #[error("provided {0} unused positional arguments")]
-    UnusedPositionals(usize),
-    #[error("provided named argument {0} not used in format string")]
-    UnusedNamed(String),
-    #[error("missing named argument {0} in provided arguments")]
-    MissingNamed(String),
-}
-
-impl<'a, 'aa, E: PartialEq> ArgumentResolver<'a, 'aa, E> {
+impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
     pub(crate) fn resolve<C: ArgCapturer<E>>(
         format_string: &'aa mut FormatString<'a>,
         provided_args: &'aa mut ProvidedArgs<'a, E>,
@@ -570,7 +555,7 @@ mod tests {
         let mut format_string = FormatString::parse(format_str).unwrap();
         let expected_format_string = FormatString::parse(expected_format_str).unwrap();
 
-        ArgumentResolver::resolve(&mut format_string, &mut provided_args, Some(&SynArgCapturer)).unwrap();
+        InternalArgumentResolver::resolve(&mut format_string, &mut provided_args, Some(&SynArgCapturer)).unwrap();
 
         assert_eq!(expected_format_string, format_string);
         assert_eq!(expected_provided_args, provided_args);
