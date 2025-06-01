@@ -27,6 +27,9 @@ pub(crate) use format_options::*;
 pub mod identifier;
 pub(crate) use identifier::*;
 
+mod resolver;
+pub(crate) use resolver::*;
+
 #[cfg(feature = "syn")]
 pub mod provided_args;
 #[cfg(feature = "syn")]

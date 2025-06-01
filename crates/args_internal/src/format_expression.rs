@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::*;
 
 #[derive(Debug, PartialEq)]
@@ -26,10 +28,14 @@ impl<'a, E> FormatExpression<'a, E> {
         &self.provided_args
     }
 
-    pub fn defer(self) -> (DeferredFormatExpression<'a>, ProvidedArgs<'a, E>) {
+    pub fn defer(self) -> (DeferredFormatExpression<'a>, Vec<E>, Vec<(AnyIdentifier<'a>, E)>) {
         let deferred_format_expression = DeferredFormatExpression { format_string: self.format_string };
 
-        (deferred_format_expression, self.provided_args)
+        (
+            deferred_format_expression,
+            self.provided_args.positional,
+            self.provided_args.named,
+        )
     }
 }
 
