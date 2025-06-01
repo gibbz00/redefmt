@@ -5,16 +5,13 @@ use crate::*;
 // Format string has been passed through argument resolver
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DeferredFormatString<'a> {
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    pub(crate) format_string: FormatString<'a>,
-}
+pub struct ProcessedFormatString<'a>(#[cfg_attr(feature = "serde", serde(borrow))] pub(crate) FormatString<'a>);
 
-impl<'a> DeferredFormatString<'a> {
+impl<'a> ProcessedFormatString<'a> {
     pub fn evaluate<'v>(&self, provided_args: &DeferredProvidedArgs<'v>) -> Result<String, DeferredFormatError> {
         let mut string = String::new();
 
-        for segment in self.format_string.segments() {
+        for segment in self.0.segments() {
             match segment {
                 FormatStringSegment::Literal(literal) => {
                     string.push_str(literal.as_ref());
@@ -39,21 +36,21 @@ impl<'a> DeferredFormatString<'a> {
 
     #[doc(hidden)]
     pub unsafe fn new_unchecked(format_string: FormatString<'a>) -> Self {
-        Self { format_string }
+        Self(format_string)
     }
 }
 
 #[cfg(feature = "quote")]
-impl quote::ToTokens for DeferredFormatString<'_> {
+impl quote::ToTokens for ProcessedFormatString<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let format_string = &self.format_string;
+        let format_string = &self.0;
 
-        const DOC_MESSAGE: &str = "SAFETY: values provided from a validated `DeferredFormatExpression`";
+        const DOC_MESSAGE: &str = "SAFETY: values provided from a validated `ProcessedFormatString`";
 
         let format_expression_tokens = quote::quote! {
             unsafe {
                 #[doc = #DOC_MESSAGE]
-                ::redefmt_args::deferred::DeferredFormatString::new_unchecked(
+                ::redefmt_args::deferred::ProcessedFormatString::new_unchecked(
                     #format_string,
                 )
             }

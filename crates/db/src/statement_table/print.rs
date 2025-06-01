@@ -30,7 +30,7 @@ pub struct Location<'a> {
 
 #[cfg(test)]
 mod tests {
-    use redefmt_args::{deferred::DeferredFormatString, deferred_format_string};
+    use redefmt_args::{deferred::ProcessedFormatString, deferred_format_string};
 
     use super::*;
 
@@ -60,7 +60,7 @@ mod tests {
         Location { file: "file.rs".into(), line: 1 }
     }
 
-    fn mock_stored_expression(expression: DeferredFormatString) -> StoredFormatExpression {
+    fn mock_stored_expression(expression: ProcessedFormatString) -> StoredFormatExpression {
         StoredFormatExpression {
             format_string: expression,
             append_newline: false,

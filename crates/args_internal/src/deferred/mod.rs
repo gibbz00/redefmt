@@ -1,5 +1,5 @@
 mod string;
-pub use string::DeferredFormatString;
+pub use string::ProcessedFormatString;
 
 mod provided_args;
 pub use provided_args::DeferredProvidedArgs;

@@ -25,7 +25,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
 
         resolver = resolver
             // preparation and validation
-            .capture_and_validate_format_arguments(resolver_config, &provided_named_str_set)?;
+            .validate_format_arguments(resolver_config, &provided_named_str_set)?;
 
         if !resolver_config.disable_unused_named_check {
             resolver = resolver.check_unused_provided_named(&provided_named_str_set)?;
@@ -55,7 +55,7 @@ impl<'a, 'aa, E: PartialEq> InternalArgumentResolver<'a, 'aa, E> {
             .collect::<HashSet<_>>()
     }
 
-    fn capture_and_validate_format_arguments<C: ArgCapturer<Expression = E>>(
+    fn validate_format_arguments<C: ArgCapturer<Expression = E>>(
         self,
         resolver_config: &ResolverConfig<C>,
         provided_named_str_set: &HashSet<ArgumentIdentifier>,
