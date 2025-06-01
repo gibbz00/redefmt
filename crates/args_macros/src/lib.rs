@@ -26,16 +26,14 @@ pub fn processed_format_string(token_stream: TokenStream) -> TokenStream {
 pub fn deferred_format(token_stream: TokenStream) -> TokenStream {
     let FormatExpression { processed_format_string, provided_args } = parse_macro_input!(token_stream);
 
-    let (provided_positional, provided_named) = provided_args.dissolve_into_args();
-
-    let positional_args = provided_positional.into_iter().map(|expr| {
+    let positional_args = provided_args.positional.into_iter().map(|expr| {
         quote! {{
             use ::redefmt_args::deferred::AsDeferredValue as _;
             (#expr).as_deferred_value()
         }}
     });
 
-    let named_args = provided_named.into_iter().map(|(identifier, expr)| {
+    let named_args = provided_args.named.into_iter().map(|(identifier, expr)| {
         quote! {
             (
                 #identifier,
