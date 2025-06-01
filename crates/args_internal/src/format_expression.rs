@@ -1,7 +1,6 @@
-use alloc::vec::Vec;
-
 use crate::*;
 
+/// Validated and optimized format string together with its required arguments
 #[derive(Debug, PartialEq)]
 pub struct FormatExpression<'a, E> {
     format_string: FormatString<'a>,
@@ -20,22 +19,10 @@ impl<'a, E> FormatExpression<'a, E> {
         Ok(Self { format_string, provided_args })
     }
 
-    pub fn format_string(&self) -> &FormatString {
-        &self.format_string
-    }
-
-    pub fn provided_args(&self) -> &ProvidedArgs<E> {
-        &self.provided_args
-    }
-
-    pub fn defer(self) -> (DeferredFormatExpression<'a>, Vec<E>, Vec<(AnyIdentifier<'a>, E)>) {
+    pub fn dissolve(self) -> (DeferredFormatExpression<'a>, ProvidedArgs<'a, E>) {
         let deferred_format_expression = DeferredFormatExpression { format_string: self.format_string };
 
-        (
-            deferred_format_expression,
-            self.provided_args.positional,
-            self.provided_args.named,
-        )
+        (deferred_format_expression, self.provided_args)
     }
 }
 
