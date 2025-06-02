@@ -1,7 +1,7 @@
 use redefmt_args::{
     format_string::{FormatString, FormatStringParseErrorKind},
     identifier::AnyIdentifier,
-    processor::{DynamicProcessorConfig, FormatProcessor, FormatStringProcessorError, ProcessedFormatString},
+    processor::{DynamicProcessorConfig, FormatProcessor, FormatProcessorError, ProcessedFormatString},
 };
 
 use crate::*;
@@ -31,7 +31,7 @@ pub enum PrettyPrinterConfigError {
     #[error("failed to parse format string")]
     FormatStringParse(#[from] FormatStringParseErrorKind),
     #[error("failed to process format string arguments")]
-    ProcessedFormatString(#[from] FormatStringProcessorError),
+    ProcessedFormatString(#[from] FormatProcessorError),
 }
 
 pub struct PrettyPrinterConfig {
