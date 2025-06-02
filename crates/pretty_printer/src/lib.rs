@@ -37,6 +37,7 @@ mod printer {
             let RedefmtFrame {
                 level,
                 stamp,
+                crate_name,
                 file_name,
                 file_line,
                 format_string,
@@ -47,9 +48,6 @@ mod printer {
             let stamp = stamp.map(|stamp| self.evaluate_stamp(stamp)).unwrap_or_default();
 
             let statement = Self::evaluate_statement(format_string, &decoded_values, append_newline)?;
-
-            // FIXME: crate_name from frame
-            let crate_name = "temp_crate_name";
 
             // SAFETY: `AnyIdentifier`s constructed with are valid identifier strings
             let named_values = unsafe {

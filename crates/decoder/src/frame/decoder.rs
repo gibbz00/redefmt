@@ -94,6 +94,7 @@ impl<'cache> Decoder for RedefmtDecoder<'cache> {
                 let item = RedefmtFrame::new(
                     stage.level,
                     stage.stamp,
+                    stage.crate_name,
                     stage.print_statement,
                     stage.segment_decoder.decoded_values,
                 );
@@ -250,7 +251,7 @@ mod tests {
         let crate_id = seed_crate(&decoder);
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
-        let (print_statement_id, print_statement) = seed_print_statement(&decoder, crate_id);
+        let (print_statement_id, print_statement, _) = seed_print_statement(&decoder, crate_id);
 
         assert!(!matches!(decoder.stage, FrameDecoderWants::PrintStatement(_)));
         assert!(cache.print_statement.inner().is_empty());
@@ -301,7 +302,7 @@ mod tests {
         let crate_id = seed_crate(&decoder);
         put_and_decode_print_crate_id(&mut decoder, crate_id);
 
-        let (print_statement_id, print_statement) = seed_print_statement(&decoder, crate_id);
+        let (print_statement_id, print_statement, krate) = seed_print_statement(&decoder, crate_id);
         put_and_decode_print_statement_id(&mut decoder, print_statement_id);
 
         let value = true;
@@ -318,7 +319,7 @@ mod tests {
             positional: Default::default(),
             named: vec![(&arg_name, Value::Boolean(value))],
         };
-        let expected_frame = RedefmtFrame::new(None, None, &print_statement, decoded_values);
+        let expected_frame = RedefmtFrame::new(None, None, &krate.name, &print_statement, decoded_values);
 
         assert_eq!(expected_frame, actual_frame);
 
@@ -335,13 +336,13 @@ mod tests {
     fn seed_print_statement(
         decoder: &RedefmtDecoder,
         crate_id: CrateId,
-    ) -> (PrintStatementId, PrintStatement<'static>) {
-        let (crate_db, _) = decoder.stores.cache.krate.inner().get(&crate_id).unwrap();
+    ) -> (PrintStatementId, PrintStatement<'static>, Crate<'static>) {
+        let (crate_db, krate) = decoder.stores.cache.krate.inner().get(&crate_id).unwrap();
 
         let statement = mock_print_statement();
         let id = crate_db.insert(&statement).unwrap();
 
-        (id, statement)
+        (id, statement, krate.clone())
     }
 
     fn mock_stamp_stage<'a>() -> FrameDecoderWants<'a> {

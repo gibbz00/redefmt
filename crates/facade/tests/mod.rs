@@ -20,6 +20,7 @@ macro_rules! assert_end_to_end {
         let expected_frame = RedefmtFrame {
             level: $level,
             stamp: None,
+            crate_name: env!("CARGO_PKG_NAME"),
             file_name: file!(),
             file_line: 18,
             format_string: &processed_format_string!($($arg)*),
