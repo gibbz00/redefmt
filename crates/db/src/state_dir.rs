@@ -96,46 +96,31 @@ mod tests {
     use super::*;
 
     #[test]
-    #[serial_test::serial(state_dir)]
-    fn uses_xdg() {
-        // SAFETY: test called with serial_test
-        unsafe {
-            assert_uses_env(XDG_ENV_NAME, Some(APPLICATION_NAME));
-        }
-    }
+    fn env_usage() {
+        assert_uses_env(XDG_ENV_NAME, Some(APPLICATION_NAME));
+        assert_uses_env(OVERRIDE_ENV_NAME, None);
 
-    #[test]
-    #[serial_test::serial(state_dir)]
-    fn uses_override_env() {
-        // SAFETY: test called with serial_test
-        unsafe {
-            assert_uses_env(OVERRIDE_ENV_NAME, None);
-        }
-    }
+        fn assert_uses_env(env_name: &str, join: Option<&str>) {
+            let temp_dir = tempfile::tempdir().unwrap();
 
-    /// # SAFETY
-    ///
-    /// Test calling this function must be serial
-    unsafe fn assert_uses_env(env_name: &str, join: Option<&str>) {
-        let temp_dir = tempfile::tempdir().unwrap();
+            // SAFETY: method should only called by one thread at the time
+            unsafe {
+                std::env::set_var(env_name, temp_dir.path().as_os_str());
+            }
 
-        // SAFETY: method should only called by one thread at the time
-        unsafe {
-            std::env::set_var(env_name, temp_dir.path().as_os_str());
-        }
+            let actual = StateDir::resolve().unwrap();
 
-        let actual = StateDir::resolve().unwrap();
+            let mut expected = temp_dir.into_path();
+            if let Some(join) = join {
+                expected = expected.join(join);
+            }
 
-        let mut expected = temp_dir.into_path();
-        if let Some(join) = join {
-            expected = expected.join(join);
-        }
+            assert_eq!(expected, actual);
 
-        assert_eq!(expected, actual);
-
-        // SAFETY: method should only called by one thread at the time
-        unsafe {
-            std::env::remove_var(env_name);
+            // SAFETY: method should only called by one thread at the time
+            unsafe {
+                std::env::remove_var(env_name);
+            }
         }
     }
 
