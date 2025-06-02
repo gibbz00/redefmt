@@ -4,14 +4,15 @@ pub trait Stamper {
     fn stamp(&self) -> Stamp;
 }
 
-#[cfg(test)]
-pub(crate) use test_stamper::TestStamper;
-#[cfg(test)]
+#[cfg(feature = "testing")]
+pub use test_stamper::TestStamper;
+#[cfg(feature = "testing")]
 mod test_stamper {
     use core::sync::atomic::{AtomicU64, Ordering};
 
     use super::*;
 
+    #[derive(Default)]
     pub struct TestStamper(AtomicU64);
 
     impl TestStamper {
