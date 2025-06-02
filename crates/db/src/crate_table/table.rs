@@ -3,7 +3,7 @@ use rusqlite::OptionalExtension;
 
 use crate::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Crate<'a> {
     pub name: CrateName<'a>,
 }

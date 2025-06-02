@@ -1,5 +1,5 @@
 use redefmt_core::codec::frame::{Header, Level, Stamp};
-use redefmt_db::statement_table::print::PrintStatement;
+use redefmt_db::{crate_table::CrateName, statement_table::print::PrintStatement};
 
 use crate::*;
 
@@ -41,17 +41,26 @@ pub struct WantsPrintStatementIdStage<'cache> {
 
 impl<'cache> WantsPrintStatementIdStage<'cache> {
     pub fn next(self, print_statement: &'cache PrintStatement<'static>) -> FrameDecoderWants<'cache> {
-        let Self { header, stamp, .. } = self;
+        let Self { header, stamp, print_crate } = self;
+
         let level = header.level();
+        let crate_name = &print_crate.record.name;
         let segment_decoder = SegmentsDecoder::new(header.pointer_width(), &print_statement.stored_expression);
 
-        FrameDecoderWants::PrintStatement(WantsPrintStatementStage { level, stamp, print_statement, segment_decoder })
+        FrameDecoderWants::PrintStatement(WantsPrintStatementStage {
+            level,
+            stamp,
+            crate_name,
+            print_statement,
+            segment_decoder,
+        })
     }
 }
 
 pub struct WantsPrintStatementStage<'cache> {
     pub level: Option<Level>,
     pub stamp: Option<Stamp>,
+    pub crate_name: &'cache CrateName<'static>,
     pub print_statement: &'cache PrintStatement<'static>,
     pub segment_decoder: SegmentsDecoder<'cache>,
 }
