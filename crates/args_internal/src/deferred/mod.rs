@@ -9,6 +9,9 @@ pub use value::{
 mod as_value;
 pub use as_value::AsDeferredValue;
 
+mod config;
+pub use config::DeferredFormatConfig;
+
 mod error;
 pub use error::DeferredFormatError;
 

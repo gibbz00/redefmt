@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use redefmt_args::{
-    deferred::{DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue},
+    deferred::{DeferredFormatConfig, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue},
     deferred_format,
 };
 
@@ -12,10 +12,15 @@ fn ui() {
     t.pass("tests/ui/pass/**/*.rs");
 }
 
+const FORMAT_DEFERRED_CONFIG: DeferredFormatConfig = DeferredFormatConfig {
+    allow_non_usize_precision_value: true,
+    allow_non_usize_width_value: true,
+};
+
 macro_rules! assert_evaluate {
     ($expected_string:expr, $($arg:tt)*) => {
         let (expression, values) = deferred_format!($($arg)*);
-        let actual_string = expression.format_deferred(&values).unwrap();
+        let actual_string = expression.format_deferred(&values, &FORMAT_DEFERRED_CONFIG).unwrap();
         assert_eq!($expected_string, actual_string);
     };
 }
@@ -50,11 +55,11 @@ fn float_format() {
 #[test]
 fn precision_truncates_non_numerics() {
     // char
-    assert_evaluate!("", "{:.*}", 0usize, 'a');
+    assert_evaluate!("", "{:.*}", 0, 'a');
     // string
-    assert_evaluate!("a", "{:.*}", 1usize, "abc");
+    assert_evaluate!("a", "{:.*}", 1, "abc");
     // bool
-    assert_evaluate!("tru", "{:.*}", 3usize, true);
+    assert_evaluate!("tru", "{:.*}", 3, true);
 }
 
 #[test]
@@ -62,12 +67,12 @@ fn precision_equivalence() {
     let str = "x is 0.01000";
 
     assert_evaluate!(str, "{0} is {1:.5}", "x", 0.01);
-    assert_evaluate!(str, "{1} is {2:.0$}", 5usize, "x", 0.01);
-    assert_evaluate!(str, "{0} is {2:.1$}", "x", 5usize, 0.01);
-    assert_evaluate!(str, "{} is {:.*}", "x", 5usize, 0.01);
-    assert_evaluate!(str, "{1} is {2:.*}", 5usize, "x", 0.01);
-    assert_evaluate!(str, "{} is {2:.*}", "x", 5usize, 0.01);
-    assert_evaluate!(str, "{} is {number:.prec$}", "x", prec = 5usize, number = 0.01);
+    assert_evaluate!(str, "{1} is {2:.0$}", 5, "x", 0.01);
+    assert_evaluate!(str, "{0} is {2:.1$}", "x", 5, 0.01);
+    assert_evaluate!(str, "{} is {:.*}", "x", 5, 0.01);
+    assert_evaluate!(str, "{1} is {2:.*}", 5, "x", 0.01);
+    assert_evaluate!(str, "{} is {2:.*}", "x", 5, 0.01);
+    assert_evaluate!(str, "{} is {number:.prec$}", "x", prec = 5, number = 0.01);
 }
 
 #[test]
@@ -76,7 +81,7 @@ fn precision_inequivalence() {
         "Hello, `1234.560` has 3 fractional digits",
         "{}, `{name:.*}` has 3 fractional digits",
         "Hello",
-        3usize,
+        3,
         name = 1234.56
     );
 
@@ -84,7 +89,7 @@ fn precision_inequivalence() {
         "Hello, `123` has 3 characters",
         "{}, `{name:.*}` has 3 characters",
         "Hello",
-        3usize,
+        3,
         name = "1234.56"
     );
 
@@ -92,29 +97,29 @@ fn precision_inequivalence() {
         "Hello, `     123` has 3 right-aligned characters",
         "{}, `{name:>8.*}` has 3 right-aligned characters",
         "Hello",
-        3usize,
+        3,
         name = "1234.56"
     );
 }
 
 #[test]
 fn precision_rounds_half_to_even() {
-    assert_evaluate!("1.234e4", "{0:.1$e}", 12345, 3usize);
-    assert_evaluate!("1.236e4", "{0:.1$e}", 12355, 3usize);
+    assert_evaluate!("1.234e4", "{0:.1$e}", 12345, 3);
+    assert_evaluate!("1.236e4", "{0:.1$e}", 12355, 3);
 }
 
 #[test]
 fn width_includes_precision_and_exp() {
-    assert_evaluate!("+001.01230e1", "{n:+0w$.p$e}", n = 10.123, w = 12usize, p = 5usize);
+    assert_evaluate!("+001.01230e1", "{n:+0w$.p$e}", n = 10.123, w = 12, p = 5);
 }
 
 #[test]
 fn width_equivalence() {
     let str = "x    ";
     assert_evaluate!(str, "{:5}", "x");
-    assert_evaluate!(str, "{:1$}", "x", 5usize);
-    assert_evaluate!(str, "{1:0$}", 5usize, "x");
-    assert_evaluate!(str, "{:width$}", "x", width = 5usize);
+    assert_evaluate!(str, "{:1$}", "x", 5);
+    assert_evaluate!(str, "{1:0$}", 5, "x");
+    assert_evaluate!(str, "{:width$}", "x", width = 5);
 }
 
 #[test]
@@ -124,7 +129,7 @@ fn width_counts_chars_not_bytes() {
 
 #[test]
 fn width_proceeds_precision() {
-    assert_evaluate!("tru--", "{0:-<1$.2$}", true, 5usize, 3usize);
+    assert_evaluate!("tru--", "{0:-<1$.2$}", true, 5, 3);
 }
 
 #[test]

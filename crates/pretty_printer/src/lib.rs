@@ -10,8 +10,8 @@ mod printer {
     use chrono::{DateTime, Utc};
     use redefmt_args::{
         deferred::{
-            DeferredFormatError, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue,
-            DeferredValues,
+            DeferredFormatConfig, DeferredFormatError, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant,
+            DeferredValue, DeferredValues,
         },
         identifier::AnyIdentifier,
         processor::ProcessedFormatString,
@@ -22,6 +22,11 @@ mod printer {
     };
 
     use crate::*;
+
+    const FORMAT_DEFERRED_CONFIG: DeferredFormatConfig = DeferredFormatConfig {
+        allow_non_usize_precision_value: true,
+        allow_non_usize_width_value: true,
+    };
 
     pub struct PrettyPrinter {
         first_frame_start: Option<DateTime<Utc>>,
@@ -81,7 +86,9 @@ mod printer {
 
             let deferred_values = DeferredValues::new([], named_values);
 
-            self.config.log_format_string.format_deferred(&deferred_values)
+            self.config
+                .log_format_string
+                .format_deferred(&deferred_values, &FORMAT_DEFERRED_CONFIG)
         }
 
         fn evaluate_stamp(&mut self, stamp: u64) -> String {
@@ -124,7 +131,7 @@ mod printer {
             append_newline: bool,
         ) -> Result<String, DeferredFormatError> {
             let deferred_values = convert_decoded_values(decoded_values)?;
-            let mut expression_string = format_string.format_deferred(&deferred_values)?;
+            let mut expression_string = format_string.format_deferred(&deferred_values, &FORMAT_DEFERRED_CONFIG)?;
 
             if append_newline {
                 expression_string.push('\n');
