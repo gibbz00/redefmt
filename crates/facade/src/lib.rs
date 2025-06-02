@@ -14,7 +14,9 @@ pub use redefmt_macros::Format;
 pub use redefmt_macros::{write, writeln};
 //
 mod export {
-    pub use redefmt_core::{Format, Formatter, identifiers};
+    #[doc(hidden)]
+    pub use redefmt_core::identifiers;
+    pub use redefmt_core::{Format, Formatter};
     #[cfg(feature = "logger")]
     pub use redefmt_core::{codec::frame::Level, logger};
 }

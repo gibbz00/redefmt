@@ -37,9 +37,9 @@ impl FormatProcessor {
     pub fn process_static<'a, E: PartialEq, C: ArgCapturer<Expression = E>>(
         mut format_string: FormatString<'a>,
         provided_args: &mut ProvidedStaticArgs<'a, E>,
-        resolver_config: &StaticProcessorConfig<C>,
-    ) -> Result<ProcessedFormatString<'a>, ProcessorError> {
-        StaticFormatProcessorImpl::process_impl(&mut format_string, provided_args, resolver_config)?;
+        processor_config: &StaticProcessorConfig<C>,
+    ) -> Result<ProcessedFormatString<'a>, FormatStringProcessorError> {
+        StaticFormatProcessorImpl::process_impl(&mut format_string, provided_args, processor_config)?;
         Ok(ProcessedFormatString(format_string))
     }
 
@@ -47,13 +47,13 @@ impl FormatProcessor {
         format_string: FormatString<'a>,
         expected_positional_count: usize,
         exepectd_named: &[AnyIdentifier<'a>],
-        resolver_config: &DynamicProcessorConfig,
-    ) -> Result<ProcessedFormatString<'a>, ProcessorError> {
+        processor_config: &DynamicProcessorConfig,
+    ) -> Result<ProcessedFormatString<'a>, FormatStringProcessorError> {
         DynamicFormatProcessorImpl::process_impl(
             format_string,
             expected_positional_count,
             exepectd_named,
-            resolver_config,
+            processor_config,
         )
     }
 }
@@ -66,7 +66,7 @@ impl DynamicFormatProcessorImpl {
         expected_positional_count: usize,
         expected_named: &[AnyIdentifier<'a>],
         resolver_config: &DynamicProcessorConfig,
-    ) -> Result<ProcessedFormatString<'a>, ProcessorError> {
+    ) -> Result<ProcessedFormatString<'a>, FormatStringProcessorError> {
         let mut format_string_args = format_string.collect_args_mut();
 
         let provided_named_str_set = validate_provided_arguments(expected_named.iter())?;
@@ -94,7 +94,7 @@ impl DynamicFormatProcessorImpl {
         expected_positional_count: usize,
         expected_named: &[AnyIdentifier<'a>],
         provided_named_str_set: &HashSet<ArgumentIdentifier>,
-    ) -> Result<(), ProcessorError> {
+    ) -> Result<(), FormatStringProcessorError> {
         for format_string_arg in format_string_args.iter_mut() {
             match &format_string_arg {
                 FormatArgument::Index(argument_index) => disambiguate_argument_index(
@@ -107,7 +107,7 @@ impl DynamicFormatProcessorImpl {
                 )?,
                 FormatArgument::Identifier(identifier) => {
                     if !provided_named_str_set.contains(identifier) {
-                        return Err(ProcessorError::MissingNamed(identifier.to_string()));
+                        return Err(FormatStringProcessorError::MissingNamed(identifier.to_string()));
                     };
                 }
             }
@@ -127,7 +127,7 @@ impl<'a, 'aa, E: PartialEq> StaticFormatProcessorImpl<'a, 'aa, E> {
         format_string: &'aa mut FormatString<'a>,
         provided_args: &'aa mut ProvidedStaticArgs<'a, E>,
         resolver_config: &StaticProcessorConfig<C>,
-    ) -> Result<(), ProcessorError> {
+    ) -> Result<(), FormatStringProcessorError> {
         let mut format_string_args = format_string.collect_args_mut();
 
         // NOTE: `provided_named_str_set` only valid as long as no provided args are
@@ -166,7 +166,7 @@ impl<'a, 'aa, E: PartialEq> StaticFormatProcessorImpl<'a, 'aa, E> {
         provided_args: &mut ProvidedStaticArgs<'a, E>,
         resolver_config: &StaticProcessorConfig<C>,
         provided_named_str_set: &HashSet<ArgumentIdentifier>,
-    ) -> Result<(), ProcessorError> {
+    ) -> Result<(), FormatStringProcessorError> {
         for format_string_arg in format_string_args.iter_mut() {
             match &format_string_arg {
                 FormatArgument::Index(argument_index) => disambiguate_argument_index(
@@ -185,7 +185,7 @@ impl<'a, 'aa, E: PartialEq> StaticFormatProcessorImpl<'a, 'aa, E> {
                             let captured_variable = arg_capturer.transform_identifier(captured_identifier);
                             provided_args.named.push((captured_name, captured_variable));
                         } else {
-                            return Err(ProcessorError::MissingNamed(identifier.to_string()));
+                            return Err(FormatStringProcessorError::MissingNamed(identifier.to_string()));
                         }
                     };
                 }
@@ -301,12 +301,12 @@ fn disambiguate_argument_index<'a, S>(
     provided_named_store: &S,
     provided_named_getter: impl Fn(&S, usize) -> Option<&AnyIdentifier<'a>>,
     provided_named_length: impl Fn(&S) -> usize,
-) -> Result<(), ProcessorError> {
+) -> Result<(), FormatStringProcessorError> {
     if argument_index >= provided_positional_count {
         let named_index = argument_index - provided_positional_count;
 
         let Some(arg_name) = provided_named_getter(provided_named_store, named_index) else {
-            return Err(ProcessorError::InvalidStringPositional(
+            return Err(FormatStringProcessorError::InvalidStringPositional(
                 argument_index,
                 provided_positional_count + provided_named_length(provided_named_store),
             ));
@@ -320,14 +320,14 @@ fn disambiguate_argument_index<'a, S>(
 
 fn validate_provided_arguments<'a: 'b, 'b>(
     named_args: impl Iterator<Item = &'b AnyIdentifier<'a>>,
-) -> Result<HashSet<ArgumentIdentifier<'static>>, ProcessorError> {
+) -> Result<HashSet<ArgumentIdentifier<'static>>, FormatStringProcessorError> {
     let mut registered_named_args = HashSet::new();
 
     for name in named_args {
         let unrawed_name = name.clone().unraw().owned();
 
         if registered_named_args.contains(&unrawed_name) {
-            return Err(ProcessorError::ProvidedDuplicate(unrawed_name.owned()));
+            return Err(FormatStringProcessorError::ProvidedDuplicate(unrawed_name.owned()));
         } else {
             registered_named_args.insert(unrawed_name);
         }
@@ -339,14 +339,14 @@ fn validate_provided_arguments<'a: 'b, 'b>(
 fn check_unused_provided_positionals<'a>(
     format_string_args: &[&mut FormatArgument<'a>],
     positional_arg_count: usize,
-) -> Result<(), ProcessorError> {
+) -> Result<(), FormatStringProcessorError> {
     let format_string_positional_count = format_string_args
         .iter()
         .filter(|arg| matches!(arg, FormatArgument::Index(_)))
         .count();
 
     if positional_arg_count > format_string_positional_count {
-        return Err(ProcessorError::UnusedPositionals(
+        return Err(FormatStringProcessorError::UnusedPositionals(
             positional_arg_count - format_string_positional_count,
         ));
     }
@@ -357,7 +357,7 @@ fn check_unused_provided_positionals<'a>(
 fn check_unused_provided_named<'a>(
     format_string_args: &[&mut FormatArgument<'a>],
     provided_named_str_set: &HashSet<ArgumentIdentifier>,
-) -> Result<(), ProcessorError> {
+) -> Result<(), FormatStringProcessorError> {
     let format_args_named_set = format_string_args
         .iter()
         .filter_map(|arg| match arg {
@@ -368,7 +368,7 @@ fn check_unused_provided_named<'a>(
 
     for provided_named_str in provided_named_str_set {
         if !format_args_named_set.contains(provided_named_str) {
-            return Err(ProcessorError::UnusedNamed(provided_named_str.to_string()));
+            return Err(FormatStringProcessorError::UnusedNamed(provided_named_str.to_string()));
         }
     }
 
@@ -579,7 +579,7 @@ mod tests {
         assert_resolve_err(
             "{}",
             parse_quote!(x = 10, x = 20),
-            ProcessorError::ProvidedDuplicate(ArgumentIdentifier::parse("x").unwrap()),
+            FormatStringProcessorError::ProvidedDuplicate(ArgumentIdentifier::parse("x").unwrap()),
         );
     }
 
@@ -588,7 +588,7 @@ mod tests {
         assert_resolve_err(
             "{}",
             parse_quote!(x = 10, r#x = 20),
-            ProcessorError::ProvidedDuplicate(ArgumentIdentifier::parse("x").unwrap()),
+            FormatStringProcessorError::ProvidedDuplicate(ArgumentIdentifier::parse("x").unwrap()),
         );
     }
 
@@ -598,36 +598,36 @@ mod tests {
         assert_resolve_err(
             "{x}",
             parse_quote!(x = 10, y = 10),
-            ProcessorError::UnusedNamed("y".to_string()),
+            FormatStringProcessorError::UnusedNamed("y".to_string()),
         );
     }
 
     #[test]
     fn unused_positional_error() {
-        assert_resolve_err("", parse_quote!(1), ProcessorError::UnusedPositionals(1));
+        assert_resolve_err("", parse_quote!(1), FormatStringProcessorError::UnusedPositionals(1));
         // both positionals with the same value asserts that the check is done before any deduplication
-        assert_resolve_err("{}", parse_quote!(1, 1, "x"), ProcessorError::UnusedPositionals(2));
+        assert_resolve_err("{}", parse_quote!(1, 1, "x"), FormatStringProcessorError::UnusedPositionals(2));
 
         // discontinuous indexes in format arguments are also captured
         assert_resolve_err(
             "{0} {2}",
             parse_quote!(1, 2, x = 3),
-            ProcessorError::UnusedPositionals(1),
+            FormatStringProcessorError::UnusedPositionals(1),
         );
     }
 
     #[test]
     fn invalid_positional_error() {
-        assert_resolve_err("{1}", parse_quote!(), ProcessorError::InvalidStringPositional(1, 0));
+        assert_resolve_err("{1}", parse_quote!(), FormatStringProcessorError::InvalidStringPositional(1, 0));
 
         assert_resolve_err(
             "{0} {1}",
             parse_quote!(1),
-            ProcessorError::InvalidStringPositional(1, 1),
+            FormatStringProcessorError::InvalidStringPositional(1, 1),
         );
 
         // next argument usage requires when first is unnamed
-        assert_resolve_err("{:.*}", parse_quote!(1), ProcessorError::InvalidStringPositional(1, 1));
+        assert_resolve_err("{:.*}", parse_quote!(1), FormatStringProcessorError::InvalidStringPositional(1, 1));
     }
 
     fn assert_resolve_unchanged(format_str: &'static str, provided_args: ProvidedStaticArgs<syn::Expr>) {
@@ -669,7 +669,7 @@ mod tests {
     fn assert_resolve_err<'a>(
         format_str: &'a str,
         mut provided_args: ProvidedStaticArgs<'a, syn::Expr>,
-        expected_error: ProcessorError,
+        expected_error: FormatStringProcessorError,
     ) {
         let format_string = FormatString::parse(format_str).unwrap();
 

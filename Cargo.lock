@@ -680,6 +680,7 @@ dependencies = [
  "futures-util",
  "pin-utils",
  "redefmt-args",
+ "redefmt-core",
  "redefmt-decoder",
  "thiserror",
  "tokio",

@@ -16,7 +16,7 @@ use crate::*;
 #[derive(Debug, PartialEq)]
 pub struct RedefmtFrame<'cache> {
     pub level: Option<Level>,
-    pub stamp: Option<Stamp>,
+    pub stamp: Option<u64>,
     pub file_name: &'cache str,
     pub file_line: u32,
     pub format_string: &'cache ProcessedFormatString<'static>,
@@ -31,10 +31,10 @@ impl<'cache> RedefmtFrame<'cache> {
         print_stratement: &'cache PrintStatement<'static>,
         decoded_values: DecodedValues<'cache>,
     ) -> Self {
-        // flatten `PrintStatement` to avoid exposing the db crate in the public API.
+        // flatten to avoid exposing internal crate types
         Self {
             level,
-            stamp,
+            stamp: stamp.map(|stamp| *stamp.as_ref()),
             file_name: print_stratement.location.file.as_ref(),
             file_line: print_stratement.location.line,
             format_string: &print_stratement.stored_expression.format_string,

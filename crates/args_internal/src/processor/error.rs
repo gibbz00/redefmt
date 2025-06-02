@@ -3,7 +3,7 @@ use alloc::string::String;
 use crate::*;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
-pub enum ProcessorError {
+pub enum FormatStringProcessorError {
     #[error("duplicate argument names not allowed, namely: {0}")]
     ProvidedDuplicate(ArgumentIdentifier<'static>),
     #[error("invalid positional argument {0}, provided {1}, positional argument are zero-based")]
