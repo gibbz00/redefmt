@@ -38,16 +38,6 @@ pub enum TypeHint {
     // length + type hint for each element
     DynList = 104,
 
-    // TODO:
-    // length + leading type hint
-    // (no DynSet since Hash is not dyn compatible)
-    // Set = 105,
-    // length + two leading type hints
-    // Map = 107,
-    // length + leading type hint + type hint for each element
-    // (no need for DynDynMap since Hash is not dyn compatible)
-    // DynMap = 108,
-
     // * Meta * 2XX
     //
     // (Current XX = 13 repr implies u32 write_id, (u16 crate_id + u16 write_statement_id))
