@@ -22,9 +22,9 @@ pub struct StaticProcessorConfig<C: ArgCapturer> {
     /// into it's capturable form. Meaning: `format!("{x} {match}")` becomes effectively expanded to
     /// `format!("{x} {match}", x = &x, match = r#match)`.
     ///
-    /// If no argument capturer is configured, then an [`ResolveArgsError::MissingNamed`] is
-    /// returned when a named argument in the format string is not found in the list of provided
-    /// named arguments.
+    /// If no argument capturer is configured, then an [`FormatProcessorError::MissingNamed`]
+    /// is returned when a named argument in the format string is not found in the list of
+    /// provided named arguments.
     ///
     /// [format_args_capture]: https://rust-lang.github.io/rfcs/2795-format-args-implicit-identifiers.html
     pub arg_capturer: Option<C>,

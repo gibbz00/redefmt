@@ -8,7 +8,7 @@ mod processed;
 pub use processed::ProcessedFormatString;
 
 mod error;
-pub use error::FormatStringProcessorError;
+pub use error::FormatProcessorError;
 
 mod config;
 pub use config::{DynamicProcessorConfig, StaticProcessorConfig};
