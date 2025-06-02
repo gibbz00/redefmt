@@ -1,5 +1,0 @@
-error: redefmt::Format derives on unions are not supported
- --> tests/ui/fail/unions_not_supported.rs:2:1
-  |
-2 | union Foo {
-  | ^^^^^

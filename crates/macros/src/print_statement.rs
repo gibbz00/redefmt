@@ -96,7 +96,7 @@ fn macro_impl(
                 #maybe_log_level
             );
             #(
-                global_logger_handle.write_format(&#provided_args);
+                global_logger_handle.write_format(&(&#provided_args));
             )*
             global_logger_handle.write_end();
         }
