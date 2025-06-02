@@ -10,4 +10,6 @@ pub enum DeferredFormatError {
     FormatNotImplemented(FormatTrait, DeferredValueDiscriminants),
     #[error("invalid argument type received, expected:{0}, received {1}")]
     InvalidArgType(DeferredValueDiscriminants, DeferredValueDiscriminants),
+    #[error("failed to convert {0} into an usize")]
+    UsizeConversion(DeferredValueDiscriminants),
 }
