@@ -8,6 +8,6 @@ mod global_dispatcher;
 pub(crate) use global_dispatcher::{GlobalDispatcher, GlobalDispatcherHandle};
 
 mod stamper;
-pub(crate) use stamper::Stamper;
-#[cfg(test)]
-pub(crate) use stamper::TestStamper;
+pub use stamper::Stamper;
+#[cfg(feature = "testing")]
+pub use stamper::TestStamper;
