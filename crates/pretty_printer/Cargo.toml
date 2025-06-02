@@ -1,5 +1,5 @@
 [package]
-name = "redefmt-printer"
+name = "redefmt-pretty-printer"
 
 authors.workspace = true
 edition.workspace = true
