@@ -1,4 +1,4 @@
-//! # `redefmt-printer`
+//! # `redefmt-pretty-printer`
 
 // TEMP:
 #![allow(missing_docs)]
