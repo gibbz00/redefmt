@@ -30,6 +30,10 @@ impl FormatStringParseError {
         &self.kind
     }
 
+    pub fn into_kind(self) -> FormatStringParseErrorKind {
+        self.kind
+    }
+
     pub(crate) fn new(offset: usize, range: Range<usize>, kind: impl Into<FormatStringParseErrorKind>) -> Self {
         let range = offset + range.start..offset + range.end;
         Self { range, kind: kind.into() }
