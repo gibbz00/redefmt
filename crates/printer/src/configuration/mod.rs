@@ -1,11 +1,5 @@
-mod core {
-    use crate::*;
-
-    pub struct PrinterConfig {
-        pub stamp: PrintStampConfig,
-    }
-}
-pub use core::PrinterConfig;
+mod core;
+pub use core::{PrettyPrinterConfig, PrettyPrinterConfigError};
 
 pub mod stamp;
-pub(crate) use stamp::*;
+pub(crate) use stamp::{PrintStampConfig, PrintTimestampConfig, PrintTimestampPrecisionConfig};

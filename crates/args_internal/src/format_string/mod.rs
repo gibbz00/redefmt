@@ -2,7 +2,7 @@ mod core;
 pub use core::FormatString;
 
 mod parse_error;
-pub use parse_error::FormatStringParseError;
+pub use parse_error::{FormatStringParseError, FormatStringParseErrorKind};
 
 pub mod segment;
 pub(crate) use segment::{FormatArgumentSegment, FormatStringSegment, FormatStringSegmentError};

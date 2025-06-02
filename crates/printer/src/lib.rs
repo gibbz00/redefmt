@@ -6,146 +6,10 @@
 pub mod configuration;
 pub(crate) use configuration::*;
 
-mod pretty {
-    use std::io::Write;
+mod pretty_printer;
+pub(crate) use pretty_printer::PrettyPrinter;
 
-    use redefmt_args::{
-        deferred::{
-            DeferredFormatError, DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue,
-            DeferredValues,
-        },
-        processor::ProcessedFormatString,
-    };
-    use redefmt_decoder::{
-        RedefmtFrame,
-        values::{DecodedValues, StructVariantValue, TypeStructureValue, TypeStructureVariantValue, Value},
-    };
-
-    use crate::*;
-
-    #[derive(Debug, thiserror::Error)]
-    pub enum RedefmtPrinterError {
-        #[error("encountered I/O error when writing to output")]
-        Io(#[from] std::io::Error),
-        #[error("failed to evaluate format expression")]
-        DeferredFormat(#[from] DeferredFormatError),
-    }
-
-    pub fn pretty_print_frame(
-        output: &mut impl Write,
-        redefmt_frame: RedefmtFrame,
-        config: &PrinterConfig,
-    ) -> Result<(), RedefmtPrinterError> {
-        let RedefmtFrame {
-            level,
-            stamp,
-            file_name,
-            file_line,
-            format_string,
-            append_newline,
-            decoded_values,
-        } = redefmt_frame;
-
-        let expression_string = evaluate_format_string(format_string, &decoded_values, append_newline);
-
-        todo!()
-    }
-
-    fn evaluate_format_string(
-        format_string: &ProcessedFormatString,
-        decoded_values: &DecodedValues,
-        append_newline: bool,
-    ) -> Result<String, RedefmtPrinterError> {
-        let deferred_values = convert_decoded_values(decoded_values)?;
-        let mut expression_string = format_string.format_deferred(&deferred_values)?;
-
-        if append_newline {
-            expression_string.push('\n');
-        }
-
-        Ok(expression_string)
-    }
-
-    fn convert_decoded_values<'v>(
-        decoded_values: &'v DecodedValues,
-    ) -> Result<DeferredValues<'v>, RedefmtPrinterError> {
-        let DecodedValues { positional, named } = decoded_values;
-
-        let deferred_positional = convert_values(positional)?;
-        let deferred_named = named
-            .iter()
-            .map(|(identifier, value)| Ok(((*identifier).clone(), convert_value(value)?)))
-            .collect::<Result<Vec<_>, RedefmtPrinterError>>()?;
-
-        Ok(DeferredValues::new(deferred_positional, deferred_named))
-    }
-
-    fn convert_values<'v>(decoded_values: &'v [Value]) -> Result<Vec<DeferredValue<'v>>, RedefmtPrinterError> {
-        decoded_values.iter().map(convert_value).collect()
-    }
-
-    fn convert_value<'v>(decoded_value: &'v Value) -> Result<DeferredValue<'v>, RedefmtPrinterError> {
-        let value = match decoded_value {
-            Value::Boolean(value) => DeferredValue::Boolean(*value),
-            Value::Usize(value) => DeferredValue::U64(*value),
-            Value::U8(value) => DeferredValue::U8(*value),
-            Value::U16(value) => DeferredValue::U16(*value),
-            Value::U32(value) => DeferredValue::U32(*value),
-            Value::U64(value) => DeferredValue::U64(*value),
-            Value::U128(value) => DeferredValue::U128(*value),
-            Value::Isize(value) => DeferredValue::I64(*value),
-            Value::I8(value) => DeferredValue::I8(*value),
-            Value::I16(value) => DeferredValue::I16(*value),
-            Value::I32(value) => DeferredValue::I32(*value),
-            Value::I64(value) => DeferredValue::I64(*value),
-            Value::I128(value) => DeferredValue::I128(*value),
-            Value::F32(value) => DeferredValue::F32(*value),
-            Value::F64(value) => DeferredValue::F64(*value),
-            Value::Char(value) => DeferredValue::Char(*value),
-            Value::String(value) => DeferredValue::String(value.into()),
-            Value::List(values) => convert_values(values).map(DeferredValue::List)?,
-            Value::Tuple(values) => convert_values(values).map(DeferredValue::Tuple)?,
-            Value::Type(value) => {
-                let TypeStructureValue { name, variant } = value;
-
-                let deferred_variant = match variant {
-                    TypeStructureVariantValue::Struct(decoded_struct_variant) => {
-                        convert_struct_variant(decoded_struct_variant).map(DeferredTypeVariant::Struct)?
-                    }
-                    TypeStructureVariantValue::Enum((variant_name, variant_value)) => {
-                        let deferred_struct_value = convert_struct_variant(variant_value)?;
-                        DeferredTypeVariant::Enum((variant_name, deferred_struct_value))
-                    }
-                };
-
-                DeferredValue::Type(DeferredTypeValue { name, variant: deferred_variant })
-            }
-            Value::NestedFormatExpression { expression, append_newline, decoded_values } => {
-                let pretty_string = evaluate_format_string(expression, decoded_values, *append_newline)?;
-                DeferredValue::String(pretty_string.into())
-            }
-        };
-
-        Ok(value)
-    }
-
-    fn convert_struct_variant<'v>(
-        decoded_struct_variant: &'v StructVariantValue,
-    ) -> Result<DeferredStructVariant<'v>, RedefmtPrinterError> {
-        let deferred_variant = match decoded_struct_variant {
-            StructVariantValue::Unit => DeferredStructVariant::Unit,
-            StructVariantValue::Tuple(values) => convert_values(values).map(DeferredStructVariant::Tuple)?,
-            StructVariantValue::Named(fields) => fields
-                .iter()
-                .map(|(field_name, field_value)| Ok((*field_name, convert_value(field_value)?)))
-                .collect::<Result<Vec<_>, RedefmtPrinterError>>()
-                .map(DeferredStructVariant::Named)?,
-        };
-
-        Ok(deferred_variant)
-    }
-}
-
+// TEMP: move to examples
 #[cfg(feature = "async-example")]
 pub mod async_example {
     use std::io::Write;
@@ -158,16 +22,24 @@ pub mod async_example {
 
     use crate::*;
 
-    pub async fn run(input: impl AsyncRead, mut output: impl Write, config: PrinterConfig) -> anyhow::Result<()> {
+    pub async fn run(input: impl AsyncRead, mut output: impl Write, config: PrettyPrinterConfig) -> anyhow::Result<()> {
         let decoder_cache = RedefmtDecoderCache::default();
         let decoder = RedefmtDecoder::new(&decoder_cache).context("failed to init decoder")?;
-
         let framed_read = FramedRead::new(input, decoder);
-
         pin_utils::pin_mut!(framed_read);
 
+        let mut pretty_printer = PrettyPrinter::new(config);
+
         while let Some(redefmt_frame) = framed_read.try_next().await.context("failed to decode redefmt frame")? {
-            pretty::pretty_print_frame(&mut output, redefmt_frame, &config).context("failed to print frame")?;
+            let log_statement = pretty_printer
+                .log_statement(redefmt_frame)
+                .context("failed create log statement")?;
+
+            output
+                .write_all(log_statement.as_bytes())
+                .context("failed to write log statement to output")?;
+
+            output.flush()?;
         }
 
         Ok(())

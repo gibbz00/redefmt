@@ -25,9 +25,10 @@ workspace = true
 [dependencies]
 # Internal
 redefmt-args.workspace = true
+redefmt-core.workspace = true
 redefmt-decoder.workspace = true
 
-chrono = { version = "0.4.40", default-features = false, features = ["alloc"] }
+chrono = { version = "0.4.40", default-features = false, features = ["now", "std"] }
 thiserror = "2.0"
 
 # feature: async-example
