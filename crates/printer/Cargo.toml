@@ -9,16 +9,6 @@ readme.workspace = true
 repository.workspace = true
 version.workspace = true
 
-[features]
-async-example = [
-  "dep:anyhow",
-  "dep:futures-core",
-  "dep:futures-util",
-  "dep:pin-utils",
-  "dep:tokio",
-  "dep:tokio-util",
-]
-
 [lints]
 workspace = true
 
@@ -30,11 +20,3 @@ redefmt-decoder.workspace = true
 
 chrono = { version = "0.4.40", default-features = false, features = ["now", "std"] }
 thiserror = "2.0"
-
-# feature: async-example
-anyhow = { version = "1.0", optional = true }
-futures-core = { version = "0.3", optional = true }
-futures-util = { version = "0.3", optional = true }
-pin-utils = { version = "0.1", optional = true }
-tokio = { version = "1.4", optional = true }
-tokio-util = { version = "0.7", features = ["codec"], optional = true }
