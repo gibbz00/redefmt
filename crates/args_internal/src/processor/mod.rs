@@ -4,8 +4,8 @@ pub use core::FormatProcessor;
 mod provided_args;
 pub(crate) use provided_args::ProvidedStaticArgs;
 
-mod processed;
-pub use processed::ProcessedFormatString;
+mod string;
+pub use string::ProcessedFormatString;
 
 mod error;
 pub use error::FormatProcessorError;
