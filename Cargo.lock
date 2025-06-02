@@ -632,10 +632,13 @@ name = "redefmt-pretty-printer"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "critical-section",
+ "redefmt",
  "redefmt-args",
  "redefmt-core",
  "redefmt-decoder",
  "thiserror",
+ "tokio-util",
 ]
 
 [[package]]

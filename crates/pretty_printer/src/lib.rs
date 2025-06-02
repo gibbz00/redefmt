@@ -38,7 +38,7 @@ mod printer {
             Self { first_frame_start: None, config }
         }
 
-        pub fn log_statement(&mut self, redefmt_frame: RedefmtFrame) -> Result<String, DeferredFormatError> {
+        pub fn format(&mut self, redefmt_frame: RedefmtFrame) -> Result<String, DeferredFormatError> {
             let RedefmtFrame {
                 level,
                 stamp,
@@ -264,18 +264,24 @@ pub mod config {
     }
 
     impl PrettyPrinterConfig {
-        /// Construct a new pretty printer configuration
+        /// Construct a new pretty printer configuration using the default log statement format
         ///
-        /// `log_format_str` parameter takes an optional format string which is provided the
-        /// following named parameters, in order; "stamp", "level", "crate", "file", "line",
-        /// "statement". Defaults to `"{stamp} [{level}] - {crate}: {statement}"` if none if
-        /// provided.
-        pub fn new(
-            stamp_config: PrintStampConfig,
-            log_format_str: Option<&str>,
-        ) -> Result<Self, PrettyPrinterConfigError> {
-            let log_format_str = log_format_str.unwrap_or(DEFAULT_LOG_FORMAT_STRING);
+        /// Defaults format: `"{stamp} [{level}] - {crate}: {statement}"`
+        ///
+        /// Use [`Self::new_with_format`] for custom log statement formats.
+        pub fn new(stamp_config: PrintStampConfig) -> Self {
+            Self::new_with_format(stamp_config, DEFAULT_LOG_FORMAT_STRING).expect("invalid default log format string")
+        }
 
+        /// Construct a new pretty printer configuration with a custom log statement format
+        ///
+        /// Format string can use the following  named parameters: "stamp",
+        /// "level", "crate", "file", "line", "statement". Order can be relied
+        /// on if the format string uses positional arguments.
+        pub fn new_with_format(
+            stamp_config: PrintStampConfig,
+            log_format_str: &str,
+        ) -> Result<Self, PrettyPrinterConfigError> {
             let log_format_string = FormatString::parse(log_format_str)
                 .map_err(|error| error.into_kind())?
                 .owned();
@@ -311,5 +317,38 @@ pub mod config {
     pub enum PrintTimestampPrecisionConfig {
         Microseconds,
         Milliseconds,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use redefmt::logger::{GlobalLogger, TestStamper};
+    use redefmt_core::codec::encoding::SharedTestDispatcher;
+    use redefmt_decoder::{RedefmtDecoder, RedefmtDecoderCache};
+    use tokio_util::codec::Decoder;
+
+    use crate::*;
+
+    #[test]
+    fn end_to_end() {
+        static STAMPER: TestStamper = TestStamper::new();
+        let dispatcher = SharedTestDispatcher::new();
+        GlobalLogger::init_alloc_logger(dispatcher.clone(), Some(&STAMPER)).unwrap();
+
+        let value = 10;
+        redefmt::info!("test {value}");
+
+        let decoder_cache = RedefmtDecoderCache::default();
+        let mut decoder = RedefmtDecoder::new(&decoder_cache).unwrap();
+
+        let frame = decoder.decode(&mut dispatcher.take_bytes()).unwrap().unwrap();
+
+        let printer_config = PrettyPrinterConfig::new(PrintStampConfig::Counter);
+        let mut printer = PrettyPrinter::new(printer_config);
+
+        let actual = printer.format(frame).unwrap();
+        let expected = format!("0 [INFO] - {crate}: test 10\n", crate = env!("CARGO_PKG_NAME"));
+
+        assert_eq!(expected, actual);
     }
 }
