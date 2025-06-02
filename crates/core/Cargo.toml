@@ -23,7 +23,7 @@ testing = ["alloc", "dep:bytes", "dep:critical-section"]
 redefmt-internal-macros.workspace = true
 
 # External
-bitflags = "2.9.0"
+bitflags = "2.9.1"
 derive_more = { version = "2.0", features = ["as_ref", "display"] }
 sealed = "0.6"
 strum = { version = "0.27", default-features = false, features = ["derive"] }
