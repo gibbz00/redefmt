@@ -1,6 +1,6 @@
 use redefmt_args::processor::ProcessedFormatString;
 use redefmt_core::codec::frame::{Level, Stamp};
-use redefmt_db::statement_table::print::PrintStatement;
+use redefmt_db::{crate_table::CrateName, statement_table::print::PrintStatement};
 
 use crate::*;
 
@@ -17,6 +17,7 @@ use crate::*;
 pub struct RedefmtFrame<'cache> {
     pub level: Option<Level>,
     pub stamp: Option<u64>,
+    pub crate_name: &'cache str,
     pub file_name: &'cache str,
     pub file_line: u32,
     pub format_string: &'cache ProcessedFormatString<'static>,
@@ -28,6 +29,7 @@ impl<'cache> RedefmtFrame<'cache> {
     pub(crate) fn new(
         level: Option<Level>,
         stamp: Option<Stamp>,
+        crate_name: &'cache CrateName<'static>,
         print_stratement: &'cache PrintStatement<'static>,
         decoded_values: DecodedValues<'cache>,
     ) -> Self {
@@ -35,6 +37,7 @@ impl<'cache> RedefmtFrame<'cache> {
         Self {
             level,
             stamp: stamp.map(|stamp| *stamp.as_ref()),
+            crate_name,
             file_name: print_stratement.location.file.as_ref(),
             file_line: print_stratement.location.line,
             format_string: &print_stratement.stored_expression.format_string,
