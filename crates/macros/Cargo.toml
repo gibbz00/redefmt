@@ -21,8 +21,8 @@ workspace = true
 [dependencies]
 # Internal
 redefmt-args = { workspace = true, features = ["syn"] }
-redefmt-db.workspace = true
 redefmt-core.workspace = true
+redefmt-db.workspace = true
 
 # External
 proc-macro2 = "1.0"
