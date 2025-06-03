@@ -1,7 +1,5 @@
 use std::{io::Error as IoError, path::PathBuf};
 
-use xdg::BaseDirectoriesError;
-
 const APPLICATION_NAME: &str = "redefmt";
 
 const XDG_ENV_NAME: &str = "XDG_STATE_HOME";
@@ -20,8 +18,8 @@ pub enum StateDirSource {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StateDirError {
-    #[error("failed to load XDG base directories")]
-    XdgDirLoad(#[from] BaseDirectoriesError),
+    #[error("failed to load XDG base directories, no HOME directory found")]
+    XdgDirLoad,
     #[error("path may not be empty, source; {0}")]
     EmptyPath(StateDirSource),
     #[error("path must be a valid directory; resolved {0} from source {1}")]
@@ -48,7 +46,9 @@ impl StateDir {
                 Self::prepare_state_directory(path_buf, StateDirSource::Env)
             }
             None => {
-                let xdg_base_dirs = xdg::BaseDirectories::with_prefix(APPLICATION_NAME)?.get_state_home();
+                let xdg_base_dirs = xdg::BaseDirectories::with_prefix(APPLICATION_NAME)
+                    .get_state_home()
+                    .ok_or(StateDirError::XdgDirLoad)?;
 
                 Self::prepare_state_directory(xdg_base_dirs, StateDirSource::Xdg)
             }
