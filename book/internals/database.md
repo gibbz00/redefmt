@@ -24,7 +24,7 @@ occurrence when developing large crates over a long time period. `i64` to `u16`
 conversions are therefore checked. Any failure to do so will throw a compiler
 error with instructions to clear the database.
 
-To sumamrize: As long as a project isn't using more than 65K crate dependencies,
+To summarize: As long as a project isn't using more than 65K crate dependencies,
 with no dependency using more than 65K register statements, then you're good
 to go.
 
