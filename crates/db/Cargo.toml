@@ -23,7 +23,6 @@ rusqlite_migration = { version = "2.1", features = ["from-directory"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
-uuid = { version = "1.17", default-features = false }
 xdg = "2.5"
 # TEMP: For quick prototyping, replace with manual implementations before release
 derive_more = { version = "2.0", features = ["deref", "display"] }

@@ -49,6 +49,5 @@ redefmt-args-internal = { path = ".", features = ["quote", "serde", "syn"] }
 
 
 # External
-num-traits = "0.2"
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 syn = { version = "2.0", default-features = false, features = ["printing"] }

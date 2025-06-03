@@ -491,7 +491,6 @@ dependencies = [
  "check_keyword",
  "hashbrown",
  "impl-tools",
- "num-traits",
  "proc-macro2",
  "quote",
  "redefmt-args-internal",
@@ -545,7 +544,6 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
- "uuid",
  "xdg",
 ]
 
@@ -905,12 +903,6 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
-
-[[package]]
-name = "uuid"
-version = "1.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cf4199d1e5d15ddd86a694e4d0dffa9c323ce759fea589f00fef9d81cc1931d"
 
 [[package]]
 name = "vcpkg"
