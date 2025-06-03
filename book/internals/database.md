@@ -10,7 +10,7 @@ cause name collisions with for example `main.sqlite`.
 
 ## Identifiers
 
-The [ID column](row_id) in SQLite is always an `i64`. It is, however, quite
+The [ID column](https://www.sqlite.org/lang_createtable.html#rowid) in SQLite is always an `i64`. It is, however, quite
 improbable--if not impossible--for redefmt to ever be fill a register table
 with all 4.6 quintillion rows for a single crate (autoincrement starts
 halfway at 1). There's therefore more gained than lost by letting the register
@@ -52,7 +52,7 @@ to be so.
 
 The database must support multiple concurrent connections since crates and proc
 macros are executed in parallel. Sqlite3 should support this rather well in [WAL
-mode] and [PRAGMA synchronous] set to normal.
+mode](https://www.sqlite.org/wal.html) and [PRAGMA synchronous](https://www.sqlite.org/pragma.html#pragma_synchronous) set to normal.
 
 Lock contention is further mitigated by creating one database per crate. Each
 proc macro begins by checking if a database for a crate exists, if not, it
@@ -61,8 +61,3 @@ If it does exist from before, then the its ID is retrieved by name from the
 `main.sqlite` database, warranting an index on the name column.
 
 Crate names are provided by calling `std::env::var("CARGO_PKG_NAME")` in the proc macro itself.
-
-[WAL mode]: https://www.sqlite.org/wal.html
-[PRAGMA synchronous]: https://www.sqlite.org/pragma.html#pragma_synchronous
-[Checkpointing]: https://www.sqlite.org/wal.html#ckpt
-[row_id]: https://www.sqlite.org/lang_createtable.html#rowid
