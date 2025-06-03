@@ -62,7 +62,7 @@ impl Header {
         } else if self.contains(Header::PLUS_16_WIDTH) {
             PointerWidth::U32
         } else {
-            return PointerWidth::U16;
+            PointerWidth::U16
         }
     }
 
