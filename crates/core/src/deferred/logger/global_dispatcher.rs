@@ -7,7 +7,7 @@ use crate::*;
 enum GlobalDispatcherKind {
     Static(&'static mut dyn Dispatcher),
     // IMPROVEMENT: use unsafe cell?
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "deferred-alloc")]
     Boxed(Mutex<core::cell::RefCell<alloc::boxed::Box<dyn Dispatcher + Sync + Send>>>),
 }
 
@@ -22,7 +22,7 @@ const INITIALIZED: u8 = 2;
 pub struct GlobalDispatcher;
 
 impl GlobalDispatcher {
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "deferred-alloc")]
     pub fn init_alloc(dispatcher: impl Dispatcher + Send + Sync + 'static) -> Result<(), GlobalLoggerError> {
         let kind =
             GlobalDispatcherKind::Boxed(Mutex::new(core::cell::RefCell::new(alloc::boxed::Box::new(dispatcher))));
@@ -95,7 +95,7 @@ impl GlobalDispatcherHandle {
             GlobalDispatcherKind::Static(dispatcher) => {
                 f(*dispatcher);
             }
-            #[cfg(feature = "alloc")]
+            #[cfg(feature = "deferred-alloc")]
             GlobalDispatcherKind::Boxed(dispatcher_mutex) => {
                 // - called within a critical section for the boxed variant
                 let mut dispatcher_handle = dispatcher_mutex.borrow(handle.cs_token).borrow_mut();

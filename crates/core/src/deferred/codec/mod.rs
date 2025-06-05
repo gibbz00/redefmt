@@ -7,8 +7,7 @@ mod dispatcher;
 pub use dispatcher::Dispatcher;
 #[cfg(test)]
 pub use dispatcher::NoopTestDispatcher;
-#[doc(hidden)]
-#[cfg(feature = "testing")]
+#[cfg(feature = "deferred-testing")]
 pub use dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};
 
 mod write_value;

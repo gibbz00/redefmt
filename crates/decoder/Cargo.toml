@@ -15,7 +15,7 @@ workspace = true
 [dependencies]
 # Internal
 redefmt-args.workspace = true
-redefmt-core.workspace = true
+redefmt-core = { workspace = true, features = ["deferred"] }
 redefmt-db.workspace = true
 
 # External
@@ -26,7 +26,7 @@ tokio-util = { version = "0.7", features = ["codec"] }
 
 [dev-dependencies]
 redefmt-args = { workspace = true, features = ["macros"] }
-redefmt-core = { workspace = true, features = ["testing"] }
+redefmt-core = { workspace = true, features = ["deferred-testing"] }
 syn = { version = "2.0", default-features = false, features = ["parsing"] }
 
 num-traits = "0.2"

@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
 pub struct ShortId(pub(crate) u16);
 
-#[cfg(feature = "db")]
+#[cfg(feature = "deferred-db")]
 mod db {
     use rusqlite::{
         ToSql,
@@ -45,7 +45,7 @@ macro_rules! short_id_newtype {
             }
         }
 
-        #[cfg(feature = "db")]
+        #[cfg(feature = "deferred-db")]
         $crate::sql_newtype!($id);
     };
 }

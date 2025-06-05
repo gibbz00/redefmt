@@ -13,11 +13,11 @@ version.workspace = true
 workspace = true
 
 [features]
-deferred = ["dep:redefmt-core"]
-deferred-alloc = ["redefmt-core/alloc"]
+deferred = ["redefmt-core/deferred"]
+deferred-alloc = ["redefmt-core/deferred-alloc"]
 deferred-logger = [
   "deferred-macros",
-  "redefmt-core/logger",
+  "redefmt-core/deferred-logger",
   "redefmt-macros/logger",
 ]
 deferred-macros = ["deferred", "dep:redefmt-macros"]

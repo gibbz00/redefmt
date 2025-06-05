@@ -9,5 +9,5 @@ pub(crate) use global_dispatcher::{GlobalDispatcher, GlobalDispatcherHandle};
 
 mod stamper;
 pub use stamper::Stamper;
-#[cfg(feature = "testing")]
+#[cfg(feature = "deferred-testing")]
 pub use stamper::TestStamper;

@@ -217,9 +217,9 @@ impl<const N: usize> WriteValue for [&dyn WriteValue; N] {
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(feature = "deferred-alloc")]
 impl_format!(T, alloc::vec::Vec<T>);
-#[cfg(feature = "alloc")]
+#[cfg(feature = "deferred-alloc")]
 #[sealed::sealed]
 impl<T: WriteValue> WriteValue for alloc::vec::Vec<T> {
     fn hint(&self) -> TypeHint {
@@ -231,9 +231,9 @@ impl<T: WriteValue> WriteValue for alloc::vec::Vec<T> {
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(feature = "deferred-alloc")]
 impl_format!(alloc::vec::Vec<&dyn WriteValue>);
-#[cfg(feature = "alloc")]
+#[cfg(feature = "deferred-alloc")]
 #[sealed::sealed]
 impl WriteValue for alloc::vec::Vec<&dyn WriteValue> {
     fn hint(&self) -> TypeHint {

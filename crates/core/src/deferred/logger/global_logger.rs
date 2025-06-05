@@ -11,7 +11,7 @@ pub struct GlobalLogger {
 }
 
 impl GlobalLogger {
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "deferred-alloc")]
     pub fn init_alloc_logger(
         dispatcher: impl Dispatcher + Send + Sync + 'static,
         stamper: Option<&'static dyn Stamper>,
