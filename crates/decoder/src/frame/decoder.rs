@@ -127,7 +127,7 @@ mod mock {
 #[cfg(test)]
 mod tests {
     use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
-    use redefmt_core::codec::encoding::{SimpleTestDispatcher, WriteValue};
+    use redefmt_core::codec::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},

@@ -225,7 +225,7 @@ impl<'cache> ValueDecoder<'cache> {
 #[cfg(test)]
 mod tests {
     use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
-    use redefmt_core::codec::encoding::{Dispatcher, SimpleTestDispatcher, StatementWriterHint, WriteValue};
+    use redefmt_core::codec::{Dispatcher, SimpleTestDispatcher, StatementWriterHint, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},

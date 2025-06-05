@@ -1,5 +1,5 @@
 use redefmt_core::codec::{
-    encoding::StatementWriterHint,
+    StatementWriterHint,
     frame::{PointerWidth, TypeHint},
 };
 use tokio_util::bytes::{Buf, BytesMut};

@@ -335,7 +335,7 @@ mod tests {
         Level,
         logger::{GlobalLogger, TestStamper},
     };
-    use redefmt_core::codec::encoding::SharedTestDispatcher;
+    use redefmt_core::codec::SharedTestDispatcher;
     use redefmt_decoder::{RedefmtDecoder, RedefmtDecoderCache};
     use tokio_util::codec::Decoder;
 
