@@ -38,7 +38,8 @@ impl<T: StatementTable> StatementCache<T> {
     }
 }
 
-// overkill to pull in impl_tools::auto_impl
+// adding impl_tools would be overkill
+// https://github.com/rust-lang/rust/issues/26925
 impl<T: StatementTable> Default for StatementCache<T> {
     fn default() -> Self {
         Self { map: Default::default() }

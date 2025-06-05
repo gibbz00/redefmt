@@ -126,7 +126,6 @@ fn impl_write_value_body(
     let tuple_indexes = (0..tuple_length as usize).map(syn::Index::from);
 
     quote! {
-        #[::sealed::sealed]
         impl #generic_params_list WriteValue for #tuple_type {
             fn hint(&self) -> TypeHint {
                 TypeHint::Tuple
@@ -140,6 +139,8 @@ fn impl_write_value_body(
                 )*
             }
         }
+
+        impl #generic_params_list private::Sealed for #tuple_type {}
 
         impl #generic_params_list Format for #tuple_type {
             fn fmt(&self, f: &mut Formatter) -> ::core::fmt::Result {

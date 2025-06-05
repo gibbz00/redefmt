@@ -458,7 +458,6 @@ dependencies = [
  "redefmt-core",
  "redefmt-internal-macros",
  "rusqlite",
- "sealed",
  "strum",
 ]
 
