@@ -1,6 +1,4 @@
-use crate::*;
-
-/// Configuration for [`FormatProcessor::process_dynamic`]
+/// Configuration for [`FormatProcessor::process_dynamic`](crate::FormatProcessor::process_dynamic)
 pub struct DynamicProcessorConfig {
     /// Defaults to false to provide compatibility with Rust's `format_args!` error handling.
     ///
@@ -12,9 +10,8 @@ pub struct DynamicProcessorConfig {
     pub disable_unused_positional_check: bool,
 }
 
-/// Configuration for [`FormatProcessor::process_static`]
-#[impl_tools::autoimpl(Default)]
-pub struct StaticProcessorConfig<C: ArgCapturer> {
+/// Configuration for [`FormatProcessor::process_static`](`crate::FormatProcessor::process_static`)
+pub struct StaticProcessorConfig<C> {
     /// Configure a format argument capturer in order to provide functional
     /// parity with Rust's [format argument capturing][format_args_capture].
     ///
@@ -22,7 +19,8 @@ pub struct StaticProcessorConfig<C: ArgCapturer> {
     /// into it's capturable form. Meaning: `format!("{x} {match}")` becomes effectively expanded to
     /// `format!("{x} {match}", x = &x, match = r#match)`.
     ///
-    /// If no argument capturer is configured, then an [`FormatProcessorError::MissingNamed`]
+    /// If no argument capturer is configured, then an
+    /// [`FormatProcessorError::MissingNamed`](crate::FormatProcessorError::MissingNamed)
     /// is returned when a named argument in the format string is not found in the list of
     /// provided named arguments.
     ///
@@ -66,4 +64,17 @@ pub struct StaticProcessorConfig<C: ArgCapturer> {
     /// assert_eq!(before, after);
     /// ```
     pub disable_compaction: bool,
+}
+
+// adding impl_tools is overkill
+// https://github.com/rust-lang/rust/issues/26925
+impl<C> Default for StaticProcessorConfig<C> {
+    fn default() -> Self {
+        Self {
+            arg_capturer: Default::default(),
+            disable_unused_named_check: Default::default(),
+            disable_unused_positional_check: Default::default(),
+            disable_compaction: Default::default(),
+        }
+    }
 }

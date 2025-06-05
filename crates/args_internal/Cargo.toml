@@ -24,12 +24,11 @@ redefmt-internal-macros.workspace = true
 # External
 check_keyword = "0.4"
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
-strum = { version = "0.27", features = ["derive"] }
 thiserror = { version = "2.0", default-features = false }
 unicode-xid = "0.2"
 # TEMP: For quick prototyping, replace with manual implementations before release
-impl-tools = "0.10"
 sealed = "0.6"
+strum = { version = "0.27", features = ["derive"] }
 
 # feature: serde
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
@@ -46,7 +45,6 @@ proc-macro2 = { version = "1.0", default-features = false, optional = true }
 [dev-dependencies]
 # Internal
 redefmt-args-internal = { path = ".", features = ["quote", "serde", "syn"] }
-
 
 # External
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }

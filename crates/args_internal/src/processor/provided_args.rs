@@ -3,10 +3,17 @@ use alloc::vec::Vec;
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq)]
-#[impl_tools::autoimpl(Default)]
 pub struct ProvidedStaticArgs<'a, E> {
     pub positional: Vec<E>,
     pub named: Vec<(AnyIdentifier<'a>, E)>,
+}
+
+// adding impl_tools would be overkill
+// https://github.com/rust-lang/rust/issues/26925
+impl<E> Default for ProvidedStaticArgs<'_, E> {
+    fn default() -> Self {
+        Self { positional: Default::default(), named: Default::default() }
+    }
 }
 
 #[cfg(feature = "syn")]
