@@ -36,12 +36,11 @@ pub fn macro_impl(token_stream: TokenStream, append_newline: bool) -> TokenStrea
                 ::redefmt::identifiers::WriteStatementId::new(#statement_id_inner)
             );
 
-            #[allow(unused_must_use)]
-            {
-                #(
-                  #provided_args.fmt(#statement_writer_ident.formatter());
-                )*
-            }
+            #(
+              #provided_args.fmt(#statement_writer_ident.formatter())?;
+            )*
+
+            ::core::fmt::Result::Ok(())
         }
     }
     .into()

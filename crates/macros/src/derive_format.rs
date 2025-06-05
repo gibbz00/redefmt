@@ -65,9 +65,10 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
 
     quote! {
         impl #impl_generics ::redefmt::Format for #ident #type_generics #where_clause {
-            fn fmt(&self, f: &mut ::redefmt::Formatter) {
+            fn fmt(&self, f: &mut ::redefmt::Formatter) -> ::core::fmt::Result {
                 #id_pair;
                 #impl_body
+                ::core::fmt::Result::Ok(())
             }
         }
     }
@@ -85,12 +86,12 @@ fn struct_impl(data_struct: DataStruct) -> (TypeStructureVariant, TokenStream2) 
                 .into_iter()
                 .map(|field| field.ident.expect("named field has no identifier"));
 
-            quote! { #(self.#field_idents.fmt(f);)* }
+            quote! { #(self.#field_idents.fmt(f)?;)* }
         }
         Fields::Unnamed(fields_unnamed) => {
             let tuple_indexes = (0..fields_unnamed.unnamed.len()).map(syn::Index::from);
 
-            quote! { #(self.#tuple_indexes.fmt(f);)* }
+            quote! { #(self.#tuple_indexes.fmt(f)?;)* }
         }
     };
 
@@ -132,7 +133,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
                     quote! {
                         #ident::#variant_ident { #(#field_idents),* } => {
                             f.write_raw(#variant_index);
-                            #(#field_idents.fmt(f);)*
+                            #(#field_idents.fmt(f)?;)*
                         }
                     }
                 }
@@ -144,7 +145,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
                     quote! {
                         #ident::#variant_ident(#(#tuple_idents),*) => {
                             f.write_raw(#variant_index);
-                            #(#tuple_idents.fmt(f);)*
+                            #(#tuple_idents.fmt(f)?;)*
                         }
                     }
                 }

@@ -405,10 +405,11 @@ mod tests {
         // manual impl
         struct FooWrite;
         impl redefmt::Format for FooWrite {
-            fn fmt(&self, f: &mut redefmt::Formatter) {
+            fn fmt(&self, f: &mut redefmt::Formatter) -> ::core::fmt::Result {
                 let mut s = f.statements_writer();
-                redefmt::writeln!(s, "x");
-                redefmt::write!(s, "y");
+                redefmt::writeln!(s, "x")?;
+                redefmt::write!(s, "y")?;
+                Ok(())
             }
         }
 

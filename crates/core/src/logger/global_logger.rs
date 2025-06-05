@@ -65,7 +65,8 @@ impl GlobalLogger {
     pub fn write_format(&mut self, format: &dyn Format) {
         self.handle.get(|dispatcher| {
             let mut formatter = Formatter::new(dispatcher);
-            format.fmt(&mut formatter);
+            // TODO: do anything with fmt error?
+            let _ = format.fmt(&mut formatter);
         });
     }
 

@@ -1,12 +1,12 @@
 use crate::*;
 
 pub trait Format {
-    fn fmt(&self, f: &mut Formatter);
+    fn fmt(&self, f: &mut Formatter) -> core::fmt::Result;
 }
 
 impl<T: Format> Format for &T {
-    fn fmt(&self, f: &mut Formatter) {
-        <T as Format>::fmt(self, f);
+    fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
+        <T as Format>::fmt(self, f)
     }
 }
 

@@ -47,8 +47,9 @@ impl WriteValue for (CrateId, TypeStructureId) {
 // impls.
 macro_rules! impl_format {
     () => {
-        fn fmt(&self, f: &mut Formatter) {
+        fn fmt(&self, f: &mut Formatter) -> ::core::fmt::Result {
             f.write(self);
+            Ok(())
         }
     };
     ($t:ty) => {

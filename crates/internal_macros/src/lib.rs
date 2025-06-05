@@ -142,8 +142,9 @@ fn impl_write_value_body(
         }
 
         impl #generic_params_list Format for #tuple_type {
-            fn fmt(&self, f: &mut Formatter) {
+            fn fmt(&self, f: &mut Formatter) -> ::core::fmt::Result {
                 f.write(self);
+                Ok(())
             }
         }
     }
