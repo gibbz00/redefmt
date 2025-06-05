@@ -1,12 +1,24 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 use rusqlite::{
     ToSql,
     types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
 };
 
-#[derive(Debug, Clone, PartialEq, derive_more::Deref, derive_more::Display)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CrateName<'a>(Cow<'a, str>);
+
+impl Display for CrateName<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl AsRef<str> for CrateName<'_> {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum CrateNameError {

@@ -534,7 +534,6 @@ dependencies = [
 name = "redefmt-db"
 version = "0.1.0"
 dependencies = [
- "derive_more",
  "include_dir",
  "redefmt-args",
  "redefmt-core",

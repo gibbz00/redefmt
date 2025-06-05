@@ -1,4 +1,4 @@
-use std::{io::Error as IoError, path::PathBuf};
+use std::{fmt::Display, io::Error as IoError, path::PathBuf};
 
 const APPLICATION_NAME: &str = "redefmt";
 
@@ -8,12 +8,19 @@ const OVERRIDE_ENV_NAME: &str = "REDEFMT_STATE";
 
 pub struct StateDir;
 
-#[derive(Debug, Clone, Copy, derive_more::Display)]
+#[derive(Debug, Clone, Copy)]
 pub enum StateDirSource {
-    #[display("{}", XDG_ENV_NAME)]
     Xdg,
-    #[display("{}", OVERRIDE_ENV_NAME)]
     Env,
+}
+
+impl Display for StateDirSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StateDirSource::Xdg => write!(f, "{XDG_ENV_NAME}"),
+            StateDirSource::Env => write!(f, "{OVERRIDE_ENV_NAME}"),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

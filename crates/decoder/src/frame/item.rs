@@ -37,7 +37,7 @@ impl<'cache> RedefmtFrame<'cache> {
         Self {
             level,
             stamp: stamp.map(|stamp| *stamp.as_ref()),
-            crate_name,
+            crate_name: crate_name.as_ref(),
             file_name: print_stratement.location.file.as_ref(),
             file_line: print_stratement.location.line,
             format_string: &print_stratement.stored_expression.format_string,
