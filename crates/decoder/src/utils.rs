@@ -1,4 +1,7 @@
-use redefmt_core::codec::frame::{PointerWidth, TypeHint};
+use redefmt_core::codec::{
+    encoding::StatementWriterHint,
+    frame::{PointerWidth, TypeHint},
+};
 use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
@@ -41,6 +44,16 @@ impl DecoderUtils {
 
         TypeHint::from_repr(type_hint_repr)
             .ok_or(RedefmtDecoderError::UnknownTypeHint(type_hint_repr))
+            .map(Some)
+    }
+
+    pub fn get_statement_writer_hint(src: &mut BytesMut) -> Result<Option<StatementWriterHint>, RedefmtDecoderError> {
+        let Ok(hint) = src.try_get_u8() else {
+            return Ok(None);
+        };
+
+        StatementWriterHint::from_repr(hint)
+            .ok_or(RedefmtDecoderError::UnknownStatementWriterHint(hint))
             .map(Some)
     }
 }

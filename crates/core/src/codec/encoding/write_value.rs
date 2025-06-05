@@ -30,9 +30,9 @@ impl<T: WriteValue> WriteValue for &T {
 }
 
 #[sealed::sealed]
-impl WriteValue for (CrateId, WriteStatementId) {
+impl WriteValue for (CrateId, TypeStructureId) {
     fn hint(&self) -> TypeHint {
-        TypeHint::WriteId
+        TypeHint::TypeStructure
     }
 
     fn write_raw(&self, dispatcher: &mut dyn Dispatcher) {
@@ -262,12 +262,12 @@ mod tests {
     #[test]
     fn write_value() {
         let crate_id = CrateId::new(1);
-        let statement_id = WriteStatementId::new(2);
+        let statement_id = TypeStructureId::new(2);
 
         let mut dispatcher = SimpleTestDispatcher::default();
         (crate_id, statement_id).write_value(&mut dispatcher);
 
-        let mut expected_bytes = alloc::vec![TypeHint::WriteId as u8];
+        let mut expected_bytes = alloc::vec![TypeHint::TypeStructure as u8];
         expected_bytes.extend_from_slice(&crate_id.as_ref().to_be_bytes());
         expected_bytes.extend_from_slice(&statement_id.as_ref().to_be_bytes());
 

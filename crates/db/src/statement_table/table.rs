@@ -17,8 +17,9 @@ mod private {
 
     pub trait Sealed {}
 
-    impl Sealed for WriteStatement<'_> {}
     impl Sealed for PrintStatement<'_> {}
+    impl Sealed for WriteStatement<'_> {}
+    impl Sealed for TypeStructure<'_> {}
 }
 
 impl<T: StatementTable> Table<T> for DbClient<CrateDb> {

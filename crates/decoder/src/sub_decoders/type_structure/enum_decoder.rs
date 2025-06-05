@@ -1,5 +1,5 @@
 use redefmt_core::codec::frame::PointerWidth;
-use redefmt_db::statement_table::write::StructVariant;
+use redefmt_db::statement_table::type_structure::StructVariant;
 use tokio_util::bytes::BytesMut;
 
 use crate::*;

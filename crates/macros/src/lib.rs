@@ -12,7 +12,7 @@ mod error;
 pub(crate) use error::RedefmtMacroError;
 
 mod db_client;
-pub(crate) use db_client::{DbClients, db_clients, register_write_statement};
+pub(crate) use db_client::{DbClients, db_clients};
 
 mod derive_format;
 

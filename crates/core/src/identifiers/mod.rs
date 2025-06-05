@@ -6,3 +6,5 @@ short_id_newtype!(CrateId);
 short_id_newtype!(PrintStatementId);
 
 short_id_newtype!(WriteStatementId);
+
+short_id_newtype!(TypeStructureId);

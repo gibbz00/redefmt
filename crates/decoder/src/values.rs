@@ -60,11 +60,14 @@ pub enum Value<'cache> {
     List(Vec<Value<'cache>>),
     Tuple(Vec<Value<'cache>>),
     Type(TypeStructureValue<'cache>),
-    NestedFormatExpression {
-        expression: &'cache ProcessedFormatString<'static>,
-        append_newline: bool,
-        decoded_values: DecodedValues<'cache>,
-    },
+    WriteStatements(Vec<WriteStatementValue<'cache>>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct WriteStatementValue<'cache> {
+    pub expression: &'cache ProcessedFormatString<'static>,
+    pub append_newline: bool,
+    pub decoded_values: DecodedValues<'cache>,
 }
 
 #[derive(Debug, PartialEq)]

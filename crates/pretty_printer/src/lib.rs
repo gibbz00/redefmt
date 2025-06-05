@@ -18,7 +18,10 @@ mod printer {
     };
     use redefmt_decoder::{
         RedefmtFrame,
-        values::{DecodedValues, StructVariantValue, TypeStructureValue, TypeStructureVariantValue, Value},
+        values::{
+            DecodedValues, StructVariantValue, TypeStructureValue, TypeStructureVariantValue, Value,
+            WriteStatementValue,
+        },
     };
 
     use crate::*;
@@ -193,10 +196,16 @@ mod printer {
 
                         DeferredValue::Type(DeferredTypeValue { name, variant: deferred_variant })
                     }
-                    Value::NestedFormatExpression { expression, append_newline, decoded_values } => {
-                        let pretty_string =
-                            PrettyPrinter::evaluate_statement(expression, decoded_values, *append_newline)?;
-                        DeferredValue::String(pretty_string.into())
+                    Value::WriteStatements(write_statements) => {
+                        let mut write_statements_string = String::new();
+
+                        for WriteStatementValue { expression, append_newline, decoded_values } in write_statements {
+                            let pretty_string =
+                                PrettyPrinter::evaluate_statement(expression, decoded_values, *append_newline)?;
+                            write_statements_string.push_str(&pretty_string);
+                        }
+
+                        DeferredValue::String(write_statements_string.into())
                     }
                 };
 
@@ -397,12 +406,14 @@ mod tests {
         struct FooWrite;
         impl redefmt::Format for FooWrite {
             fn fmt(&self, f: &mut redefmt::Formatter) {
-                redefmt::writeln!(f, "x");
+                let mut s = f.statements_writer();
+                redefmt::writeln!(s, "x");
+                redefmt::write!(s, "y");
             }
         }
 
         let value = FooWrite;
-        assert_print!(l, d, p, redefmt::print!("{value:?}"), "13 [NONE] - {crate_name}: \"x\\n\"");
+        assert_print!(l, d, p, redefmt::print!("{value:?}"), "13 [NONE] - {crate_name}: \"x\\ny\"");
 
         // derive unit struct
         #[derive(redefmt::Format)]

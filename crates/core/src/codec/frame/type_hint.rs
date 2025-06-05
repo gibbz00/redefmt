@@ -39,21 +39,6 @@ pub enum TypeHint {
     DynList = 104,
 
     // * Meta * 2XX
-    //
-    // (Current XX = 13 repr implies u32 write_id, (u16 crate_id + u16 write_statement_id))
-    WriteId = 213,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn write_content_id_type_hint() {
-        let write_content_section = 200;
-        let write_id_type_hint_repr = TypeHint::WriteId as u8;
-        let u32_type_hint_repr = TypeHint::U32 as u8;
-
-        assert_eq!(u32_type_hint_repr, write_id_type_hint_repr - write_content_section)
-    }
+    WriteStatements = 201,
+    TypeStructure = 202,
 }

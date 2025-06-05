@@ -8,3 +8,6 @@ pub use dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};
 
 mod write_value;
 pub use write_value::WriteValue;
+
+mod statement_writer;
+pub use statement_writer::{StatementWriter, StatementWriterHint};

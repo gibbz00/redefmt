@@ -8,36 +8,8 @@ impl StatementTable for WriteStatement<'_> {
     const NAME: &'static str = "write_register";
 }
 
-// Created when implementing Format
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum WriteStatement<'a> {
-    // Often from derived implementations
-    TypeStructure(TypeStructure),
-    // Often from manual implementations
-    #[serde(borrow)]
-    FormatExpression(StoredFormatExpression<'a>),
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub struct TypeStructure {
-    pub name: String,
-    pub variant: TypeStructureVariant,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum TypeStructureVariant {
-    Struct(StructVariant),
-    Enum(Vec<(String, StructVariant)>),
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum StructVariant {
-    Unit,
-    /// Inner u8 represents field count
-    Tuple(u8),
-    /// List of field names
-    Named(Vec<String>),
-}
+pub struct WriteStatement<'a>(#[serde(borrow)] pub StoredFormatExpression<'a>);
 
 #[cfg(test)]
 mod tests {
@@ -53,11 +25,11 @@ mod tests {
         }
 
         fn mock() -> Self {
-            WriteStatement::FormatExpression(mock_stored_expression(processed_format_string!("x")))
+            WriteStatement(mock_stored_expression(processed_format_string!("x")))
         }
 
         fn mock_other() -> Self {
-            WriteStatement::FormatExpression(mock_stored_expression(processed_format_string!("y")))
+            WriteStatement(mock_stored_expression(processed_format_string!("y")))
         }
     }
 

@@ -24,6 +24,10 @@ impl<'a> Formatter<'a> {
         value.write_value(self.dispatcher);
     }
 
+    pub fn statements_writer<'r>(&'r mut self) -> StatementWriter<'r, 'a> {
+        StatementWriter::init(self)
+    }
+
     #[doc(hidden)]
     pub fn write_raw(&mut self, value: impl WriteValue) {
         value.write_raw(self.dispatcher);

@@ -12,7 +12,8 @@ pub struct ValueDecoder<'cache> {
     type_hint: TypeHint,
     length_context: Option<usize>,
     list_decoder: Option<ListValueDecoder<'cache>>,
-    write_decoder: Option<WriteStatementDecoder<'cache>>,
+    type_structure_decoder: Option<TypeStructureDecoder<'cache>>,
+    write_statements_decoder: Option<WriteStatementsDecoder<'cache>>,
 }
 
 impl<'cache> ValueDecoder<'cache> {
@@ -22,7 +23,8 @@ impl<'cache> ValueDecoder<'cache> {
             type_hint,
             length_context: None,
             list_decoder: None,
-            write_decoder: Default::default(),
+            write_statements_decoder: Default::default(),
+            type_structure_decoder: Default::default(),
         }
     }
 
@@ -103,32 +105,34 @@ impl<'cache> ValueDecoder<'cache> {
                     return Ok(None);
                 };
 
-                let maybe_tuple = list_decoder.decode_dyn_list(stores, src)?;
-                return Ok(maybe_tuple.map(Value::Tuple));
+                list_decoder.decode_dyn_list(stores, src)?.map(Value::Tuple)
             }
             TypeHint::DynList => {
                 let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
                     return Ok(None);
                 };
 
-                let maybe_list = list_decoder.decode_dyn_list(stores, src)?;
-                return Ok(maybe_list.map(Value::List));
+                list_decoder.decode_dyn_list(stores, src)?.map(Value::List)
             }
             TypeHint::List => {
                 let Some(list_decoder) = self.get_or_store_usize_list(src)? else {
                     return Ok(None);
                 };
 
-                let maybe_list = list_decoder.decode_list(stores, src)?;
-                return Ok(maybe_list.map(Value::List));
+                list_decoder.decode_list(stores, src)?.map(Value::List)
             }
-            TypeHint::WriteId => {
-                let Some(write_statement_decoder) = self.get_or_store_write_decoder(stores, src)? else {
+            TypeHint::TypeStructure => {
+                let Some(type_structure_decoder) = self.get_or_store_type_structure_decoder(stores, src)? else {
                     return Ok(None);
                 };
 
-                return write_statement_decoder.decode(stores, src);
+                type_structure_decoder.decode(stores, src)?.map(Value::Type)
             }
+            TypeHint::WriteStatements => self
+                .write_statements_decoder
+                .get_or_insert_with(|| WriteStatementsDecoder::new(self.pointer_width))
+                .decode(stores, src)?
+                .map(Value::WriteStatements),
         };
 
         Ok(maybe_simple_value)
@@ -199,38 +203,37 @@ impl<'cache> ValueDecoder<'cache> {
             .map_err(|_| RedefmtDecoderError::LengthOverflow(length))
     }
 
-    fn get_or_store_write_decoder(
+    fn get_or_store_type_structure_decoder(
         &mut self,
         stores: &Stores<'cache>,
         src: &mut BytesMut,
-    ) -> Result<Option<&mut WriteStatementDecoder<'cache>>, RedefmtDecoderError> {
-        if self.write_decoder.is_none() {
+    ) -> Result<Option<&mut TypeStructureDecoder<'cache>>, RedefmtDecoderError> {
+        if self.type_structure_decoder.is_none() {
             let Ok(crate_id) = src.try_get_u16().map(CrateId::new) else {
                 return Ok(None);
             };
 
-            let write_crate = stores.get_or_insert_crate(crate_id)?;
+            let type_structure_crate = stores.get_or_insert_crate(crate_id)?;
 
-            self.write_decoder = Some(WriteStatementDecoder::new(self.pointer_width, write_crate))
+            self.type_structure_decoder = Some(TypeStructureDecoder::new(self.pointer_width, type_structure_crate))
         }
 
-        Ok(self.write_decoder.as_mut())
+        Ok(self.type_structure_decoder.as_mut())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
-    use redefmt_core::{
-        codec::encoding::{SimpleTestDispatcher, WriteValue},
-        identifiers::WriteStatementId,
-    };
+    use redefmt_core::codec::encoding::{Dispatcher, SimpleTestDispatcher, StatementWriterHint, WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},
         statement_table::{
+            StatementTable,
             stored_format_expression::StoredFormatExpression,
-            write::{StructVariant, TypeStructure, TypeStructureVariant, WriteStatement},
+            type_structure::{StructVariant, TypeStructure, TypeStructureVariant},
+            write::WriteStatement,
         },
     };
 
@@ -372,26 +375,33 @@ mod tests {
             expected_named_args: vec![arg_name.clone()],
         };
 
-        let write_statement = WriteStatement::FormatExpression(stored_expression.clone());
+        let write_statement = WriteStatement(stored_expression.clone());
 
         // expected
-        let expected_value = Value::NestedFormatExpression {
+        let expected_value = Value::WriteStatements(vec![WriteStatementValue {
             expression: &stored_expression.format_string,
             append_newline: stored_expression.append_newline,
             decoded_values: DecodedValues {
                 positional: vec![],
                 named: vec![(&arg_name, Value::Boolean(arg_value))],
             },
-        };
+        }]);
 
-        let write_id = seed_crate_and_write_statement(&stores, &write_statement);
+        let (crate_id, statement_id) = seed_crate_record(&stores, &write_statement);
 
         // encode segment + arg
         let mut dispatcher = SimpleTestDispatcher::default();
-        write_id.write_value(&mut dispatcher);
+
+        dispatcher.write(&(TypeHint::WriteStatements as u8).to_be_bytes());
+        dispatcher.write(&(StatementWriterHint::Continue as u8).to_be_bytes());
+        dispatcher.write(&crate_id.as_ref().to_be_bytes());
+        dispatcher.write(&statement_id.as_ref().to_be_bytes());
+
         arg_value.write_value(&mut dispatcher);
 
-        assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
+        dispatcher.write(&(StatementWriterHint::End as u8).to_be_bytes());
+
+        assert_value_impl(stores, dispatcher, TypeHint::WriteStatements, expected_value);
     }
 
     #[test]
@@ -489,28 +499,28 @@ mod tests {
         let cache = RedefmtDecoderCache::default();
         let (_dir_guard, stores) = Stores::mock(&cache);
 
-        let type_name = "Foo".to_string();
+        let type_name = "Foo";
 
-        let write_statement = WriteStatement::TypeStructure(TypeStructure {
-            name: type_name.clone(),
+        let type_structure = TypeStructure {
+            name: type_name.into(),
             variant: TypeStructureVariant::Struct(struct_variant),
-        });
+        };
 
         let expected_value = Value::Type(TypeStructureValue {
-            name: &type_name,
+            name: type_name,
             variant: TypeStructureVariantValue::Struct(expected_struct_variant_value),
         });
 
-        let write_id = seed_crate_and_write_statement(&stores, &write_statement);
+        let id_pair = seed_crate_record(&stores, &type_structure);
 
         // encode segment + arg
         let mut dispatcher = SimpleTestDispatcher::default();
-        write_id.write_value(&mut dispatcher);
+        id_pair.write_value(&mut dispatcher);
         field_values
             .into_iter()
             .for_each(|field_value| field_value.write_value(&mut dispatcher));
 
-        assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
+        assert_value_impl(stores, dispatcher, TypeHint::TypeStructure, expected_value);
     }
 
     fn assert_enum(
@@ -533,19 +543,19 @@ mod tests {
 
         let expected_variant_name = enum_variants[variant_index].0.clone();
 
-        let type_name = "Foo".to_string();
+        let type_name = "Foo";
 
-        let write_statement = WriteStatement::TypeStructure(TypeStructure {
-            name: type_name.clone(),
+        let type_structure = TypeStructure {
+            name: type_name.into(),
             variant: TypeStructureVariant::Enum(enum_variants),
-        });
+        };
 
         let expected_value = Value::Type(TypeStructureValue {
-            name: &type_name,
+            name: type_name,
             variant: TypeStructureVariantValue::Enum((&expected_variant_name, expected_struct_variant)),
         });
 
-        let write_id = seed_crate_and_write_statement(&stores, &write_statement);
+        let write_id = seed_crate_record(&stores, &type_structure);
 
         // encode segment + arg
         let mut dispatcher = SimpleTestDispatcher::default();
@@ -555,18 +565,15 @@ mod tests {
             .into_iter()
             .for_each(|field_value| field_value.write_value(&mut dispatcher));
 
-        assert_value_impl(stores, dispatcher, TypeHint::WriteId, expected_value);
+        assert_value_impl(stores, dispatcher, TypeHint::TypeStructure, expected_value);
     }
 
-    fn seed_crate_and_write_statement(
-        stores: &Stores,
-        write_statement: &WriteStatement,
-    ) -> (CrateId, WriteStatementId) {
+    fn seed_crate_record<T: StatementTable>(stores: &Stores, record: &T) -> (CrateId, T::Id) {
         let crate_record = Crate::new(CrateName::new("x").unwrap());
         let crate_id = stores.main_db.insert(&crate_record).unwrap();
         let crate_context = stores.get_or_insert_crate(crate_id).unwrap();
-        let write_statement_id = crate_context.db.insert(write_statement).unwrap();
+        let id = crate_context.db.insert(record).unwrap();
 
-        (crate_id, write_statement_id)
+        (crate_id, id)
     }
 }

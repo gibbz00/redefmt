@@ -1,6 +1,6 @@
-use redefmt_core::codec::frame::PointerWidth;
-use redefmt_db::statement_table::write::{StructVariant, TypeStructure, TypeStructureVariant};
-use tokio_util::bytes::BytesMut;
+use redefmt_core::{codec::frame::PointerWidth, identifiers::TypeStructureId};
+use redefmt_db::statement_table::type_structure::{StructVariant, TypeStructure, TypeStructureVariant};
+use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 
@@ -9,15 +9,24 @@ enum TypeStructureValueSubDecoder<'cache> {
     Enum(EnumDecoder<'cache>),
 }
 
+enum TypeStructureDecoderWants<'cache> {
+    SubDecoder,
+    Value(&'cache TypeStructure<'static>, TypeStructureValueSubDecoder<'cache>),
+}
+
 pub struct TypeStructureDecoder<'cache> {
     pointer_width: PointerWidth,
-    type_structure: &'cache TypeStructure,
-    sub_decoder: Option<TypeStructureValueSubDecoder<'cache>>,
+    crate_context: CrateContext<'cache>,
+    decoder_stage: TypeStructureDecoderWants<'cache>,
 }
 
 impl<'cache> TypeStructureDecoder<'cache> {
-    pub fn new(pointer_width: PointerWidth, type_structure: &'cache TypeStructure) -> Self {
-        Self { pointer_width, type_structure, sub_decoder: None }
+    pub fn new(pointer_width: PointerWidth, crate_context: CrateContext<'cache>) -> Self {
+        Self {
+            pointer_width,
+            crate_context,
+            decoder_stage: TypeStructureDecoderWants::SubDecoder,
+        }
     }
 
     pub fn decode(
@@ -25,48 +34,55 @@ impl<'cache> TypeStructureDecoder<'cache> {
         stores: &Stores<'cache>,
         src: &mut BytesMut,
     ) -> Result<Option<TypeStructureValue<'cache>>, RedefmtDecoderError> {
-        let mut sub_decoder = match self.sub_decoder.take() {
-            Some(sub_decoder) => sub_decoder,
-            None => match &self.type_structure.variant {
-                TypeStructureVariant::Struct(struct_variant) => match struct_variant {
-                    StructVariant::Unit => {
-                        return Ok(Some(TypeStructureValue {
-                            name: &self.type_structure.name,
-                            variant: TypeStructureVariantValue::Struct(StructVariantValue::Unit),
-                        }));
-                    }
-                    StructVariant::Tuple(tuple_length) => {
-                        TypeStructureValueSubDecoder::Struct(StructDecoder::tuple(self.pointer_width, *tuple_length))
-                    }
-                    StructVariant::Named(field_names) => {
-                        TypeStructureValueSubDecoder::Struct(StructDecoder::named(self.pointer_width, field_names))
-                    }
-                },
-                TypeStructureVariant::Enum(variants) => {
-                    TypeStructureValueSubDecoder::Enum(EnumDecoder::WantsIndex { variants })
-                }
-            },
-        };
+        match &mut self.decoder_stage {
+            TypeStructureDecoderWants::SubDecoder => {
+                let Ok(type_structure_id) = src.try_get_u16().map(TypeStructureId::new) else {
+                    return Ok(None);
+                };
 
-        let decoded_value = match &mut sub_decoder {
-            TypeStructureValueSubDecoder::Struct(struct_decoder) => struct_decoder
-                .decode(stores, src)?
-                .map(TypeStructureVariantValue::Struct),
-            TypeStructureValueSubDecoder::Enum(enum_decoder) => enum_decoder
-                .decode(self.pointer_width, stores, src)?
-                .map(TypeStructureVariantValue::Enum),
-        };
+                let type_structure = stores
+                    .cache
+                    .type_structure
+                    .get_or_insert(type_structure_id, self.crate_context)?;
 
-        match decoded_value {
-            Some(decoded_variant) => {
-                let type_structure_value =
-                    TypeStructureValue { name: &self.type_structure.name, variant: decoded_variant };
-                Ok(Some(type_structure_value))
+                let sub_decoder = match &type_structure.variant {
+                    TypeStructureVariant::Struct(struct_variant) => match struct_variant {
+                        StructVariant::Unit => {
+                            return Ok(Some(TypeStructureValue {
+                                name: &type_structure.name,
+                                variant: TypeStructureVariantValue::Struct(StructVariantValue::Unit),
+                            }));
+                        }
+                        StructVariant::Tuple(tuple_length) => TypeStructureValueSubDecoder::Struct(
+                            StructDecoder::tuple(self.pointer_width, *tuple_length),
+                        ),
+                        StructVariant::Named(field_names) => {
+                            TypeStructureValueSubDecoder::Struct(StructDecoder::named(self.pointer_width, field_names))
+                        }
+                    },
+                    TypeStructureVariant::Enum(variants) => {
+                        TypeStructureValueSubDecoder::Enum(EnumDecoder::WantsIndex { variants })
+                    }
+                };
+
+                self.decoder_stage = TypeStructureDecoderWants::Value(type_structure, sub_decoder);
+
+                self.decode(stores, src)
             }
-            None => {
-                // important to put it back for next time as it was retrieved with `take()`
-                self.sub_decoder = Some(sub_decoder);
-                Ok(None)
+            TypeStructureDecoderWants::Value(type_structure, sub_decoder) => {
+                let decoded_variant = match sub_decoder {
+                    TypeStructureValueSubDecoder::Struct(struct_decoder) => struct_decoder
+                        .decode(stores, src)?
+                        .map(TypeStructureVariantValue::Struct),
+                    TypeStructureValueSubDecoder::Enum(enum_decoder) => enum_decoder
+                        .decode(self.pointer_width, stores, src)?
+                        .map(TypeStructureVariantValue::Enum),
+                };
+
+                let maybe_value =
+                    decoded_variant.map(|variant| TypeStructureValue { name: &type_structure.name, variant });
+
+                Ok(maybe_value)
             }
         }
     }

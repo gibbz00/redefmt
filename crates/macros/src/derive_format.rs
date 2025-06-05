@@ -1,7 +1,10 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use redefmt_db::statement_table::write::{StructVariant, TypeStructure, TypeStructureVariant, WriteStatement};
+use redefmt_db::{
+    Table,
+    statement_table::type_structure::{StructVariant, TypeStructure, TypeStructureVariant},
+};
 use syn::{
     Data, DataEnum, DataStruct, DeriveInput, Fields, Ident, TypeParamBound, parse_macro_input, spanned::Spanned,
 };
@@ -28,9 +31,26 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
         }
     };
 
-    let write_statement = WriteStatement::TypeStructure(TypeStructure { name: ident.to_string(), variant });
+    let type_structure = TypeStructure { name: ident.to_string().into(), variant };
 
-    let write_id_expr = register_write_statement!(&db_clients, &write_statement, format_ident!("f"), ident.span());
+    let id_pair = match db_clients.crate_db.insert(&type_structure) {
+        Ok(statement_id) => {
+            let crate_id_inner = db_clients.crate_id.as_ref();
+            let statement_id_inner = statement_id.as_ref();
+            let formatter_ident = format_ident!("f");
+
+            ::quote::quote! {
+                #formatter_ident.write((
+                    ::redefmt::identifiers::CrateId::new(#crate_id_inner),
+                    ::redefmt::identifiers::TypeStructureId::new(#statement_id_inner)
+                ))
+            }
+        }
+        Err(err) => {
+            let macro_error = RedefmtMacroError::from(err);
+            return macro_error.as_compiler_error(ident.span());
+        }
+    };
 
     let mut generics = type_definition.generics;
     let (impl_generics, type_generics, where_clause) = {
@@ -46,7 +66,7 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
     quote! {
         impl #impl_generics ::redefmt::Format for #ident #type_generics #where_clause {
             fn fmt(&self, f: &mut ::redefmt::Formatter) {
-                #write_id_expr;
+                #id_pair;
                 #impl_body
             }
         }
