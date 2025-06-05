@@ -159,7 +159,6 @@ fn impl_as_deferred_value_body(
     let tuple_indexes = (0..tuple_length as usize).map(syn::Index::from);
 
     quote! {
-        #[::sealed::sealed]
         impl #generic_params_list AsDeferredValue for #tuple_type {
             fn as_deferred_value(&self) -> DeferredValue {
                 DeferredValue::Tuple(alloc::vec![
@@ -167,5 +166,7 @@ fn impl_as_deferred_value_body(
                 ])
             }
         }
+
+        impl #generic_params_list private::Sealed for #tuple_type {}
     }
 }

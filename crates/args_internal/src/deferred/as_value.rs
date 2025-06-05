@@ -2,33 +2,51 @@ use alloc::{borrow::Cow, string::String, vec::Vec};
 
 use crate::*;
 
-#[sealed::sealed]
-pub trait AsDeferredValue {
+pub trait AsDeferredValue: private::Sealed {
     fn as_deferred_value(&self) -> DeferredValue;
 }
 
-#[sealed::sealed]
+mod private {
+    pub trait Sealed {}
+}
+
+macro_rules! impl_sealed {
+    ($type:ty) => {
+        impl private::Sealed for $type {}
+    };
+    (T, $type:ty) => {
+        impl<T: AsDeferredValue> private::Sealed for $type {}
+    };
+    (N, $t:ty) => {
+        impl<const N: usize> private::Sealed for $t {}
+    };
+    (T, N, $t:ty) => {
+        impl<T: AsDeferredValue, const N: usize> private::Sealed for $t {}
+    };
+}
+
+impl_sealed!(T, &T);
 impl<T: AsDeferredValue> AsDeferredValue for &T {
     fn as_deferred_value(&self) -> DeferredValue {
         T::as_deferred_value(self)
     }
 }
 
-#[sealed::sealed]
+impl_sealed!(DeferredValue<'_>);
 impl AsDeferredValue for DeferredValue<'_> {
     fn as_deferred_value(&self) -> DeferredValue {
         self.clone()
     }
 }
 
-#[sealed::sealed]
+impl_sealed!(&str);
 impl AsDeferredValue for &str {
     fn as_deferred_value(&self) -> DeferredValue {
         DeferredValue::String(Cow::Borrowed(self))
     }
 }
 
-#[sealed::sealed]
+impl_sealed!(String);
 impl AsDeferredValue for String {
     fn as_deferred_value(&self) -> DeferredValue {
         DeferredValue::String(Cow::Borrowed(self))
@@ -37,7 +55,7 @@ impl AsDeferredValue for String {
 
 macro_rules! impl_copy {
     ($t:ty, $v:ident) => {
-        #[sealed::sealed]
+        impl_sealed!($t);
         impl AsDeferredValue for $t {
             fn as_deferred_value(&self) -> DeferredValue {
                 DeferredValue::$v(*self)
@@ -71,36 +89,39 @@ macro_rules! impl_list {
         }
     };
     ($ty:ty) => {
-        #[sealed::sealed]
         impl AsDeferredValue for $ty {
             impl_list!();
         }
     };
     (T, $ty:ty) => {
-        #[sealed::sealed]
         impl<T: AsDeferredValue> AsDeferredValue for $ty {
             impl_list!();
         }
     };
     (N, $ty:ty) => {
-        #[sealed::sealed]
         impl<const N: usize> AsDeferredValue for $ty {
             impl_list!();
         }
     };
     (T, N, $ty:ty) => {
-        #[sealed::sealed]
         impl<T: AsDeferredValue, const N: usize> AsDeferredValue for $ty {
             impl_list!();
         }
     };
 }
 
-impl_list!(T, &[T]);
-impl_list!(T, N, [T; N]);
-impl_list!(&[&dyn AsDeferredValue]);
-impl_list!(N, [&dyn AsDeferredValue; N]);
-impl_list!(T, Vec<T>);
-impl_list!(Vec<&dyn AsDeferredValue>);
+macro_rules! impl_list_combined {
+    ($($tt:tt)*) => {
+        impl_sealed!($($tt)*);
+        impl_list!($($tt)*);
+    };
+}
+
+impl_list_combined!(T, &[T]);
+impl_list_combined!(T, N, [T; N]);
+impl_list_combined!(&[&dyn AsDeferredValue]);
+impl_list_combined!(N, [&dyn AsDeferredValue; N]);
+impl_list_combined!(T, Vec<T>);
+impl_list_combined!(Vec<&dyn AsDeferredValue>);
 
 redefmt_internal_macros::impl_tuple_as_deferred_value!(7);

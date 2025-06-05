@@ -27,7 +27,6 @@ hashbrown = { version = "0.15", default-features = false, features = ["default-h
 thiserror = { version = "2.0", default-features = false }
 unicode-xid = "0.2"
 # TEMP: For quick prototyping, replace with manual implementations before release
-sealed = "0.6"
 strum = { version = "0.27", features = ["derive"] }
 
 # feature: serde
