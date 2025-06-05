@@ -13,7 +13,7 @@ version.workspace = true
 workspace = true
 
 [features]
-deferred = ["dep:bitflags", "dep:derive_more", "dep:sealed", "dep:strum"]
+deferred = ["dep:bitflags", "dep:sealed", "dep:strum"]
 deferred-alloc = ["deferred"]
 deferred-db = ["deferred", "dep:rusqlite"]
 deferred-logger = ["deferred", "dep:critical-section"]
@@ -31,7 +31,6 @@ redefmt-internal-macros.workspace = true
 # feature: deferred
 bitflags = { version = "2.9.1", optional = true }
 # TEMP: prototype dependencies
-derive_more = { version = "2.0", features = ["as_ref", "display"], optional = true }
 sealed = { version = "0.6", optional = true }
 strum = { version = "0.27", default-features = false, features = ["derive"], optional = true }
 

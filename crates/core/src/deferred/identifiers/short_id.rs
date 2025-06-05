@@ -1,5 +1,11 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ShortId(pub(crate) u16);
+
+impl core::fmt::Display for ShortId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 #[cfg(feature = "deferred-db")]
 mod db {
@@ -30,8 +36,14 @@ mod db {
 
 macro_rules! short_id_newtype {
     ($id:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $id($crate::ShortId);
+
+        impl ::core::fmt::Display for $id {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                self.0.fmt(f)
+            }
+        }
 
         impl $id {
             pub fn new(inner: u16) -> Self {
