@@ -21,7 +21,7 @@ mod deferred {
     }
     pub use export::*;
     //
-    #[cfg(feature = "deferred-logger")]
+    #[cfg(feature = "deferred-logger-macros")]
     pub use redefmt_macros::{debug, error, info, log, print, println, trace, warn};
 }
 #[cfg(feature = "deferred")]

@@ -14,12 +14,9 @@ workspace = true
 
 [features]
 deferred = ["redefmt-core/deferred"]
-deferred-alloc = ["redefmt-core/deferred-alloc"]
-deferred-logger = [
-  "deferred-macros",
-  "redefmt-core/deferred-logger",
-  "redefmt-macros/logger",
-]
+deferred-alloc = ["deferred", "redefmt-core/deferred-alloc"]
+deferred-logger = ["deferred", "redefmt-core/deferred-logger"]
+deferred-logger-macros = ["deferred-macros", "redefmt-macros/logger"]
 deferred-macros = ["deferred", "dep:redefmt-macros"]
 
 [dependencies]
