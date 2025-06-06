@@ -13,7 +13,7 @@ version.workspace = true
 workspace = true
 
 [features]
-deferred = ["dep:bitflags"]
+deferred = ["dep:bitflags", "dep:redefmt-internal-macros"]
 deferred-alloc = ["deferred"]
 deferred-db = ["deferred", "dep:rusqlite"]
 deferred-logger = ["deferred", "dep:critical-section"]
@@ -25,11 +25,9 @@ deferred-testing = [
 ]
 
 [dependencies]
-# Internal
-redefmt-internal-macros.workspace = true
-
 # feature: deferred
 bitflags = { version = "2.9.1", optional = true }
+redefmt-internal-macros = { workspace = true, optional = true }
 
 # feature: deferred-logger
 critical-section = { version = "1.2", optional = true }
