@@ -405,7 +405,7 @@ mod tests {
         struct FooWrite;
         impl redefmt::Format for FooWrite {
             fn fmt(&self, f: &mut redefmt::Formatter) -> ::core::fmt::Result {
-                let mut s = f.statements_writer();
+                let mut s = f.write_statements_deferred();
                 redefmt::writeln!(s, "x")?;
                 redefmt::write!(s, "y")?;
                 Ok(())

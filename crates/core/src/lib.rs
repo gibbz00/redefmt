@@ -11,3 +11,6 @@ extern crate alloc;
 mod deferred;
 #[cfg(feature = "deferred")]
 pub use deferred::*;
+
+mod format;
+pub use format::{Format, Formatter};

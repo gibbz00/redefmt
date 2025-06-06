@@ -42,7 +42,7 @@ macro_rules! impl_sealed {
 macro_rules! impl_format {
     () => {
         fn fmt(&self, f: &mut Formatter) -> ::core::fmt::Result {
-            f.write(self);
+            f.write_deferred(self);
             Ok(())
         }
     };

@@ -13,6 +13,3 @@ pub(crate) use identifiers::*;
 mod sql_utils;
 #[cfg(feature = "deferred-db")]
 pub(crate) use sql_utils::sql_newtype;
-
-mod format;
-pub use format::{Format, Formatter};
