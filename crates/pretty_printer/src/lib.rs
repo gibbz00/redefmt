@@ -337,7 +337,6 @@ mod tests {
     };
     use redefmt_core::codec::SharedTestDispatcher;
     use redefmt_decoder::{RedefmtDecoder, RedefmtDecoderCache};
-    use tokio_util::codec::Decoder;
 
     use crate::*;
 

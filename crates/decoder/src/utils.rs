@@ -1,8 +1,8 @@
+use bytes::{Buf, BytesMut};
 use redefmt_core::codec::{
     StatementWriterHint,
     frame::{PointerWidth, TypeHint},
 };
-use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 

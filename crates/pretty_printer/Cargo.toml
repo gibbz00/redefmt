@@ -27,4 +27,3 @@ redefmt-core = { workspace = true, features = ["deferred-testing"] }
 
 # External
 critical-section = { version = "1.2", features = ["std"] }
-tokio-util = { version = "0.7", features = ["codec"] }

@@ -1,12 +1,9 @@
+use bytes::{Buf, BytesMut};
 use redefmt_core::{
     codec::frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
 };
 use redefmt_db::StateDir;
-use tokio_util::{
-    bytes::{Buf, BytesMut},
-    codec::Decoder,
-};
 
 use crate::*;
 
@@ -23,13 +20,8 @@ impl<'cache> RedefmtDecoder<'cache> {
         let stores = Stores::new(cache, state_dir)?;
         Ok(Self { stores, stage: FrameDecoderWants::Header })
     }
-}
 
-impl<'cache> Decoder for RedefmtDecoder<'cache> {
-    type Error = RedefmtDecoderError;
-    type Item = RedefmtFrame<'cache>;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+    pub fn decode(&mut self, src: &mut BytesMut) -> Result<Option<RedefmtFrame<'cache>>, RedefmtDecoderError> {
         let current_stage = std::mem::take(&mut self.stage);
         match current_stage {
             FrameDecoderWants::Header => {
@@ -107,6 +99,16 @@ impl<'cache> Decoder for RedefmtDecoder<'cache> {
     }
 }
 
+#[cfg(feature = "tokio-decoder")]
+impl<'cache> tokio_util::codec::Decoder for RedefmtDecoder<'cache> {
+    type Error = RedefmtDecoderError;
+    type Item = RedefmtFrame<'cache>;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        self.decode(src)
+    }
+}
+
 #[cfg(test)]
 mod mock {
     use tempfile::TempDir;
@@ -126,6 +128,7 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
+    use bytes::BufMut;
     use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
     use redefmt_core::codec::{SimpleTestDispatcher, WriteValue};
     use redefmt_db::{
@@ -136,7 +139,6 @@ mod tests {
             stored_format_expression::StoredFormatExpression,
         },
     };
-    use tokio_util::{bytes::BufMut, codec::Decoder};
 
     use super::*;
 

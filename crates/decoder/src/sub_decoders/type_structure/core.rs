@@ -1,6 +1,6 @@
+use bytes::{Buf, BytesMut};
 use redefmt_core::{codec::frame::PointerWidth, identifiers::TypeStructureId};
 use redefmt_db::statement_table::type_structure::{StructVariant, TypeStructure, TypeStructureVariant};
-use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::*;
 

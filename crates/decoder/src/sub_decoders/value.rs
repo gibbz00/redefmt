@@ -1,9 +1,9 @@
+use bytes::{Buf, BufMut, BytesMut};
 use encode_unicode::CharExt;
 use redefmt_core::{
     codec::frame::{PointerWidth, TypeHint},
     identifiers::CrateId,
 };
-use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 use crate::*;
 

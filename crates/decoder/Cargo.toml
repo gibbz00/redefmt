@@ -12,6 +12,9 @@ version.workspace = true
 [lints]
 workspace = true
 
+[features]
+tokio-decoder = ["dep:tokio-util"]
+
 [dependencies]
 # Internal
 redefmt-args.workspace = true
@@ -19,10 +22,13 @@ redefmt-core = { workspace = true, features = ["deferred"] }
 redefmt-db.workspace = true
 
 # External
+bytes = { version = "1.10", default-features = false }
 elsa = "1.11"
 encode_unicode = "1.0"
 thiserror = "2.0"
-tokio-util = { version = "0.7", features = ["codec"] }
+
+# feature: tokio-decoder
+tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
 [dev-dependencies]
 redefmt-args = { workspace = true, features = ["macros"] }

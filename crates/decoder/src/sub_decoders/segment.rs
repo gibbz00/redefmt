@@ -1,6 +1,6 @@
+use bytes::BytesMut;
 use redefmt_core::codec::frame::{PointerWidth, TypeHint};
 use redefmt_db::statement_table::stored_format_expression::StoredFormatExpression;
-use tokio_util::bytes::BytesMut;
 
 use crate::*;
 

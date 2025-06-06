@@ -1,5 +1,5 @@
+use bytes::BytesMut;
 use redefmt_core::codec::frame::{PointerWidth, TypeHint};
-use tokio_util::bytes::BytesMut;
 
 use crate::*;
 

@@ -472,6 +472,7 @@ dependencies = [
 name = "redefmt-decoder"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "elsa",
  "encode_unicode",
  "num-traits",
@@ -517,7 +518,6 @@ dependencies = [
  "redefmt-core",
  "redefmt-decoder",
  "thiserror",
- "tokio-util",
 ]
 
 [[package]]
