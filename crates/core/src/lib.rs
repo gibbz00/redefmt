@@ -4,7 +4,7 @@
 // TEMP:
 #![allow(missing_docs)]
 
-#[cfg(feature = "deferred-alloc")]
+#[cfg(feature = "alloc")]
 extern crate alloc;
 
 #[cfg(feature = "deferred")]
@@ -12,5 +12,6 @@ mod deferred;
 #[cfg(feature = "deferred")]
 pub use deferred::*;
 
-mod format;
-pub use format::{Format, Formatter};
+// base
+mod base;
+pub use base::*;

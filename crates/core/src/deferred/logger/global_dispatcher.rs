@@ -1,6 +1,6 @@
 use core::sync::atomic::{AtomicU8, Ordering};
 
-#[cfg(feature = "deferred-alloc")]
+#[cfg(feature = "alloc")]
 use critical_section::CriticalSection;
 
 use crate::*;
@@ -8,7 +8,7 @@ use crate::*;
 enum GlobalDispatcherKind {
     Static(&'static mut dyn Dispatcher),
     // IMPROVEMENT: use unsafe cell?
-    #[cfg(feature = "deferred-alloc")]
+    #[cfg(feature = "alloc")]
     Boxed(critical_section::Mutex<core::cell::RefCell<alloc::boxed::Box<dyn Dispatcher + Sync + Send>>>),
 }
 
@@ -23,7 +23,7 @@ const INITIALIZED: u8 = 2;
 pub struct GlobalDispatcher;
 
 impl GlobalDispatcher {
-    #[cfg(feature = "deferred-alloc")]
+    #[cfg(feature = "alloc")]
     pub fn init_alloc(dispatcher: impl Dispatcher + Send + Sync + 'static) -> Result<(), GlobalLoggerError> {
         let kind = GlobalDispatcherKind::Boxed(critical_section::Mutex::new(core::cell::RefCell::new(
             alloc::boxed::Box::new(dispatcher),
@@ -58,12 +58,12 @@ impl GlobalDispatcher {
                 let restore_state = unsafe { critical_section::acquire() };
 
                 // SAFETY: cs_token created after a `critical_section::acquire` call
-                #[cfg(feature = "deferred-alloc")]
+                #[cfg(feature = "alloc")]
                 let cs_token = unsafe { critical_section::CriticalSection::new() };
 
                 let inner = GlobalDispatcherHandleInner {
                     restore_state,
-                    #[cfg(feature = "deferred-alloc")]
+                    #[cfg(feature = "alloc")]
                     cs_token,
                 };
 
@@ -80,14 +80,14 @@ pub struct GlobalDispatcherHandle {
 
 pub struct GlobalDispatcherHandleInner {
     restore_state: critical_section::RestoreState,
-    #[cfg(feature = "deferred-alloc")]
+    #[cfg(feature = "alloc")]
     cs_token: CriticalSection<'static>,
 }
 
 impl GlobalDispatcherHandle {
     pub fn get(&mut self, f: impl FnOnce(&mut dyn Dispatcher)) {
         // leading underscore since its contents are only used in the
-        // `deferred-alloc` feature. DO NOT move after `dispatche_ref`
+        // `alloc` feature. DO NOT move after `dispatche_ref`
         // declaration.
         let Some(_handle) = &self.inner else {
             return;
@@ -106,7 +106,7 @@ impl GlobalDispatcherHandle {
             GlobalDispatcherKind::Static(dispatcher) => {
                 f(*dispatcher);
             }
-            #[cfg(feature = "deferred-alloc")]
+            #[cfg(feature = "alloc")]
             GlobalDispatcherKind::Boxed(dispatcher_mutex) => {
                 // - called within a critical section for the boxed variant
                 let mut dispatcher_handle = dispatcher_mutex.borrow(_handle.cs_token).borrow_mut();

@@ -13,15 +13,14 @@ version.workspace = true
 workspace = true
 
 [features]
+alloc = ["redefmt-core/alloc"]
 deferred = ["redefmt-core/deferred"]
-deferred-alloc = ["deferred", "redefmt-core/deferred-alloc"]
 deferred-logger = ["deferred", "redefmt-core/deferred-logger"]
 deferred-logger-macros = ["deferred-macros", "redefmt-macros/logger"]
 deferred-macros = ["deferred", "dep:redefmt-macros"]
 
 [dependencies]
-# feature deferred
-redefmt-core = { workspace = true, optional = true }
+redefmt-core.workspace = true
 
 # feature: macros
 redefmt-macros = { workspace = true, optional = true }

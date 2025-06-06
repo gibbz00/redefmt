@@ -13,18 +13,19 @@ version.workspace = true
 workspace = true
 
 [features]
+alloc = []
+
+base-testing = ["alloc", "dep:bytes", "dep:critical-section"]
+
 deferred = ["dep:bitflags", "dep:redefmt-internal-macros"]
-deferred-alloc = ["deferred"]
 deferred-db = ["deferred", "dep:rusqlite"]
 deferred-logger = ["deferred", "dep:critical-section"]
-deferred-testing = [
-  "deferred",
-  "deferred-alloc",
-  "dep:bytes",
-  "dep:critical-section",
-]
+deferred-testing = ["deferred"]
 
 [dependencies]
+# feature: base-testing
+bytes = { version = "1.10", default-features = false, optional = true }
+
 # feature: deferred
 bitflags = { version = "2.9.1", optional = true }
 redefmt-internal-macros = { workspace = true, optional = true }
@@ -35,12 +36,10 @@ critical-section = { version = "1.2", optional = true }
 # feature: deferred-db
 rusqlite = { version = "0.35", features = ["bundled"], optional = true }
 
-# feature: deferred-testing
-bytes = { version = "1.10", default-features = false, optional = true }
 
 [dev-dependencies]
 # Internal
-redefmt-core = { path = ".", features = ["deferred-alloc", "deferred-testing"] }
+redefmt-core = { path = ".", features = ["base-testing", "deferred-testing"] }
 
 # External
 num-traits = "0.2"

@@ -130,7 +130,7 @@ mod mock {
 mod tests {
     use bytes::BufMut;
     use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
-    use redefmt_core::codec::{SimpleTestDispatcher, WriteValue};
+    use redefmt_core::{SimpleTestDispatcher, codec::WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},

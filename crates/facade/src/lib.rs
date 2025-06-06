@@ -9,13 +9,9 @@ mod deferred {
     #[cfg(feature = "deferred-macros")]
     pub use redefmt_macros::Format;
     //
-    #[cfg(feature = "deferred-macros")]
-    pub use redefmt_macros::{write, writeln};
-    //
     mod export {
         #[doc(hidden)]
         pub use redefmt_core::identifiers;
-        pub use redefmt_core::{Format, Formatter};
         #[cfg(feature = "deferred-logger")]
         pub use redefmt_core::{codec::frame::Level, logger};
     }
@@ -26,3 +22,32 @@ mod deferred {
 }
 #[cfg(feature = "deferred")]
 pub use deferred::*;
+
+mod base {
+    pub use redefmt_core::{Dispatcher, Format, Formatter};
+}
+pub use base::*;
+
+mod write {
+    #[cfg(feature = "deferred-macros")]
+    pub use redefmt_macros::{write, writeln};
+
+    #[cfg(not(feature = "deferred-macros"))]
+    #[macro_export]
+    macro_rules! write {
+        ($($tt:tt)*) => {{
+            use ::core::fmt::Write as  _;
+            ::core::write!($($tt)*)
+        }};
+    }
+
+    #[cfg(not(feature = "deferred-macros"))]
+    #[macro_export]
+    macro_rules! writeln {
+        ($($tt:tt)*) => {{
+            use ::core::fmt::Write as  _;
+            ::core::writeln!($($tt)*)
+        }};
+    }
+}
+pub use write::*;

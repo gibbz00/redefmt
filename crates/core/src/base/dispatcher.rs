@@ -15,7 +15,7 @@ mod crate_test_dispatcher {
 #[cfg(test)]
 pub use crate_test_dispatcher::NoopTestDispatcher;
 
-#[cfg(feature = "deferred-testing")]
+#[cfg(feature = "base-testing")]
 mod simple_dispatcher {
     use bytes::{BufMut, BytesMut};
 
@@ -32,10 +32,10 @@ mod simple_dispatcher {
         }
     }
 }
-#[cfg(feature = "deferred-testing")]
+#[cfg(feature = "base-testing")]
 pub use simple_dispatcher::SimpleTestDispatcher;
 
-#[cfg(feature = "deferred-testing")]
+#[cfg(feature = "base-testing")]
 mod shared_dispatcher {
     use alloc::sync::Arc;
     use core::cell::RefCell;
@@ -84,5 +84,5 @@ mod shared_dispatcher {
         }
     }
 }
-#[cfg(feature = "deferred-testing")]
+#[cfg(feature = "base-testing")]
 pub use shared_dispatcher::SharedTestDispatcher;

@@ -32,7 +32,7 @@ tokio-util = { version = "0.7", features = ["codec"], optional = true }
 
 [dev-dependencies]
 redefmt-args = { workspace = true, features = ["macros"] }
-redefmt-core = { workspace = true, features = ["deferred-testing"] }
+redefmt-core = { workspace = true, features = ["base-testing"] }
 
 num-traits = "0.2"
 syn = { version = "2.0", default-features = false, features = ["parsing"] }

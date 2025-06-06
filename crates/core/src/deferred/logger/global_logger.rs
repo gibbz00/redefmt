@@ -11,7 +11,7 @@ pub struct GlobalLogger {
 }
 
 impl GlobalLogger {
-    #[cfg(feature = "deferred-alloc")]
+    #[cfg(feature = "alloc")]
     pub fn init_alloc_logger(
         dispatcher: impl Dispatcher + Send + Sync + 'static,
         stamper: Option<&'static dyn Stamper>,
@@ -64,7 +64,7 @@ impl GlobalLogger {
     #[doc(hidden)]
     pub fn write_format(&mut self, format: &dyn Format) {
         self.handle.get(|dispatcher| {
-            let mut formatter = Formatter::new_deferred(dispatcher);
+            let mut formatter = Formatter::new(dispatcher);
             // TODO: do anything with fmt error?
             let _ = format.fmt(&mut formatter);
         });

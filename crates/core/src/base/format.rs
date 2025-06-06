@@ -11,23 +11,25 @@ impl<T: Format> Format for &T {
 }
 
 pub struct Formatter<'a> {
-    #[cfg(feature = "deferred")]
-    dispatcher: &'a mut dyn Dispatcher,
+    pub(crate) dispatcher: &'a mut dyn Dispatcher,
+}
+
+impl<'a> Formatter<'a> {
+    pub fn new(dispatcher: &'a mut dyn Dispatcher) -> Self {
+        Self { dispatcher }
+    }
+
+    pub fn write_statements<'r>(&'r mut self) -> StatementWriter<'r, 'a> {
+        StatementWriter::init(self)
+    }
 }
 
 #[cfg(feature = "deferred")]
 impl<'a> Formatter<'a> {
-    pub fn new_deferred(dispatcher: &'a mut dyn Dispatcher) -> Self {
-        Self { dispatcher }
-    }
-
     // Monomorphization should be ok here since `WriteValue` is sealed
+    #[doc(hidden)]
     pub fn write_deferred(&mut self, value: impl WriteValue) {
         value.write_value(self.dispatcher);
-    }
-
-    pub fn write_statements_deferred<'r>(&'r mut self) -> StatementWriter<'r, 'a> {
-        StatementWriter::init(self)
     }
 
     #[doc(hidden)]

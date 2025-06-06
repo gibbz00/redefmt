@@ -335,7 +335,7 @@ mod tests {
         Level,
         logger::{GlobalLogger, TestStamper},
     };
-    use redefmt_core::codec::SharedTestDispatcher;
+    use redefmt_core::SharedTestDispatcher;
     use redefmt_decoder::{RedefmtDecoder, RedefmtDecoderCache};
 
     use crate::*;
@@ -405,15 +405,15 @@ mod tests {
         struct FooWrite;
         impl redefmt::Format for FooWrite {
             fn fmt(&self, f: &mut redefmt::Formatter) -> ::core::fmt::Result {
-                let mut s = f.write_statements_deferred();
+                let mut s = f.write_statements();
                 redefmt::writeln!(s, "x")?;
                 redefmt::write!(s, "y")?;
                 Ok(())
             }
         }
 
-        let value = FooWrite;
-        assert_print!(l, d, p, redefmt::print!("{value:?}"), "13 [NONE] - {crate_name}: \"x\\ny\"");
+        // note how FooWrite can be captured and created at the same time
+        assert_print!(l, d, p, redefmt::print!("{FooWrite:?}"), "13 [NONE] - {crate_name}: \"x\\ny\"");
 
         // derive unit struct
         #[derive(redefmt::Format)]
