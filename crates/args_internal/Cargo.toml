@@ -26,8 +26,6 @@ check_keyword = "0.4"
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher"] }
 thiserror = { version = "2.0", default-features = false }
 unicode-xid = "0.2"
-# TEMP: For quick prototyping, replace with manual implementations before release
-strum = { version = "0.27", features = ["derive"] }
 
 # feature: serde
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }

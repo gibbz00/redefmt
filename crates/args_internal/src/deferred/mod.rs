@@ -3,7 +3,7 @@ pub use values::DeferredValues;
 
 mod value;
 pub use value::{
-    DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue, DeferredValueDiscriminants,
+    DeferredStructVariant, DeferredTypeValue, DeferredTypeVariant, DeferredValue, DeferredValueDiscriminant,
 };
 
 mod as_value;

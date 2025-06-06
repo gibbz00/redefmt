@@ -6,12 +6,9 @@ use alloc::{
 };
 use core::fmt::{Binary, Debug, Display, LowerExp, LowerHex, Octal, UpperExp, UpperHex};
 
-use strum::IntoDiscriminant;
-
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, strum::EnumDiscriminants)]
-#[strum_discriminants(derive(strum::Display), strum(serialize_all = "lowercase"))]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DeferredValue<'a> {
     Boolean(bool),
     Usize(usize),
@@ -54,6 +51,58 @@ pub enum DeferredStructVariant<'a> {
     Tuple(Vec<DeferredValue<'a>>),
     Named(Vec<(&'a str, DeferredValue<'a>)>),
 }
+#[derive(Debug, Clone, Copy)]
+pub enum DeferredValueDiscriminant {
+    Boolean,
+    Usize,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    Isize,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    F32,
+    F64,
+    Char,
+    String,
+    List,
+    Tuple,
+    Type,
+}
+
+impl Display for DeferredValueDiscriminant {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let str = match self {
+            DeferredValueDiscriminant::Boolean => "boolean",
+            DeferredValueDiscriminant::Usize => "usize",
+            DeferredValueDiscriminant::U8 => "u8",
+            DeferredValueDiscriminant::U16 => "u16",
+            DeferredValueDiscriminant::U32 => "u32",
+            DeferredValueDiscriminant::U64 => "u64",
+            DeferredValueDiscriminant::U128 => "u128",
+            DeferredValueDiscriminant::Isize => "isize",
+            DeferredValueDiscriminant::I8 => "i8",
+            DeferredValueDiscriminant::I16 => "i16",
+            DeferredValueDiscriminant::I32 => "i32",
+            DeferredValueDiscriminant::I64 => "i64",
+            DeferredValueDiscriminant::I128 => "i128",
+            DeferredValueDiscriminant::F32 => "f32",
+            DeferredValueDiscriminant::F64 => "f64",
+            DeferredValueDiscriminant::Char => "char",
+            DeferredValueDiscriminant::String => "string",
+            DeferredValueDiscriminant::List => "list",
+            DeferredValueDiscriminant::Tuple => "tuple",
+            DeferredValueDiscriminant::Type => "type",
+        };
+
+        Display::fmt(str, f)
+    }
+}
 
 #[derive(PartialEq)]
 enum ValueClass {
@@ -68,6 +117,31 @@ struct EvaluationContext {
 }
 
 impl<'a> DeferredValue<'a> {
+    pub(crate) const fn discriminant(&self) -> DeferredValueDiscriminant {
+        match self {
+            DeferredValue::Boolean(_) => DeferredValueDiscriminant::Boolean,
+            DeferredValue::Usize(_) => DeferredValueDiscriminant::Usize,
+            DeferredValue::U8(_) => DeferredValueDiscriminant::U8,
+            DeferredValue::U16(_) => DeferredValueDiscriminant::U16,
+            DeferredValue::U32(_) => DeferredValueDiscriminant::U32,
+            DeferredValue::U64(_) => DeferredValueDiscriminant::U64,
+            DeferredValue::U128(_) => DeferredValueDiscriminant::U128,
+            DeferredValue::Isize(_) => DeferredValueDiscriminant::Isize,
+            DeferredValue::I8(_) => DeferredValueDiscriminant::I8,
+            DeferredValue::I16(_) => DeferredValueDiscriminant::I16,
+            DeferredValue::I32(_) => DeferredValueDiscriminant::I32,
+            DeferredValue::I64(_) => DeferredValueDiscriminant::I64,
+            DeferredValue::I128(_) => DeferredValueDiscriminant::I128,
+            DeferredValue::F32(_) => DeferredValueDiscriminant::F32,
+            DeferredValue::F64(_) => DeferredValueDiscriminant::F64,
+            DeferredValue::Char(_) => DeferredValueDiscriminant::Char,
+            DeferredValue::String(_) => DeferredValueDiscriminant::String,
+            DeferredValue::List(_) => DeferredValueDiscriminant::List,
+            DeferredValue::Tuple(_) => DeferredValueDiscriminant::Tuple,
+            DeferredValue::Type(_) => DeferredValueDiscriminant::Type,
+        }
+    }
+
     pub(crate) fn format_deferred(
         &self,
         string_buffer: &mut String,
@@ -214,7 +288,7 @@ impl<'a> DeferredValue<'a> {
 // https://github.com/rust-lang/rust/issues/118117
 
 fn float_string<T: Copy + Display + Debug + LowerExp + UpperExp>(
-    discriminant: DeferredValueDiscriminants,
+    discriminant: DeferredValueDiscriminant,
     float: T,
     options: &ResolvedFormatOptions,
 ) -> Result<String, DeferredFormatError> {

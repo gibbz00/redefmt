@@ -1,5 +1,3 @@
-use strum::IntoDiscriminant;
-
 use crate::*;
 
 pub(crate) struct ResolvedFormatOptions {
@@ -104,7 +102,7 @@ impl ResolvedFormatOptions {
             DeferredValue::I128(value) if allow_non_usize => convert_int(*value, deferred_value.discriminant()),
             other => {
                 return Err(DeferredFormatError::InvalidArgType(
-                    DeferredValueDiscriminants::Usize,
+                    DeferredValueDiscriminant::Usize,
                     other.discriminant(),
                 ));
             }
@@ -112,7 +110,7 @@ impl ResolvedFormatOptions {
 
         fn convert_int<T: TryInto<usize>>(
             integer: T,
-            discriminant: DeferredValueDiscriminants,
+            discriminant: DeferredValueDiscriminant,
         ) -> Result<usize, DeferredFormatError> {
             integer
                 .try_into()
