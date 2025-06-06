@@ -1,14 +1,24 @@
 use crate::*;
 
-pub struct StatementWriter<'a, 'b> {
-    formatter: &'a mut Formatter<'b>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::FromRepr)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum StatementWriterHint {
     Continue = 0,
     End = 1,
+}
+
+impl StatementWriterHint {
+    pub const fn from_repr(repr: u8) -> Option<Self> {
+        match repr {
+            0 => Some(Self::Continue),
+            1 => Some(Self::End),
+            _ => None,
+        }
+    }
+}
+
+pub struct StatementWriter<'a, 'b> {
+    formatter: &'a mut Formatter<'b>,
 }
 
 impl<'a, 'b> StatementWriter<'a, 'b> {
@@ -34,5 +44,22 @@ impl<'a, 'b> StatementWriter<'a, 'b> {
 impl Drop for StatementWriter<'_, '_> {
     fn drop(&mut self) {
         self.formatter.write_raw(StatementWriterHint::End as u8);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hint_repr_bijectivity() {
+        assert_bijectivity(StatementWriterHint::Continue);
+        assert_bijectivity(StatementWriterHint::End);
+
+        fn assert_bijectivity(hint: StatementWriterHint) {
+            let repr = hint as u8;
+            let from_repr = StatementWriterHint::from_repr(repr).unwrap();
+            assert_eq!(hint, from_repr);
+        }
     }
 }

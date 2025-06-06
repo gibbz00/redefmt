@@ -318,7 +318,7 @@ mod tests {
             expected_bytes.put_u8(type_hint as u8);
             expected_bytes.put_slice(num.to_be_bytes().as_ref());
 
-            assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {type_hint}")
+            assert_eq!(expected_bytes, dispatcher.bytes, "invalid bytes for {type_hint:?}")
         }
     }
 

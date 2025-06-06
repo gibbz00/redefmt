@@ -22,7 +22,7 @@ pub enum RedefmtDecoderError {
     UnknownTypeHint(u8),
     #[error("statement writer hint '{0}' not recognized")]
     UnknownStatementWriterHint(u8),
-    #[error("invalid bytes received for the given type hint '{0}', bytes: '{1:?}'")]
+    #[error("invalid bytes received for '{0:?}', bytes: '{1:?}'")]
     InvalidValueBytes(TypeHint, Vec<u8>),
     #[error("content length '{0}' does not fit host usize and will overflow")]
     LengthOverflow(u64),
