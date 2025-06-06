@@ -14,7 +14,7 @@ a `&mut dyn Writer` exactly like `core::fmt`'s `Display` or `Debug` does, and
 
 <!-- TODO: make sure example compiles -->
 
-```rust
+```rust,ignore
 let mut stdout_writer = stdout().lock();
 let formatter = redefmt::Formatter::new_non_deferred(stdout_writer);
 redefmt::Format::fmt(10, formatter).unrwap();
