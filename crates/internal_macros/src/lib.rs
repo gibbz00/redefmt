@@ -17,10 +17,15 @@
 //! build script is therefore a slightly premature optimization given that it is
 //! generated code itself which takes the longest to compile.
 
-use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
-use syn::{Ident, LitInt, parse_macro_input};
+// TEMP: should be part of next stable release (1.88)
+// https://github.com/rust-lang/rust/pull/140514
+#![feature(proc_macro_span)]
+
+use std::fmt::Display;
+
+use proc_macro::{Span, TokenStream, TokenTree};
+use proc_macro2::{Literal, TokenStream as TokenStream2};
+use quote::{format_ident, quote, quote_spanned};
 
 const MIN_TUPLE_LENGTH: u8 = 2;
 const MAX_TUPLE_LENGTH: u8 = 10;
@@ -40,31 +45,19 @@ pub fn impl_tuple_as_deferred_value(token_stream: TokenStream) -> TokenStream {
 }
 
 fn try_impl_tuple(token_stream: TokenStream, trait_name: &str, impl_body_fn: ImplBodyFn) -> TokenStream {
-    let lit_int = parse_macro_input!(token_stream as LitInt);
-
-    match generate_tuples(lit_int, trait_name, impl_body_fn) {
+    match generate_tuples(token_stream, trait_name, impl_body_fn) {
         Ok(token_stream) => token_stream,
-        Err(error) => error.into_compile_error(),
+        Err(error) => error.as_compiler_error(),
     }
     .into()
 }
 
-fn generate_tuples(lit_int: LitInt, trait_name: &str, impl_body_fn: ImplBodyFn) -> syn::Result<TokenStream2> {
-    let max_tuple_length = lit_int.base10_parse::<u8>()?;
-
-    if max_tuple_length < MIN_TUPLE_LENGTH {
-        return Err(syn::Error::new(
-            lit_int.span(),
-            format!("{max_tuple_length} may not be less than {MIN_TUPLE_LENGTH}"),
-        ));
-    }
-
-    if max_tuple_length > MAX_TUPLE_LENGTH {
-        return Err(syn::Error::new(
-            lit_int.span(),
-            format!("{max_tuple_length} may not be greater than {MAX_TUPLE_LENGTH}"),
-        ));
-    }
+fn generate_tuples(
+    token_stream: TokenStream,
+    trait_name: &str,
+    impl_body_fn: ImplBodyFn,
+) -> Result<TokenStream2, MacroError> {
+    let max_tuple_length = parse_max_tuple_length(token_stream)?;
 
     let trait_name = format_ident!("{trait_name}");
 
@@ -86,7 +79,7 @@ fn generate_tuples(lit_int: LitInt, trait_name: &str, impl_body_fn: ImplBodyFn) 
 fn generate_tuple_permutations(
     trait_impl_buffer: &mut Vec<TokenStream2>,
     tuple_length: u8,
-    trait_name: &Ident,
+    trait_name: &proc_macro2::Ident,
     impl_body_fn: ImplBodyFn,
 ) {
     for permutation in 0..2u16.pow(tuple_length as u32) {
@@ -123,7 +116,7 @@ fn impl_write_value_body(
     generic_params_list: TokenStream2,
     tuple_type: TokenStream2,
 ) -> TokenStream2 {
-    let tuple_indexes = (0..tuple_length as usize).map(syn::Index::from);
+    let tuple_indexes = (0..tuple_length).map(Literal::u8_unsuffixed);
 
     quote! {
         impl #generic_params_list WriteValue for #tuple_type {
@@ -156,7 +149,7 @@ fn impl_as_deferred_value_body(
     generic_params_list: TokenStream2,
     tuple_type: TokenStream2,
 ) -> TokenStream2 {
-    let tuple_indexes = (0..tuple_length as usize).map(syn::Index::from);
+    let tuple_indexes = (0..tuple_length).map(Literal::u8_unsuffixed);
 
     quote! {
         impl #generic_params_list AsDeferredValue for #tuple_type {
@@ -168,5 +161,53 @@ fn impl_as_deferred_value_body(
         }
 
         impl #generic_params_list private::Sealed for #tuple_type {}
+    }
+}
+
+fn parse_max_tuple_length(token_stream: TokenStream) -> Result<u8, MacroError> {
+    let Some(TokenTree::Literal(literal)) = token_stream.into_iter().next() else {
+        return Err(MacroError::new("expected a literal", None));
+    };
+
+    let int = literal
+        .to_string()
+        .parse::<u8>()
+        .map_err(|_| MacroError::new("invalid u8 literal", Some(literal.span())))?;
+
+    let max_tuple_length = int;
+
+    if max_tuple_length < MIN_TUPLE_LENGTH {
+        return Err(MacroError::new(
+            format!("{max_tuple_length} may not be less than {MIN_TUPLE_LENGTH}"),
+            Some(literal.span()),
+        ));
+    }
+
+    if max_tuple_length > MAX_TUPLE_LENGTH {
+        return Err(MacroError::new(
+            format!("{max_tuple_length} may not be greater than {MAX_TUPLE_LENGTH}"),
+            Some(literal.span()),
+        ));
+    }
+
+    Ok(max_tuple_length)
+}
+
+struct MacroError {
+    message: String,
+    span: Option<Span>,
+}
+
+impl MacroError {
+    fn new(message: impl Display, span: Option<proc_macro::Span>) -> Self {
+        Self { message: message.to_string(), span }
+    }
+
+    // taken from syn::ErrorMessage
+    fn as_compiler_error(&self) -> TokenStream2 {
+        let message = &self.message;
+        let span = self.span.unwrap_or(Span::call_site()).into();
+
+        quote_spanned! {span=> ::core::compile_error!(#message) }
     }
 }
