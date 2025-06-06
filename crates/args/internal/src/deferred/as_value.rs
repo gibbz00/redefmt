@@ -124,4 +124,4 @@ impl_list_combined!(N, [&dyn AsDeferredValue; N]);
 impl_list_combined!(T, Vec<T>);
 impl_list_combined!(Vec<&dyn AsDeferredValue>);
 
-redefmt_internal_macros::impl_tuple_as_deferred_value!(7);
+redefmt_utils_tupler::impl_tuple_as_deferred_value!(7);

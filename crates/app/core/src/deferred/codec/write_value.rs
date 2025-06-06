@@ -99,7 +99,7 @@ impl WriteValue for (CrateId, TypeStructureId) {
     }
 }
 
-redefmt_internal_macros::impl_tuple_write_value!(7);
+redefmt_utils_tupler::impl_tuple_write_value!(7);
 
 macro_rules! num_impl {
     ($(($type:ty, $hint:expr),)*) => {

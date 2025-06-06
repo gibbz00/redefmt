@@ -17,7 +17,7 @@ alloc = []
 
 base-testing = ["alloc", "dep:bytes", "dep:critical-section"]
 
-deferred = ["dep:bitflags", "dep:redefmt-internal-macros"]
+deferred = ["dep:bitflags", "dep:redefmt-utils-tupler"]
 deferred-db = ["deferred", "dep:rusqlite"]
 deferred-logger = ["deferred", "dep:critical-section"]
 deferred-testing = ["deferred"]
@@ -28,7 +28,7 @@ bytes = { version = "1.10", default-features = false, optional = true }
 
 # feature: deferred
 bitflags = { version = "2.9.1", optional = true }
-redefmt-internal-macros = { workspace = true, optional = true }
+redefmt-utils-tupler = { workspace = true, optional = true }
 
 # feature: deferred-logger
 critical-section = { version = "1.2", optional = true }

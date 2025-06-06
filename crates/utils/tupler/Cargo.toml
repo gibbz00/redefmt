@@ -1,5 +1,5 @@
 [package]
-name = "redefmt-internal-macros"
+name = "redefmt-utils-tupler"
 
 authors.workspace = true
 edition.workspace = true

@@ -19,7 +19,7 @@ workspace = true
 
 [dependencies]
 # Internal
-redefmt-internal-macros.workspace = true
+redefmt-utils-tupler.workspace = true
 
 # External
 check_keyword = "0.4"

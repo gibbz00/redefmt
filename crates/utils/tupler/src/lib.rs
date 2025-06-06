@@ -1,6 +1,6 @@
-//! # redefmt-internal-macros - As the name suggests
+//! # redefmt-utils-tupler
 //!
-//! Generate tuple implementations for all permitations `&dyn T` and `impl ! T`.
+//! Generate tuple trait implementations for all permutations of `&dyn T` and `impl ! T`.
 //!
 //! Macros take a max tuple length integer literal parameter that should be between 2
 //! and 10. Upper limit exists to prevent excessive code generation.

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/app/*", "crates/args/*", "crates/utils/*"]
 resolver = "3"
 
 [workspace.package]
@@ -12,15 +12,15 @@ repository = "https://github.com/gibbz00/redefmt"
 version = "0.1.0"
 
 [workspace.dependencies]
-redefmt = { path = "crates/facade" }
-redefmt-args = { path = "crates/args" }
-redefmt-args-internal = { path = "crates/args_internal" }
-redefmt-args-macros = { path = "crates/args_macros" }
-redefmt-core = { path = "crates/core" }
-redefmt-db = { path = "crates/db" }
-redefmt-decoder = { path = "crates/decoder" }
-redefmt-internal-macros = { path = "crates/internal_macros" }
-redefmt-macros = { path = "crates/macros" }
+redefmt = { path = "crates/app/facade" }
+redefmt-args = { path = "crates/args/facade" }
+redefmt-args-internal = { path = "crates/args/internal" }
+redefmt-args-macros = { path = "crates/args/macros" }
+redefmt-core = { path = "crates/app/core" }
+redefmt-db = { path = "crates/app/db" }
+redefmt-decoder = { path = "crates/app/decoder" }
+redefmt-macros = { path = "crates/app/macros" }
+redefmt-utils-tupler = { path = "crates/utils/tupler" }
 
 [workspace.lints.rust]
 missing_docs = "warn"

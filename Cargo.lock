@@ -421,7 +421,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "redefmt-args-internal",
- "redefmt-internal-macros",
+ "redefmt-utils-tupler",
  "serde",
  "serde_json",
  "syn",
@@ -448,7 +448,7 @@ dependencies = [
  "critical-section",
  "num-traits",
  "redefmt-core",
- "redefmt-internal-macros",
+ "redefmt-utils-tupler",
  "rusqlite",
 ]
 
@@ -486,14 +486,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "redefmt-internal-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
-]
-
-[[package]]
 name = "redefmt-macros"
 version = "0.1.0"
 dependencies = [
@@ -517,6 +509,14 @@ dependencies = [
  "redefmt-core",
  "redefmt-decoder",
  "thiserror",
+]
+
+[[package]]
+name = "redefmt-utils-tupler"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]
