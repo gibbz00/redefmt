@@ -20,7 +20,7 @@ impl<'a> FormatString<'a> {
         FormatString { segments }
     }
 
-    pub fn segments(&self) -> &[FormatStringSegment] {
+    pub fn segments(&self) -> &[FormatStringSegment<'_>] {
         &self.segments
     }
 

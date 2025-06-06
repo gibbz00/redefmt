@@ -26,7 +26,7 @@ impl CrateCache {
         id: CrateId,
         db: &DbClient<MainDb>,
         state_dir: &Path,
-    ) -> Result<CrateContext, RedefmtDecoderError> {
+    ) -> Result<CrateContext<'_>, RedefmtDecoderError> {
         let (db, record) = match self.map.get(&id) {
             Some(value) => value,
             None => {

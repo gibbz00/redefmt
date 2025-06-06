@@ -3,7 +3,7 @@ use alloc::{borrow::Cow, string::String, vec::Vec};
 use crate::*;
 
 pub trait AsDeferredValue: private::Sealed {
-    fn as_deferred_value(&self) -> DeferredValue;
+    fn as_deferred_value(&self) -> DeferredValue<'_>;
 }
 
 mod private {
@@ -27,28 +27,28 @@ macro_rules! impl_sealed {
 
 impl_sealed!(T, &T);
 impl<T: AsDeferredValue> AsDeferredValue for &T {
-    fn as_deferred_value(&self) -> DeferredValue {
+    fn as_deferred_value(&self) -> DeferredValue<'_> {
         T::as_deferred_value(self)
     }
 }
 
 impl_sealed!(DeferredValue<'_>);
 impl AsDeferredValue for DeferredValue<'_> {
-    fn as_deferred_value(&self) -> DeferredValue {
+    fn as_deferred_value(&self) -> DeferredValue<'_> {
         self.clone()
     }
 }
 
 impl_sealed!(&str);
 impl AsDeferredValue for &str {
-    fn as_deferred_value(&self) -> DeferredValue {
+    fn as_deferred_value(&self) -> DeferredValue<'_> {
         DeferredValue::String(Cow::Borrowed(self))
     }
 }
 
 impl_sealed!(String);
 impl AsDeferredValue for String {
-    fn as_deferred_value(&self) -> DeferredValue {
+    fn as_deferred_value(&self) -> DeferredValue<'_> {
         DeferredValue::String(Cow::Borrowed(self))
     }
 }
@@ -57,7 +57,7 @@ macro_rules! impl_copy {
     ($t:ty, $v:ident) => {
         impl_sealed!($t);
         impl AsDeferredValue for $t {
-            fn as_deferred_value(&self) -> DeferredValue {
+            fn as_deferred_value(&self) -> DeferredValue<'_> {
                 DeferredValue::$v(*self)
             }
         }
@@ -83,7 +83,7 @@ impl_copy!(char, Char);
 
 macro_rules! impl_list {
     () => {
-        fn as_deferred_value(&self) -> DeferredValue {
+        fn as_deferred_value(&self) -> DeferredValue<'_> {
             let list = self.iter().map(|element| element.as_deferred_value()).collect();
             DeferredValue::List(list)
         }

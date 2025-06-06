@@ -51,7 +51,7 @@ mod tests {
         }
     }
 
-    fn mock_type_structure_expression(name: &str) -> TypeStructure {
+    fn mock_type_structure_expression(name: &str) -> TypeStructure<'_> {
         TypeStructure {
             name: name.into(),
             variant: TypeStructureVariant::Struct(StructVariant::Unit),
