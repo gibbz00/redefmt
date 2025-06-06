@@ -1,6 +1,7 @@
 use core::sync::atomic::{AtomicU8, Ordering};
 
-use critical_section::{CriticalSection, Mutex};
+#[cfg(feature = "deferred-alloc")]
+use critical_section::CriticalSection;
 
 use crate::*;
 
@@ -8,7 +9,7 @@ enum GlobalDispatcherKind {
     Static(&'static mut dyn Dispatcher),
     // IMPROVEMENT: use unsafe cell?
     #[cfg(feature = "deferred-alloc")]
-    Boxed(Mutex<core::cell::RefCell<alloc::boxed::Box<dyn Dispatcher + Sync + Send>>>),
+    Boxed(critical_section::Mutex<core::cell::RefCell<alloc::boxed::Box<dyn Dispatcher + Sync + Send>>>),
 }
 
 static mut GLOBAL_DISPATCHER: Option<GlobalDispatcherKind> = None;
@@ -24,8 +25,9 @@ pub struct GlobalDispatcher;
 impl GlobalDispatcher {
     #[cfg(feature = "deferred-alloc")]
     pub fn init_alloc(dispatcher: impl Dispatcher + Send + Sync + 'static) -> Result<(), GlobalLoggerError> {
-        let kind =
-            GlobalDispatcherKind::Boxed(Mutex::new(core::cell::RefCell::new(alloc::boxed::Box::new(dispatcher))));
+        let kind = GlobalDispatcherKind::Boxed(critical_section::Mutex::new(core::cell::RefCell::new(
+            alloc::boxed::Box::new(dispatcher),
+        )));
         Self::init_impl(kind)
     }
 
@@ -56,9 +58,14 @@ impl GlobalDispatcher {
                 let restore_state = unsafe { critical_section::acquire() };
 
                 // SAFETY: cs_token created after a `critical_section::acquire` call
+                #[cfg(feature = "deferred-alloc")]
                 let cs_token = unsafe { critical_section::CriticalSection::new() };
 
-                let inner = GlobalDispatcherHandleInner { restore_state, cs_token };
+                let inner = GlobalDispatcherHandleInner {
+                    restore_state,
+                    #[cfg(feature = "deferred-alloc")]
+                    cs_token,
+                };
 
                 GlobalDispatcherHandle { inner: Some(inner) }
             }
@@ -73,12 +80,16 @@ pub struct GlobalDispatcherHandle {
 
 pub struct GlobalDispatcherHandleInner {
     restore_state: critical_section::RestoreState,
+    #[cfg(feature = "deferred-alloc")]
     cs_token: CriticalSection<'static>,
 }
 
 impl GlobalDispatcherHandle {
     pub fn get(&mut self, f: impl FnOnce(&mut dyn Dispatcher)) {
-        let Some(handle) = &self.inner else {
+        // leading underscore since its contents are only used in the
+        // `deferred-alloc` feature. DO NOT move after `dispatche_ref`
+        // declaration.
+        let Some(_handle) = &self.inner else {
             return;
         };
 
@@ -98,7 +109,7 @@ impl GlobalDispatcherHandle {
             #[cfg(feature = "deferred-alloc")]
             GlobalDispatcherKind::Boxed(dispatcher_mutex) => {
                 // - called within a critical section for the boxed variant
-                let mut dispatcher_handle = dispatcher_mutex.borrow(handle.cs_token).borrow_mut();
+                let mut dispatcher_handle = dispatcher_mutex.borrow(_handle.cs_token).borrow_mut();
                 f(dispatcher_handle.as_mut());
             }
         }
@@ -108,7 +119,7 @@ impl GlobalDispatcherHandle {
 impl Drop for GlobalDispatcherHandle {
     fn drop(&mut self) {
         if let Some(handle) = &self.inner {
-            // SAFETY: restore state received the corresponding call to `critical_sectino::acquire`
+            // SAFETY: restore state received from the corresponding call to `critical_sectino::acquire`
             unsafe { critical_section::release(handle.restore_state) }
         }
     }
