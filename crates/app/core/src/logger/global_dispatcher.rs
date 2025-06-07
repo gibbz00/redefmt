@@ -2,14 +2,7 @@ use core::sync::atomic::{AtomicU8, Ordering};
 
 use crate::*;
 
-enum GlobalDispatcherKind {
-    Static(&'static mut dyn Dispatcher),
-    // IMPROVEMENT: use unsafe cell?
-    #[cfg(feature = "alloc")]
-    Boxed(critical_section::Mutex<core::cell::RefCell<alloc::boxed::Box<dyn Dispatcher + Sync + Send>>>),
-}
-
-static mut GLOBAL_DISPATCHER: Option<GlobalDispatcherKind> = None;
+static mut GLOBAL_DISPATCHER: Option<&'static mut dyn Dispatcher> = None;
 
 static GLOBAL_DISPATCHER_STATE: AtomicU8 = AtomicU8::new(UNINITIALIZED);
 
@@ -21,19 +14,13 @@ pub struct GlobalDispatcher;
 
 impl GlobalDispatcher {
     #[cfg(feature = "alloc")]
-    pub fn init_alloc(dispatcher: impl Dispatcher + Send + Sync + 'static) -> Result<(), GlobalLoggerError> {
-        let kind = GlobalDispatcherKind::Boxed(critical_section::Mutex::new(core::cell::RefCell::new(
-            alloc::boxed::Box::new(dispatcher),
-        )));
-        Self::init_impl(kind)
+    pub fn init_boxed(dispatcher: impl Dispatcher + Send + Sync + 'static) -> Result<(), GlobalLoggerError> {
+        use alloc::boxed::Box;
+        let leaked_dispatcher = Box::leak(Box::new(dispatcher));
+        Self::init_static(leaked_dispatcher)
     }
 
     pub fn init_static(dispatcher: &'static mut dyn Dispatcher) -> Result<(), GlobalLoggerError> {
-        let kind = GlobalDispatcherKind::Static(dispatcher);
-        Self::init_impl(kind)
-    }
-
-    fn init_impl(dispatcher: GlobalDispatcherKind) -> Result<(), GlobalLoggerError> {
         GLOBAL_DISPATCHER_STATE
             .compare_exchange(UNINITIALIZED, INITIALIZING, Ordering::SeqCst, Ordering::SeqCst)
             .map_err(|_| GlobalLoggerError::LoggerAlreadyInitialized)?;
@@ -54,70 +41,38 @@ impl GlobalDispatcher {
             true => {
                 let restore_state = unsafe { critical_section::acquire() };
 
-                // SAFETY: cs_token created after a `critical_section::acquire` call
-                #[cfg(feature = "alloc")]
-                let cs_token = unsafe { critical_section::CriticalSection::new() };
-
-                let inner = GlobalDispatcherHandleInner {
-                    restore_state,
-                    #[cfg(feature = "alloc")]
-                    cs_token,
-                };
-
-                GlobalDispatcherHandle { inner: Some(inner) }
+                GlobalDispatcherHandle { restore_state: Some(restore_state) }
             }
-            false => GlobalDispatcherHandle { inner: None },
+            false => GlobalDispatcherHandle { restore_state: None },
         }
     }
 }
 
 pub struct GlobalDispatcherHandle {
-    inner: Option<GlobalDispatcherHandleInner>,
-}
-
-pub struct GlobalDispatcherHandleInner {
-    restore_state: critical_section::RestoreState,
-    #[cfg(feature = "alloc")]
-    cs_token: critical_section::CriticalSection<'static>,
+    restore_state: Option<critical_section::RestoreState>,
 }
 
 impl GlobalDispatcherHandle {
     pub fn get(&mut self, f: impl FnOnce(&mut dyn Dispatcher)) {
-        // leading underscore since its contents are only used in the
-        // `alloc` feature. DO NOT move after `dispatche_ref`
-        // declaration.
-        let Some(_handle) = &self.inner else {
-            return;
-        };
-
         // SAFETY:
         // Inner handle only set to `Option::Some` if in initialized state, and initialized state is
-        // only set once. Static mut ref therefore should therefore be sound.
-        let dispatcher_ref = unsafe {
+        // only set once. Static mut ref should therefore be sound.
+        let maybe_dispatcher = unsafe {
             #[allow(static_mut_refs)]
             GLOBAL_DISPATCHER.as_mut()
-        }
-        .expect("handle set when global dispatcher was not set");
+        };
 
-        match dispatcher_ref {
-            GlobalDispatcherKind::Static(dispatcher) => {
-                f(*dispatcher);
-            }
-            #[cfg(feature = "alloc")]
-            GlobalDispatcherKind::Boxed(dispatcher_mutex) => {
-                // - called within a critical section for the boxed variant
-                let mut dispatcher_handle = dispatcher_mutex.borrow(_handle.cs_token).borrow_mut();
-                f(dispatcher_handle.as_mut());
-            }
+        if let Some(dispatcher) = maybe_dispatcher {
+            f(*dispatcher)
         }
     }
 }
 
 impl Drop for GlobalDispatcherHandle {
     fn drop(&mut self) {
-        if let Some(handle) = &self.inner {
+        if let Some(restore_state) = self.restore_state {
             // SAFETY: restore state received from the corresponding call to `critical_sectino::acquire`
-            unsafe { critical_section::release(handle.restore_state) }
+            unsafe { critical_section::release(restore_state) }
         }
     }
 }
@@ -130,7 +85,7 @@ mod tests {
     fn init_and_get() {
         let shared_dispatcher = SharedTestDispatcher::new();
 
-        GlobalDispatcher::init_alloc(shared_dispatcher.clone()).unwrap();
+        GlobalDispatcher::init_boxed(shared_dispatcher.clone()).unwrap();
 
         shared_dispatcher.assert_bytes(&[]);
 
@@ -140,6 +95,6 @@ mod tests {
 
         shared_dispatcher.assert_bytes(&bytes);
 
-        assert!(GlobalDispatcher::init_alloc(shared_dispatcher).is_err());
+        assert!(GlobalDispatcher::init_boxed(shared_dispatcher).is_err());
     }
 }

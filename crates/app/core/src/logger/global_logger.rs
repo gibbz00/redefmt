@@ -20,7 +20,7 @@ impl GlobalLogger {
             GlobalStamper::init(stamper)?;
         }
 
-        GlobalDispatcher::init_alloc(dispatcher)
+        GlobalDispatcher::init_boxed(dispatcher)
     }
 
     pub fn init_static_logger(
