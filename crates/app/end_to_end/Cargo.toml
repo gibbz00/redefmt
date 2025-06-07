@@ -26,10 +26,13 @@ print = ["redefmt/print"]
 workspace = true
 
 [dependencies]
-redefmt.workspace = true
 redefmt-core = { workspace = true, features = ["testing"], optional = true }
 redefmt-decoder = { workspace = true, optional = true }
 redefmt-pretty-printer = { workspace = true, optional = true }
 
-critical-section = { version = "1.2", features = ["std"] }
 log = { version = "0.4", features = ["std"], optional = true }
+
+[dev-dependencies]
+redefmt.workspace = true
+
+critical-section = { version = "1.2", features = ["std"] }

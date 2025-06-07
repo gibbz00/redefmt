@@ -1,8 +1,7 @@
 //! redefmt-end-to-end
 //!
 //! End to end testing with all permutations of deferred and non-deferred
-//! formatting. Not placed in a tests directory as dev-dependencies don't
-//! support optional dependencies.
+//! formatting.
 //!
 //! Usually executed with `cargo hack --package redefmt-end-to-end --feature-powerset test`
 #![allow(missing_docs)]
