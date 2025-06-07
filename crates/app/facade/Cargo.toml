@@ -20,10 +20,14 @@ deferred = ["dep:redefmt-macros", "redefmt-core/deferred"]
 deferred-logger = ["deferred", "redefmt-core/deferred-logger"]
 deferred-logger-macros = ["deferred-logger", "redefmt-macros/logger"]
 
+log-compat = ["dep:log"]
 print-compat = ["std"]
 
 [dependencies]
 redefmt-core.workspace = true
 
-# feature: macros
+# feature: deferred
 redefmt-macros = { workspace = true, optional = true }
+
+# feature: log-compat
+log = { version = "0.4", optional = true }

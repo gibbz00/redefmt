@@ -49,3 +49,6 @@ macro_rules! writeln {
 
 #[cfg(all(feature = "print-compat", not(feature = "deferred")))]
 pub use std::{print, println};
+
+#[cfg(all(feature = "log-compat", not(feature = "deferred")))]
+pub use log::{Level, debug, error, info, log, trace, warn};
