@@ -1,5 +1,5 @@
 use bytes::BytesMut;
-use redefmt_core::codec::frame::PointerWidth;
+use redefmt_core::frame::PointerWidth;
 
 use crate::*;
 

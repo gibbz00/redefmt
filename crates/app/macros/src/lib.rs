@@ -55,25 +55,25 @@ pub fn log(token_stream: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn trace(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Trace)
+    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Trace)
 }
 
 #[proc_macro]
 pub fn debug(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Debug)
+    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Debug)
 }
 
 #[proc_macro]
 pub fn info(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Info)
+    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Info)
 }
 
 #[proc_macro]
 pub fn warn(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Warn)
+    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Warn)
 }
 
 #[proc_macro]
 pub fn error(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Error)
+    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Error)
 }

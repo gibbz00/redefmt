@@ -1,7 +1,7 @@
 use bytes::{Buf, BytesMut};
-use redefmt_core::codec::{
-    StatementWriterHint,
+use redefmt_core::{
     frame::{PointerWidth, TypeHint},
+    write::StatementWriterHint,
 };
 
 use crate::*;

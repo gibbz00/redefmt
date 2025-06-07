@@ -1,6 +1,6 @@
 use bytes::{Buf, BytesMut};
 use redefmt_core::{
-    codec::frame::{Header, Stamp},
+    frame::{Header, Stamp},
     identifiers::{CrateId, PrintStatementId},
 };
 use redefmt_db::StateDir;
@@ -130,7 +130,7 @@ mod mock {
 mod tests {
     use bytes::BufMut;
     use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
-    use redefmt_core::{SimpleTestDispatcher, codec::WriteValue};
+    use redefmt_core::{SimpleTestDispatcher, write::WriteValue};
     use redefmt_db::{
         Table,
         crate_table::{Crate, CrateName},

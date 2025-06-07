@@ -1,7 +1,7 @@
 use bytes::{Buf, BufMut, BytesMut};
 use encode_unicode::CharExt;
 use redefmt_core::{
-    codec::frame::{PointerWidth, TypeHint},
+    frame::{PointerWidth, TypeHint},
     identifiers::CrateId,
 };
 
@@ -227,7 +227,7 @@ mod tests {
     use redefmt_args::{identifier::AnyIdentifier, processed_format_string};
     use redefmt_core::{
         Dispatcher, SimpleTestDispatcher,
-        codec::{StatementWriterHint, WriteValue},
+        write::{StatementWriterHint, WriteValue},
     };
     use redefmt_db::{
         Table,

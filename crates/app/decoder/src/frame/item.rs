@@ -1,5 +1,5 @@
 use redefmt_args::processor::ProcessedFormatString;
-use redefmt_core::codec::frame::{Level, Stamp};
+use redefmt_core::frame::{Level, Stamp};
 use redefmt_db::{crate_table::CrateName, statement_table::print::PrintStatement};
 
 use crate::*;

@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use redefmt_args::FormatExpression;
-use redefmt_core::codec::frame::Level;
+use redefmt_core::frame::Level;
 use redefmt_db::{
     Table,
     statement_table::print::{Location, PrintStatement},

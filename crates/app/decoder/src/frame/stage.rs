@@ -1,4 +1,4 @@
-use redefmt_core::codec::frame::{Header, Level, Stamp};
+use redefmt_core::frame::{Header, Level, Stamp};
 use redefmt_db::{crate_table::CrateName, statement_table::print::PrintStatement};
 
 use crate::*;

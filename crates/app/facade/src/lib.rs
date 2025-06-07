@@ -10,7 +10,7 @@ pub use deferred::*;
 mod deferred {
     #[doc(hidden)]
     pub use redefmt_core::identifiers;
-    pub use redefmt_core::{Format, Formatter, codec::frame::Level, logger};
+    pub use redefmt_core::{Format, Formatter, frame::Level, logger};
     pub use redefmt_macros::{Format, debug, error, info, log, print, println, trace, warn, write, writeln};
 }
 
