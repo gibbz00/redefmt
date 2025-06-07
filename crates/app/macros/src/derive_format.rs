@@ -40,7 +40,7 @@ pub fn macro_impl(token_stream: TokenStream) -> TokenStream {
             let formatter_ident = format_ident!("f");
 
             ::quote::quote! {
-                #formatter_ident.write_deferred((
+                #formatter_ident.write((
                     ::redefmt::identifiers::CrateId::new(#crate_id_inner),
                     ::redefmt::identifiers::TypeStructureId::new(#statement_id_inner)
                 ))
@@ -132,7 +132,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
 
                     quote! {
                         #ident::#variant_ident { #(#field_idents),* } => {
-                            f.write_raw_deferred(#variant_index);
+                            f.write_raw(#variant_index);
                             #(#field_idents.fmt(f)?;)*
                         }
                     }
@@ -144,7 +144,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
 
                     quote! {
                         #ident::#variant_ident(#(#tuple_idents),*) => {
-                            f.write_raw_deferred(#variant_index);
+                            f.write_raw(#variant_index);
                             #(#tuple_idents.fmt(f)?;)*
                         }
                     }
@@ -152,7 +152,7 @@ fn enum_impl(ident: &Ident, enum_struct: DataEnum) -> (TypeStructureVariant, Tok
                 Fields::Unit => {
                     quote! {
                         #ident::#variant_ident => {
-                            f.write_raw_deferred(#variant_index);
+                            f.write_raw(#variant_index);
                         }
                     }
                 }

@@ -25,12 +25,12 @@ impl<'a> Formatter<'a> {
 
     // Monomorphization should be ok here since `WriteValue` is sealed
     #[doc(hidden)]
-    pub fn write_deferred(&mut self, value: impl WriteValue) {
+    pub fn write(&mut self, value: impl WriteValue) {
         value.write_value(self.dispatcher);
     }
 
     #[doc(hidden)]
-    pub fn write_raw_deferred(&mut self, value: impl WriteValue) {
+    pub fn write_raw(&mut self, value: impl WriteValue) {
         value.write_raw(self.dispatcher);
     }
 }
