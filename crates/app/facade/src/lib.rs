@@ -1,12 +1,11 @@
 //! redefmt - Redefined Deferred Formatting
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 // TEMP:
 #![allow(missing_docs)]
 
 #[cfg(feature = "deferred")]
 mod deferred {
-    #[cfg(feature = "deferred-macros")]
     pub use redefmt_macros::Format;
     //
     mod export {
@@ -27,27 +26,26 @@ mod base {
     pub use redefmt_core::{Dispatcher, Format, Formatter};
 }
 pub use base::*;
+#[cfg(feature = "deferred")]
+pub use redefmt_macros::{write, writeln};
 
-mod write {
-    #[cfg(feature = "deferred-macros")]
-    pub use redefmt_macros::{write, writeln};
-
-    #[cfg(not(feature = "deferred-macros"))]
-    #[macro_export]
-    macro_rules! write {
-        ($($tt:tt)*) => {{
-            use ::core::fmt::Write as  _;
-            ::core::write!($($tt)*)
-        }};
-    }
-
-    #[cfg(not(feature = "deferred-macros"))]
-    #[macro_export]
-    macro_rules! writeln {
-        ($($tt:tt)*) => {{
-            use ::core::fmt::Write as  _;
-            ::core::writeln!($($tt)*)
-        }};
-    }
+#[cfg(not(feature = "deferred"))]
+#[macro_export]
+macro_rules! write {
+    ($($tt:tt)*) => {{
+        use ::core::fmt::Write as  _;
+        ::core::write!($($tt)*)
+    }};
 }
-pub use write::*;
+
+#[cfg(not(feature = "deferred"))]
+#[macro_export]
+macro_rules! writeln {
+    ($($tt:tt)*) => {{
+        use ::core::fmt::Write as  _;
+        ::core::writeln!($($tt)*)
+    }};
+}
+
+#[cfg(all(feature = "print-compat", not(feature = "deferred")))]
+pub use std::{print, println};

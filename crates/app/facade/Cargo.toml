@@ -14,10 +14,13 @@ workspace = true
 
 [features]
 alloc = ["redefmt-core/alloc"]
-deferred = ["redefmt-core/deferred"]
+std = ["alloc"]
+
+deferred = ["dep:redefmt-macros", "redefmt-core/deferred"]
 deferred-logger = ["deferred", "redefmt-core/deferred-logger"]
-deferred-logger-macros = ["deferred-macros", "redefmt-macros/logger"]
-deferred-macros = ["deferred", "dep:redefmt-macros"]
+deferred-logger-macros = ["deferred-logger", "redefmt-macros/logger"]
+
+print-compat = ["std"]
 
 [dependencies]
 redefmt-core.workspace = true

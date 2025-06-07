@@ -1,8 +1,5 @@
 use core::sync::atomic::{AtomicU8, Ordering};
 
-#[cfg(feature = "alloc")]
-use critical_section::CriticalSection;
-
 use crate::*;
 
 enum GlobalDispatcherKind {
@@ -81,7 +78,7 @@ pub struct GlobalDispatcherHandle {
 pub struct GlobalDispatcherHandleInner {
     restore_state: critical_section::RestoreState,
     #[cfg(feature = "alloc")]
-    cs_token: CriticalSection<'static>,
+    cs_token: critical_section::CriticalSection<'static>,
 }
 
 impl GlobalDispatcherHandle {
