@@ -1,3 +1,11 @@
+short_id_newtype!(CrateId);
+
+short_id_newtype!(PrintStatementId);
+
+short_id_newtype!(WriteStatementId);
+
+short_id_newtype!(TypeStructureId);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ShortId(pub(crate) u16);
 
