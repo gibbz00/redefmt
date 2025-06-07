@@ -1,0 +1,27 @@
+[package]
+name = "redefmt-end-to-end"
+
+authors.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+publish = false
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[features]
+deferred = ["dep:redefmt-core", "dep:redefmt-decoder", "redefmt/deferred-alloc"]
+log-compat = []
+print-compat = []
+
+[lints]
+workspace = true
+
+[dependencies]
+redefmt = { workspace = true, optional = true }
+redefmt-core = { workspace = true, features = ["testing"], optional = true }
+redefmt-decoder = { workspace = true, optional = true }
+redefmt-pretty-printer = { workspace = true, optional = true }
+
+critical-section = { version = "1.2", features = ["std"] }

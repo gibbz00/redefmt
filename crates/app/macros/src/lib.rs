@@ -40,40 +40,80 @@ pub fn writeln(token_stream: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn print(token_stream: TokenStream) -> TokenStream {
-    print_statement::print_macro_impl(token_stream, false)
+    print_statement::print_macro_impl(token_stream, false, false)
+}
+
+#[proc_macro]
+pub fn print_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::print_macro_impl(token_stream, true, false)
 }
 
 #[proc_macro]
 pub fn println(token_stream: TokenStream) -> TokenStream {
-    print_statement::print_macro_impl(token_stream, true)
+    print_statement::print_macro_impl(token_stream, false, true)
+}
+
+#[proc_macro]
+pub fn println_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::print_macro_impl(token_stream, true, true)
 }
 
 #[proc_macro]
 pub fn log(token_stream: TokenStream) -> TokenStream {
-    print_statement::log_macro_impl(token_stream)
+    print_statement::log_macro_impl(token_stream, false)
+}
+
+#[proc_macro]
+pub fn log_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::log_macro_impl(token_stream, true)
 }
 
 #[proc_macro]
 pub fn trace(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Trace)
+    print_statement::shorthand_log_macro_impl(token_stream, false, redefmt_core::frame::Level::Trace)
+}
+
+#[proc_macro]
+pub fn trace_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::shorthand_log_macro_impl(token_stream, true, redefmt_core::frame::Level::Trace)
 }
 
 #[proc_macro]
 pub fn debug(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Debug)
+    print_statement::shorthand_log_macro_impl(token_stream, false, redefmt_core::frame::Level::Debug)
+}
+
+#[proc_macro]
+pub fn debug_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::shorthand_log_macro_impl(token_stream, true, redefmt_core::frame::Level::Debug)
 }
 
 #[proc_macro]
 pub fn info(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Info)
+    print_statement::shorthand_log_macro_impl(token_stream, false, redefmt_core::frame::Level::Info)
+}
+
+#[proc_macro]
+pub fn info_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::shorthand_log_macro_impl(token_stream, true, redefmt_core::frame::Level::Info)
 }
 
 #[proc_macro]
 pub fn warn(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Warn)
+    print_statement::shorthand_log_macro_impl(token_stream, false, redefmt_core::frame::Level::Warn)
+}
+
+#[proc_macro]
+pub fn warn_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::shorthand_log_macro_impl(token_stream, true, redefmt_core::frame::Level::Warn)
 }
 
 #[proc_macro]
 pub fn error(token_stream: TokenStream) -> TokenStream {
-    print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::frame::Level::Error)
+    print_statement::shorthand_log_macro_impl(token_stream, false, redefmt_core::frame::Level::Error)
+}
+
+#[proc_macro]
+pub fn error_compat(token_stream: TokenStream) -> TokenStream {
+    print_statement::shorthand_log_macro_impl(token_stream, true, redefmt_core::frame::Level::Error)
 }

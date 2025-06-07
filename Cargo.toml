@@ -20,6 +20,7 @@ redefmt-core = { path = "crates/app/core" }
 redefmt-db = { path = "crates/app/db" }
 redefmt-decoder = { path = "crates/app/decoder" }
 redefmt-macros = { path = "crates/app/macros" }
+redefmt-pretty-printer = { path = "crates/app/pretty_printer" }
 redefmt-utils-tupler = { path = "crates/utils/tupler" }
 
 [workspace.lints.rust]

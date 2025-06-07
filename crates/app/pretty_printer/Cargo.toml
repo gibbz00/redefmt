@@ -13,16 +13,8 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-# Internal
 redefmt-args.workspace = true
 redefmt-decoder.workspace = true
 
 chrono = { version = "0.4.41", default-features = false, features = ["now", "std"] }
 thiserror = "2.0"
-
-[dev-dependencies]
-redefmt = { workspace = true, features = ["deferred", "deferred-alloc"] }
-redefmt-core = { workspace = true, features = ["testing"] }
-
-# External
-critical-section = { version = "1.2", features = ["std"] }
