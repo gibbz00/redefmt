@@ -120,7 +120,19 @@ jobs:
       - name: Build setup
         uses: ./.github/actions/build_setup
       - name: Run tests
-        run: cargo test --all-features -- --include-ignored --nocapture
+        run: cargo test --workspace --exclude redefmt-end-to-end -- --nocapture
+  cargo_hack_end_to_end:
+    name: Execute End to End Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Build setup
+        uses: ./.github/actions/build_setup
+      - name: cargo hack setup
+        uses: taiki-e/install-action@cargo-hack
+      - name: Run tests
+        run: cargo hack --package redefmt-end-to-end --feature-powerset --skip default test
   mdbook_validation:
     name: User Documentation Validation
     runs-on: ubuntu-latest

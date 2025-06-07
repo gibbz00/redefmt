@@ -491,6 +491,7 @@ name = "redefmt-end-to-end"
 version = "0.1.0"
 dependencies = [
  "critical-section",
+ "log",
  "redefmt",
  "redefmt-core",
  "redefmt-decoder",
