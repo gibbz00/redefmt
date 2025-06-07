@@ -4,9 +4,9 @@ pub trait Stamper {
     fn stamp(&self) -> Stamp;
 }
 
-#[cfg(feature = "deferred-testing")]
+#[cfg(feature = "testing")]
 pub use test_stamper::TestStamper;
-#[cfg(feature = "deferred-testing")]
+#[cfg(feature = "testing")]
 mod test_stamper {
     use core::sync::atomic::{AtomicU64, Ordering};
 

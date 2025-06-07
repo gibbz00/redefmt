@@ -7,7 +7,7 @@ impl core::fmt::Display for ShortId {
     }
 }
 
-#[cfg(feature = "deferred-db")]
+#[cfg(feature = "db")]
 mod db {
     use rusqlite::{
         ToSql,
@@ -57,7 +57,7 @@ macro_rules! short_id_newtype {
             }
         }
 
-        #[cfg(feature = "deferred-db")]
+        #[cfg(feature = "db")]
         $crate::sql_newtype!($id);
     };
 }

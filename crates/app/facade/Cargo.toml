@@ -13,20 +13,17 @@ version.workspace = true
 workspace = true
 
 [features]
-alloc = ["redefmt-core/alloc"]
-std = ["alloc"]
+std = []
 
-deferred = ["dep:redefmt-macros", "redefmt-core/deferred"]
-deferred-logger = ["deferred", "redefmt-core/deferred-logger"]
-deferred-logger-macros = ["deferred-logger", "redefmt-macros/logger"]
+deferred = ["dep:redefmt-core", "dep:redefmt-macros"]
+deferred-alloc = ["redefmt-core/alloc"]
 
 log-compat = ["dep:log"]
 print-compat = ["std"]
 
 [dependencies]
-redefmt-core.workspace = true
-
 # feature: deferred
+redefmt-core = { workspace = true, optional = true }
 redefmt-macros = { workspace = true, optional = true }
 
 # feature: log-compat

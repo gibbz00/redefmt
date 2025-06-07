@@ -7,11 +7,29 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "deferred")]
-mod deferred;
-#[cfg(feature = "deferred")]
-pub use deferred::*;
+mod format;
+pub use format::{Format, Formatter};
 
-// base
-mod base;
-pub use base::*;
+mod dispatcher;
+pub use dispatcher::Dispatcher;
+#[cfg(test)]
+pub use dispatcher::NoopTestDispatcher;
+#[cfg(feature = "testing")]
+pub use dispatcher::{SharedTestDispatcher, SimpleTestDispatcher};
+
+mod statement_writer;
+pub use statement_writer::StatementWriter;
+
+pub mod logger;
+pub(crate) use logger::*;
+
+pub mod codec;
+pub(crate) use codec::*;
+
+pub mod identifiers;
+pub(crate) use identifiers::*;
+
+#[cfg(feature = "db")]
+mod sql_utils;
+#[cfg(feature = "db")]
+pub(crate) use sql_utils::sql_newtype;

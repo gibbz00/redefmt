@@ -331,11 +331,8 @@ pub mod config {
 
 #[cfg(test)]
 mod tests {
-    use redefmt::{
-        Level,
-        logger::{GlobalLogger, TestStamper},
-    };
-    use redefmt_core::SharedTestDispatcher;
+    use redefmt::{Level, logger::GlobalLogger};
+    use redefmt_core::{SharedTestDispatcher, logger::TestStamper};
     use redefmt_decoder::{RedefmtDecoder, RedefmtDecoderCache};
 
     use crate::*;

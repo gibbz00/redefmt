@@ -9,9 +9,6 @@ readme.workspace = true
 repository.workspace = true
 version.workspace = true
 
-[features]
-logger = []
-
 [lib]
 proc-macro = true
 
@@ -21,7 +18,7 @@ workspace = true
 [dependencies]
 # Internal
 redefmt-args = { workspace = true, features = ["syn"] }
-redefmt-core = { workspace = true, features = ["deferred"] }
+redefmt-core.workspace = true
 redefmt-db.workspace = true
 
 # External

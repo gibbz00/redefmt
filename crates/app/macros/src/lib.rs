@@ -18,7 +18,6 @@ mod derive_format;
 
 mod write_statement;
 
-#[cfg(feature = "logger")]
 mod print_statement;
 
 mod statement_utils;
@@ -39,49 +38,41 @@ pub fn writeln(token_stream: TokenStream) -> TokenStream {
     write_statement::macro_impl(token_stream, true)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn print(token_stream: TokenStream) -> TokenStream {
     print_statement::print_macro_impl(token_stream, false)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn println(token_stream: TokenStream) -> TokenStream {
     print_statement::print_macro_impl(token_stream, true)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn log(token_stream: TokenStream) -> TokenStream {
     print_statement::log_macro_impl(token_stream)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn trace(token_stream: TokenStream) -> TokenStream {
     print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Trace)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn debug(token_stream: TokenStream) -> TokenStream {
     print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Debug)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn info(token_stream: TokenStream) -> TokenStream {
     print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Info)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn warn(token_stream: TokenStream) -> TokenStream {
     print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Warn)
 }
 
-#[cfg(feature = "logger")]
 #[proc_macro]
 pub fn error(token_stream: TokenStream) -> TokenStream {
     print_statement::shorthand_log_macro_impl(token_stream, redefmt_core::codec::frame::Level::Error)

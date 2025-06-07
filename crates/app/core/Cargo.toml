@@ -15,31 +15,23 @@ workspace = true
 [features]
 alloc = []
 
-base-testing = ["alloc", "dep:bytes", "dep:critical-section"]
-
-deferred = ["dep:bitflags", "dep:redefmt-utils-tupler"]
-deferred-db = ["deferred", "dep:rusqlite"]
-deferred-logger = ["deferred", "dep:critical-section"]
-deferred-testing = ["deferred"]
+db = ["dep:rusqlite"]
+testing = ["alloc", "dep:bytes"]
 
 [dependencies]
-# feature: base-testing
-bytes = { version = "1.10", default-features = false, optional = true }
+redefmt-utils-tupler.workspace = true
 
-# feature: deferred
-bitflags = { version = "2.9.1", optional = true }
-redefmt-utils-tupler = { workspace = true, optional = true }
+bitflags = "2.9.1"
+critical-section = "1.2"
 
-# feature: deferred-logger
-critical-section = { version = "1.2", optional = true }
-
-# feature: deferred-db
+# feature: db
 rusqlite = { version = "0.35", features = ["bundled"], optional = true }
 
+# feature: testing
+bytes = { version = "1.10", default-features = false, optional = true }
 
 [dev-dependencies]
-# Internal
-redefmt-core = { path = ".", features = ["base-testing", "deferred-testing"] }
+critical-section = { version = "1.2", features = ["std"] }
+redefmt-core = { path = ".", features = ["db", "testing"] }
 
-# External
 num-traits = "0.2"

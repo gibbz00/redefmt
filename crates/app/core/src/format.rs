@@ -22,10 +22,7 @@ impl<'a> Formatter<'a> {
     pub fn write_statements<'r>(&'r mut self) -> StatementWriter<'r, 'a> {
         StatementWriter::init(self)
     }
-}
 
-#[cfg(feature = "deferred")]
-impl<'a> Formatter<'a> {
     // Monomorphization should be ok here since `WriteValue` is sealed
     #[doc(hidden)]
     pub fn write_deferred(&mut self, value: impl WriteValue) {
