@@ -42,6 +42,26 @@ mod db {
     }
 }
 
+#[cfg(feature = "db")]
+// https://github.com/rusqlite/rusqlite/issues/1436
+macro_rules! sql_newtype {
+    ($newtype:ty) => {
+        impl rusqlite::ToSql for $newtype {
+            fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+                self.0.to_sql()
+            }
+        }
+
+        impl rusqlite::types::FromSql for $newtype {
+            fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+                rusqlite::types::FromSql::column_result(value).map(Self)
+            }
+        }
+    };
+}
+#[cfg(feature = "db")]
+use sql_newtype;
+
 macro_rules! short_id_newtype {
     ($id:ident) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -66,7 +86,7 @@ macro_rules! short_id_newtype {
         }
 
         #[cfg(feature = "db")]
-        $crate::sql_newtype!($id);
+        sql_newtype!($id);
     };
 }
-pub(crate) use short_id_newtype;
+use short_id_newtype;
